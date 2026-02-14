@@ -65,7 +65,7 @@ const App = () => {
         return {
           key: name,
           icon: moduleIcons[name] || null,
-          label: name.toUpperCase(),
+          label: name.charAt(0).toUpperCase() + name.slice(1),
           children: menuItems,
         };
       });
