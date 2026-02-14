@@ -16,12 +16,12 @@ import {
   Divider,
 } from "antd";
 import {
-  DollarOutlined,
   FileTextOutlined,
   BarChartOutlined,
   ReloadOutlined,
   ShopOutlined,
 } from "@ant-design/icons";
+import { IndianRupee } from "lucide-react";
 import dayjs from "dayjs";
 import reportService from "../service/reportService";
 import { useBranch } from "../../context/BranchContext";
@@ -46,7 +46,7 @@ function SalesReport() {
     setLoading(true);
     try {
       const params = { period };
-      
+
       if (period === "custom" && dateRange) {
         params.startDate = dateRange[0].toISOString();
         params.endDate = dateRange[1].toISOString();
@@ -294,7 +294,7 @@ function SalesReport() {
                   <Statistic
                     title={`Total Sales - ${getPeriodLabel()}`}
                     value={reportData.summary.total_sales}
-                    prefix={<DollarOutlined />}
+                    prefix={<IndianRupee size={20} />}
                     precision={2}
                     valueStyle={{ color: "#3f8600" }}
                   />
@@ -323,11 +323,10 @@ function SalesReport() {
               </Col>
             </Row>
 
-            {/* Payment Method Breakdown */}
             <Card
               title={
                 <Space>
-                  <DollarOutlined />
+                  <IndianRupee size={20} />
                   <span>Payment Method Breakdown</span>
                 </Space>
               }
