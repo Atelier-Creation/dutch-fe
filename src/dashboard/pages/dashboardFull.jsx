@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { Row, Col, Card, Typography, Skeleton, Select, Tag, Table, Empty } from "antd";
 import StatCard from "./StatCard";
 import {
-  ReceiptIndianRupee, Users, ShoppingBasket, Wallet, TrendingUp, AlertTriangle, Package, ShoppingCart
+  IndianRupee, Users, ShoppingBasket, Wallet, TrendingUp, AlertTriangle, Package, ShoppingCart
 } from 'lucide-react';
 import dashboardService from "../service/dashboardService";
 import { useBranch } from "../../context/BranchContext";
@@ -57,7 +57,7 @@ const DashboardFull = () => {
       value: dashboardData.summary.totalBills,
       meta: `Period: ${dashboardData.summary.periodBills} bills`,
       gradient: "linear-gradient(135deg,#ff8a00,#ff5e3a)",
-      icon: <ReceiptIndianRupee />,
+      icon: <IndianRupee />,
     },
     {
       id: "customers",
@@ -231,7 +231,7 @@ const DashboardFull = () => {
           {/* Recent Bills & Top Products */}
           <Row gutter={[12, 12]} style={{ marginTop: 16 }}>
             <Col xs={24} lg={12}>
-              <Card 
+              <Card
                 title={
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <ShoppingCart size={18} />
@@ -252,7 +252,7 @@ const DashboardFull = () => {
             </Col>
 
             <Col xs={24} lg={12}>
-              <Card 
+              <Card
                 title={
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <TrendingUp size={18} />
@@ -275,7 +275,7 @@ const DashboardFull = () => {
           {/* Low Stock Alert & Payment Methods */}
           <Row gutter={[12, 12]} style={{ marginTop: 16 }}>
             <Col xs={24} lg={12}>
-              <Card 
+              <Card
                 title={
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <AlertTriangle size={18} color="#ff4d4f" />
@@ -300,7 +300,7 @@ const DashboardFull = () => {
             </Col>
 
             <Col xs={24} lg={12}>
-              <Card 
+              <Card
                 title={
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <Wallet size={18} />
@@ -310,9 +310,9 @@ const DashboardFull = () => {
                 style={styles.roundedCard}
               >
                 {dashboardData.paymentMethods.map((pm, idx) => (
-                  <div key={idx} style={{ 
-                    display: "flex", 
-                    justifyContent: "space-between", 
+                  <div key={idx} style={{
+                    display: "flex",
+                    justifyContent: "space-between",
                     padding: "8px 0",
                     borderBottom: idx < dashboardData.paymentMethods.length - 1 ? "1px solid #f0f0f0" : "none"
                   }}>
@@ -326,7 +326,7 @@ const DashboardFull = () => {
               </Card>
 
               {/* Recent Inwards */}
-              <Card 
+              <Card
                 title={
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <Package size={18} />
@@ -336,7 +336,7 @@ const DashboardFull = () => {
                 style={{ ...styles.roundedCard, marginTop: 12 }}
               >
                 {dashboardData.recentInwards.slice(0, 5).map((inward, idx) => (
-                  <div key={idx} style={{ 
+                  <div key={idx} style={{
                     padding: "8px 0",
                     borderBottom: idx < 4 ? "1px solid #f0f0f0" : "none"
                   }}>

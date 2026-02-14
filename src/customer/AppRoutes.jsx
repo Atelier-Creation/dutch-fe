@@ -2,17 +2,18 @@ import { Routes, Route } from "react-router-dom";
 import CustomerList from "./pages/CustomerList";
 import CustomerForm from "./pages/CustomerForm";
 import CustomerDetails from "./pages/CustomerDetails";
+import { List, UserPlus } from "lucide-react";
 
 export const customerMenuItems = [
   {
     key: "/customer/list",
     label: "Customer List",
-    icon: null,
+    icon: <List size={18} />,
   },
   {
     key: "/customer/add",
     label: "Add Customer",
-    icon: null,
+    icon: <UserPlus size={18} />,
   },
 ];
 

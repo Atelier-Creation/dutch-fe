@@ -1,25 +1,26 @@
 // Sidebar.jsx
 import React, { useState, useEffect, useRef } from "react";
+import companyLogo from "../assets/Company_logo.png";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "../../context/ThemeContext";
 import {
-  DownOutlined,
-  UpOutlined,
-  DashboardFilled,
-  UnorderedListOutlined,
-  PlusOutlined,
-  MenuOutlined,
-  CloseOutlined,
-  ShoppingCartOutlined,
-  FileTextFilled,
-  DropboxCircleFilled,
-  DatabaseFilled,
-  MenuFoldOutlined,
-  MenuUnfoldOutlined,
-  SettingFilled,
-} from "@ant-design/icons";
-import { Popover } from "antd";
+  LayoutDashboard,
+  FileText,
+  List,
+  PlusCircle,
+  Box,
+  ShoppingCart,
+  Database,
+  Settings,
+  Menu,
+  X,
+  ChevronDown,
+  ChevronUp,
+  Receipt,
+  IndianRupee
+} from "lucide-react";
+import { Popover, Tooltip } from "antd";
 
 /**
  * Sidebar component
@@ -31,13 +32,7 @@ import { Popover } from "antd";
  * - Settings button is placed at the bottom and becomes active on the /settings route.
  */
 
-const Sidebar = ({ 
-  collapsed = true, 
-  setCollapsed = () => {}, 
-  selectedParent, 
-  setSelectedParent,
-  menuItems: propMenuItems = [] // Add menuItems prop
-}) => {
+const Sidebar = ({ collapsed = true, setCollapsed = () => { }, selectedParent, setSelectedParent, menuItems: propMenuItems }) => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { theme, primaryColor, sidebarBgColor } = useTheme();
@@ -46,9 +41,9 @@ const Sidebar = ({
   const containerRef = useRef(null);
 
   // Colors requested
-  const ACTIVE_BG = "#1C2244";
+  const ACTIVE_BG = primaryColor;
   const ACTIVE_TEXT = "#ffffff";
-  const INACTIVE_TEXT = "#1C2244";
+  const INACTIVE_TEXT = theme === "dark" ? "#D1D5DB" : "#374151"; // Gray-300 dark, Gray-700 light
   const INACTIVE_BG = "transparent";
 
   // Handle window resize
@@ -72,46 +67,44 @@ const Sidebar = ({
     return () => document.removeEventListener("mousedown", handleDocClick);
   }, [collapsed, isMobile]);
 
-  // === Use prop menuItems or fallback to static menu ===
-  console.log('Sidebar propMenuItems:', propMenuItems);
-  console.log('Sidebar propMenuItems.length:', propMenuItems.length);
-  
-  const menuItems = propMenuItems.length > 0 ? propMenuItems : [
-    { key: "/dashboard", label: "Dashboard", icon: <DashboardFilled /> },
+  // === static menu ===
+  const staticMenuItems = [
+    { key: "/dashboard", label: "Dashboard", icon: <LayoutDashboard size={20} /> },
     {
       key: "Billing",
       label: "Casier Billing",
-      icon: <FileTextFilled />,
+      icon: <IndianRupee size={20} />,
       children: [
-        { key: "/billing/list", label: "Billing List", icon: <UnorderedListOutlined /> },
-        { key: "/billing/add", label: "Add Billing", icon: <PlusOutlined /> },
+        { key: "/billing/list", label: "Billing List", icon: <List size={18} /> },
+        { key: "/billing/add", label: "Add Billing", icon: <PlusCircle size={18} /> },
       ],
     },
-    { key: "/billing/customer-add", label: "Self Checkout", icon: <PlusOutlined /> },
+    { key: "/billing/customer-add", label: "Self Checkout", icon: <PlusCircle size={20} /> },
     {
       key: "Product",
       label: "Product",
-      icon: <DropboxCircleFilled />,
+      icon: <Box size={20} />,
       children: [
-        { key: "/product/list", label: "Product List", icon: <UnorderedListOutlined /> },
-        { key: "/product/add", label: "Add Product", icon: <PlusOutlined /> },
-        { key: "/category/list", label: "Category List", icon: <UnorderedListOutlined /> },
-        { key: "/category/add", label: "Add Category", icon: <PlusOutlined /> },
-        { key: "/subcategory/list", label: "Subcategory List", icon: <UnorderedListOutlined /> },
-        { key: "/subcategory/add", label: "Add Subcategory", icon: <PlusOutlined /> },
+        { key: "/product/list", label: "Product List", icon: <List size={18} /> },
+        { key: "/product/add", label: "Add Product", icon: <PlusCircle size={18} /> },
+        { key: "/category/list", label: "Category List", icon: <List size={18} /> },
+        { key: "/category/add", label: "Add Category", icon: <PlusCircle size={18} /> },
+        { key: "/subcategory/list", label: "Subcategory List", icon: <List size={18} /> },
+        { key: "/subcategory/add", label: "Add Subcategory", icon: <PlusCircle size={18} /> },
       ],
     },
     {
       key: "Inward",
       label: "Inward",
-      icon: <ShoppingCartOutlined />,
+      icon: <ShoppingCart size={20} />,
       children: [
-        { key: "/inward/list", label: "Inward List", icon: <UnorderedListOutlined /> },
-        { key: "/inward/add", label: "Add Inward", icon: <PlusOutlined /> },
+        { key: "/inward/list", label: "Inward List", icon: <List size={18} /> },
+        { key: "/inward/add", label: "Add Inward", icon: <PlusCircle size={18} /> },
       ],
     },
-    { key: "/stock/list", label: "Stocks", icon: <DatabaseFilled /> },
+    { key: "/stock/list", label: "Stocks", icon: <Database size={20} /> },
   ];
+  const menuItems = propMenuItems && propMenuItems.length ? propMenuItems : staticMenuItems;
   // ===================
 
   // determine active state (parents active when any child matches)
@@ -122,44 +115,45 @@ const Sidebar = ({
     const parentItem = menuItems.find((m) => m.key === key);
     if (parentItem && parentItem.children && parentItem.children.length > 0) {
       return parentItem.children.some((c) => {
-        return (
-          pathname === c.key ||
-          pathname.startsWith(c.key + "/") ||
-          pathname.includes(c.key.replace("/list", "").replace("/add", ""))
-        );
+        return pathname === c.key || pathname.startsWith(c.key + "/");
       });
     }
 
     // Otherwise normal match for direct routes
-    return (
-      pathname === key ||
-      pathname.startsWith(key + "/") ||
-      pathname.includes(key.replace("/list", "").replace("/add", ""))
-    );
+    return pathname === key || pathname.startsWith(key + "/");
   };
 
   // Build modern popover content for children (uses exact active/inactive colors requested)
   const buildPopoverContent = (item) => {
-    const bg = theme === "dark" ? "#111827" : "#ffffff";
-    const border = theme === "dark" ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.06)";
+    const bg = theme === "dark" ? "#1f2937" : "#ffffff";
+    const border = theme === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)";
     return (
       <div
+        className="shadow-xl"
         style={{
-          minWidth: 220,
-          borderRadius: 10,
-          boxShadow: "0 8px 30px rgba(2,6,23,0.2)",
+          minWidth: 240,
+          borderRadius: 16,
           background: bg,
           color: INACTIVE_TEXT,
           overflow: "hidden",
           border: `1px solid ${border}`,
+          padding: "8px",
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div style={{ padding: "10px 12px", borderBottom: `1px solid ${border}`, fontWeight: 700, color: INACTIVE_TEXT }}>
+        <div style={{
+          padding: "12px 16px",
+          borderBottom: `1px solid ${border}`,
+          fontWeight: 600,
+          color: theme === "dark" ? "#9CA3AF" : "#6B7280",
+          fontSize: "12px",
+          textTransform: "uppercase",
+          letterSpacing: "0.05em"
+        }}>
           {item.label}
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 6, padding: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4, padding: "8px 0" }}>
           {item.children.map((child) => {
             const active = isActive(child.key);
             return (
@@ -174,19 +168,26 @@ const Sidebar = ({
                 }}
                 role="button"
                 tabIndex={0}
+                className="transition-all duration-200"
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: 10,
-                  padding: "8px 10px",
-                  borderRadius: 8,
+                  gap: 12,
+                  padding: "10px 16px",
+                  borderRadius: 12,
                   cursor: "pointer",
-                  background: active ? ACTIVE_BG : INACTIVE_BG,
-                  color: active ? ACTIVE_TEXT : INACTIVE_TEXT,
-                  fontWeight: active ? 700 : 500,
+                  background: active ? `${primaryColor}15` : "transparent", // transparent bg with 10% opacity primary color for active
+                  color: active ? primaryColor : INACTIVE_TEXT,
+                  fontWeight: active ? 600 : 500,
+                }}
+                onMouseEnter={(e) => {
+                  if (!active) e.currentTarget.style.backgroundColor = theme === "dark" ? "rgba(255,255,255,0.05)" : "#F3F4F6";
+                }}
+                onMouseLeave={(e) => {
+                  if (!active) e.currentTarget.style.backgroundColor = "transparent";
                 }}
               >
-                <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 16, color: active ? ACTIVE_TEXT : INACTIVE_TEXT }}>
+                <span style={{ fontSize: 18 }}>
                   {child.icon}
                 </span>
                 <div style={{ fontSize: 14 }}>{child.label}</div>
@@ -207,34 +208,40 @@ const Sidebar = ({
       return (
         <Popover
           content={buildPopoverContent(item)}
-          trigger="click"
+          trigger="hover" // Changed to hover for faster interaction
           placement="rightTop"
           overlayClassName="sidebar-flyout-popover"
-          visible={openMenu === item.key}
-          onVisibleChange={(visible) => setOpenMenu(visible ? item.key : null)}
+          open={openMenu === item.key}
+          onOpenChange={(visible) => setOpenMenu(visible ? item.key : null)}
           getPopupContainer={() => containerRef.current || document.body} // render inside sidebar container
           destroyTooltipOnHide
-          overlayStyle={{ zIndex: 3000 }}
+          overlayStyle={{ zIndex: 3000, paddingLeft: 10 }}
         >
           <div
+            className="transition-all duration-200"
             style={{
-              padding: 8,
+              padding: 12,
               cursor: "pointer",
-              margin: "8px 0", // slightly larger vertical spacing when collapsed for better centering
-              borderRadius: 8,
+              margin: "8px 0",
+              borderRadius: 12,
               display: "flex",
               alignItems: "center",
-              justifyContent: "center", // centered when collapsed
-              color: active ? ACTIVE_TEXT : INACTIVE_TEXT,
-              background: active ? ACTIVE_BG : INACTIVE_BG,
-              fontWeight: active ? "bold" : 500,
-              transition: "all 0.15s ease",
+              justifyContent: "center",
+              color: active ? "#ffffff" : INACTIVE_TEXT,
+              background: active ? primaryColor : "transparent",
+              boxShadow: active ? `0 4px 12px ${primaryColor}40` : "none",
             }}
             onClick={(e) => {
               e.stopPropagation();
             }}
+            onMouseEnter={(e) => {
+              if (!active) e.currentTarget.style.backgroundColor = theme === "dark" ? "rgba(255,255,255,0.05)" : "#F3F4F6";
+            }}
+            onMouseLeave={(e) => {
+              if (!active) e.currentTarget.style.backgroundColor = "transparent";
+            }}
           >
-            <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 20, color: active ? ACTIVE_TEXT : INACTIVE_TEXT }}>
+            <span style={{ fontSize: 22 }}>
               {item.icon}
             </span>
           </div>
@@ -243,7 +250,7 @@ const Sidebar = ({
     }
 
     // Normal behavior (not collapsed or mobile)
-    return (
+    const button = (
       <div
         onClick={() => {
           if (item.children) {
@@ -254,29 +261,44 @@ const Sidebar = ({
             setOpenMenu(null);
           }
         }}
+        className="group transition-all duration-200"
         style={{
-          padding: collapsed && !isMobile ? 8 : "8px 16px",
+          padding: collapsed && !isMobile ? 12 : "12px 16px",
           cursor: "pointer",
           margin: "4px 0",
-          borderRadius: 6,
+          borderRadius: 12,
           display: "flex",
           alignItems: "center",
-          justifyContent: collapsed && !isMobile ? "center" : "flex-start", // center icon when collapsed
-          color: active ? ACTIVE_TEXT : INACTIVE_TEXT,
-          backgroundColor: active ? ACTIVE_BG : INACTIVE_BG,
-          fontWeight: active ? "bold" : 500,
-          transition: "all 0.2s ease",
+          justifyContent: collapsed && !isMobile ? "center" : "flex-start",
+          color: active ? "#ffffff" : INACTIVE_TEXT,
+          backgroundColor: active ? primaryColor : "transparent",
+          boxShadow: active ? `0 4px 6px -1px ${primaryColor}40` : "none",
+          fontWeight: active ? 600 : 500,
+        }}
+        onMouseEnter={(e) => {
+          if (!active) e.currentTarget.style.backgroundColor = theme === "dark" ? "rgba(255,255,255,0.05)" : "#F3F4F6";
+        }}
+        onMouseLeave={(e) => {
+          if (!active) e.currentTarget.style.backgroundColor = "transparent";
         }}
       >
-        <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 18, color: active ? ACTIVE_TEXT : INACTIVE_TEXT }}>
+        <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 20, minWidth: 24 }}>
           {item.icon}
         </span>
         {/* show label only when not collapsed OR on mobile */}
-        {(!collapsed || isMobile) && <span style={{ marginLeft: 10 }}>{item.label}</span>}
+        {(!collapsed || isMobile) && <span style={{ marginLeft: 12 }}>{item.label}</span>}
         {item.children && (!collapsed || isMobile) && (
-          <span style={{ marginLeft: "auto", fontSize: 16, color: active ? ACTIVE_TEXT : INACTIVE_TEXT }}>{openMenu === item.key ? <UpOutlined /> : <DownOutlined />}</span>
+          <span style={{ marginLeft: "auto", fontSize: 14, opacity: 0.7 }}>{openMenu === item.key ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</span>
         )}
       </div>
+    );
+
+    return collapsed && !isMobile ? (
+      <Tooltip title={item.label} placement="right">
+        {button}
+      </Tooltip>
+    ) : (
+      button
     );
   };
 
@@ -301,7 +323,7 @@ const Sidebar = ({
           }}
           onClick={() => setCollapsed((prev) => !prev)}
         >
-          {collapsed ? <CloseOutlined /> : <MenuOutlined />}
+          {collapsed ? <X size={20} /> : <Menu size={20} />}
         </div>
       )}
 
@@ -334,9 +356,9 @@ const Sidebar = ({
               transition={{ duration: 0.3 }}
               style={{
                 height: "100%",
-                width: collapsed && !isMobile ? 60 : isMobile ? 200 : 200,
+                width: collapsed && !isMobile ? 80 : isMobile ? 260 : 260, // Increased width for better spacing
                 backgroundColor: theme === "dark" ? "#1f2937" : sidebarBgColor,
-                boxShadow: "2px 0 5px rgba(0,0,0,0.1)",
+                borderRight: theme === "dark" ? "1px solid #374151" : "1px solid #e5e7eb",
                 display: "flex",
                 flexDirection: "column",
                 position: isMobile ? "fixed" : "relative",
@@ -345,45 +367,37 @@ const Sidebar = ({
                 zIndex: 1601,
               }}
             >
-              {/* Top (toggle) */}
+              {/* Top (Logo) */}
               <div
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: collapsed && !isMobile ? "center" : "space-between",
-                  padding: "10px 12px",
+                  justifyContent: collapsed && !isMobile ? "center" : "flex-start",
+                  padding: collapsed && !isMobile ? "20px 0" : "20px 24px",
+                  height: 80,
+                  borderBottom: theme === "dark" ? "1px solid #374151" : "1px solid #f3f4f6",
+                  marginBottom: 8,
                 }}
               >
-                <div>
-                  <div
-                    onClick={() => setCollapsed((prev) => !prev)}
-                    style={{
-                      cursor: "pointer",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      width: 40,
-                      height: 40,
-                      color: "#ffffff",
-                      background: primaryColor,
-                      borderRadius: 8,
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-                    }}
-                    title={collapsed ? "Open sidebar" : "Close sidebar"}
-                  >
-                    {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-                  </div>
-                </div>
+                <img
+                  src={collapsed && !isMobile ? "/colapslogo.png" : companyLogo}
+                  alt="Logo"
+                  className="transition-all duration-300 hover:scale-105"
+                  style={{
+                    height: collapsed && !isMobile ? 40 : 40,
+                    width: "auto",
+                    cursor: "pointer",
+                    // When collapsed, center it
+                    margin: collapsed && !isMobile ? "0 auto" : "0",
+                  }}
+                  onClick={() => navigate("/dashboard")}
+                />
 
-                {(!collapsed || isMobile) && (
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    {/* small logo intentionally omitted */}
-                  </div>
-                )}
+
               </div>
 
               {/* Menu items */}
-              <div style={{ flexGrow: 1, overflowY: "auto", padding: collapsed && !isMobile ? "8px 4px" : 8 }}>
+              <div className="custom-scrollbar" style={{ flexGrow: 1, overflowY: "auto", padding: "16px 12px" }}>
                 {menuItems.map((item) => (
                   <div key={item.key}>
                     {renderParentButton(item)}
@@ -395,8 +409,8 @@ const Sidebar = ({
                           initial={{ height: 0, opacity: 0 }}
                           animate={{ height: "auto", opacity: 1 }}
                           exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.18 }}
-                          style={{ marginLeft: 24, overflow: "hidden" }}
+                          transition={{ duration: 0.2, ease: "easeInOut" }}
+                          style={{ marginLeft: 12, overflow: "hidden", borderLeft: `2px solid ${theme === "dark" ? "#374151" : "#e5e7eb"}` }} // Tree view line
                         >
                           {item.children.map((child) => {
                             const childActive = isActive(child.key);
@@ -409,21 +423,27 @@ const Sidebar = ({
                                   setOpenMenu(item.key); // keep parent open / active in inline mode
                                   if (isMobile) setCollapsed(false);
                                 }}
+                                className="transition-all duration-200"
                                 style={{
-                                  padding: "6px 8px",
+                                  padding: "8px 12px",
                                   cursor: "pointer",
-                                  margin: "6px 0",
-                                  borderRadius: 6,
+                                  margin: "4px 0 4px 12px",
+                                  borderRadius: 8,
                                   display: "flex",
                                   alignItems: "center",
-                                  color: childActive ? ACTIVE_TEXT : INACTIVE_TEXT,
-                                  backgroundColor: childActive ? ACTIVE_BG : INACTIVE_BG,
-                                  fontWeight: childActive ? "700" : 500,
-                                  transition: "all 0.15s ease",
+                                  color: childActive ? primaryColor : INACTIVE_TEXT,
+                                  backgroundColor: childActive ? `${primaryColor}10` : "transparent",
+                                  fontWeight: childActive ? "600" : 500,
+                                }}
+                                onMouseEnter={(e) => {
+                                  if (!childActive) e.currentTarget.style.backgroundColor = theme === "dark" ? "rgba(255,255,255,0.05)" : "#F3F4F6";
+                                }}
+                                onMouseLeave={(e) => {
+                                  if (!childActive) e.currentTarget.style.backgroundColor = "transparent";
                                 }}
                               >
-                                <span style={{ marginRight: 8, color: childActive ? ACTIVE_TEXT : INACTIVE_TEXT }}>{child.icon}</span>
-                                <span style={{ marginLeft: 8 }}>{child.label}</span>
+                                <span style={{ marginRight: 10, fontSize: 16 }}>{child.icon}</span>
+                                <span style={{ fontSize: 14 }}>{child.label}</span>
                               </div>
                             );
                           })}
@@ -435,28 +455,30 @@ const Sidebar = ({
               </div>
 
               {/* Settings (sticky bottom) */}
-              <div
-                onClick={() => {
-                  navigate("/settings");
-                  if (isMobile) setCollapsed(false);
-                }}
-                role="button"
-                tabIndex={0}
-                style={{
-                  padding: 12,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: collapsed && !isMobile ? "center" : "flex-start",
-                  cursor: "pointer",
-                  marginTop: "auto",
-                  borderTop: `1px solid ${theme === "dark" ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.04)"}`,
-                  backgroundColor: settingsActive ? ACTIVE_BG : INACTIVE_BG,
-                  color: settingsActive ? ACTIVE_TEXT : INACTIVE_TEXT,
-                }}
-              >
-                <SettingFilled style={{ fontSize: 18, color: settingsActive ? ACTIVE_TEXT : INACTIVE_TEXT }} />
-                {(!collapsed || isMobile) && <span style={{ marginLeft: 8, color: settingsActive ? ACTIVE_TEXT : INACTIVE_TEXT }}>Settings</span>}
-              </div>
+              <Tooltip title={collapsed && !isMobile ? "Settings" : ""} placement="right">
+                <div
+                  onClick={() => {
+                    navigate("/settings");
+                    if (isMobile) setCollapsed(false);
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  className="transition-all duration-200 hover:bg-gray-50 dark:hover:bg-gray-800"
+                  style={{
+                    padding: 16,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: collapsed && !isMobile ? "center" : "flex-start",
+                    cursor: "pointer",
+                    marginTop: "auto",
+                    borderTop: `1px solid ${theme === "dark" ? "rgba(255,255,255,0.05)" : "#e5e7eb"}`,
+                    color: settingsActive ? primaryColor : INACTIVE_TEXT,
+                  }}
+                >
+                  <Settings size={20} />
+                  {(!collapsed || isMobile) && <span style={{ marginLeft: 12, fontWeight: 500 }}>Settings</span>}
+                </div>
+              </Tooltip>
             </motion.div>
           </div>
         )}

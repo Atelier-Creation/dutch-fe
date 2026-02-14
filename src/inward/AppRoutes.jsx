@@ -2,17 +2,18 @@
 import { Routes, Route } from "react-router-dom";
 import InwardList from "./pages/InwardList";
 import InwardForm from "./pages/InwardForm";
+import { List, PlusCircle } from "lucide-react";
 
 export const inwardMenuItems = [
   {
     key: "/inward/list",
     label: "Inward List",
-    icon: null, // handled in Sidebar
+    icon: <List size={18} />,
   },
   {
     key: "/inward/add",
     label: "Add Inward",
-    icon: null,
+    icon: <PlusCircle size={18} />,
   },
 ];
 

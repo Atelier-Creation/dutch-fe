@@ -3,6 +3,9 @@ import {
   LogoutOutlined,
   UserOutlined,
   BellFilled,
+  DownOutlined,
+  MenuUnfoldOutlined,
+  MenuFoldOutlined,
 } from "@ant-design/icons";
 import { Dropdown, message, Menu, Popover, Badge, List, Avatar } from "antd";
 import { useTheme } from "../../context/ThemeContext";
@@ -10,7 +13,7 @@ import { useNavigate } from "react-router-dom";
 import companyLogo from "../assets/Company_logo.png";
 import BranchSelector from "../BranchSelector";
 
-const HeaderBar = ({ collapsed /* this is optional */ }) => {
+const HeaderBar = ({ collapsed, setCollapsed }) => {
   const { theme, headerBgColor, headerGradient } = useTheme();
   const navigate = useNavigate();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -26,7 +29,7 @@ const HeaderBar = ({ collapsed /* this is optional */ }) => {
       message.success("Logged out");
       navigate("/");
     } else if (key === "profile") {
-      navigate("/profile");
+      navigate("/settings");
     }
   };
 
@@ -95,27 +98,32 @@ const HeaderBar = ({ collapsed /* this is optional */ }) => {
 
   return (
     <div
-      className="flex justify-between items-center shadow-lg h-14 px-4 py-2"
+      className="flex justify-between items-center px-6 py-2 transition-all duration-300"
       style={{
         ...headerStyle,
+        height: 64,
         position: "sticky",
         top: 0,
         zIndex: 1000,
+        boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
+        borderBottom: theme === "dark" ? "1px solid #374151" : "1px solid #f3f4f6",
       }}
     >
-      {/* Left side: Logo */}
-      <div className="flex items-center gap-3">
-        <img
-          src={companyLogo}
-          alt="Logo"
-          style={{ height: 36, width: "auto", cursor: "pointer" }}
-          onClick={() => navigate("/dashboard")}
-        />
-        <div style={{ color: textColor, fontWeight: 700 }}>Billing Software</div>
+      {/* Left side: Collapse Button */}
+      <div
+        className="cursor-pointer p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+        onClick={() => setCollapsed(!collapsed)}
+        style={{ color: textColor }}
+      >
+        {collapsed ? (
+          <MenuUnfoldOutlined style={{ fontSize: 20 }} />
+        ) : (
+          <MenuFoldOutlined style={{ fontSize: 20 }} />
+        )}
       </div>
 
-      {/* Right side: Branch selector + notifications + user */}
-      <div className="flex items-center gap-4">
+      {/* Right side: notifications + user */}
+      <div className="flex items-center gap-6">
         {/* Branch Selector */}
         <BranchSelector />
 
@@ -124,18 +132,21 @@ const HeaderBar = ({ collapsed /* this is optional */ }) => {
           content={notificationContent}
           trigger="click"
           placement="bottomRight"
+          overlayInnerStyle={{ borderRadius: "12px", padding: 0 }}
         >
-          <Badge count={recentBills.length}>
+          <Badge count={recentBills.length} offset={[-2, 2]} size="small">
             <div
-              className="cursor-pointer p-2 rounded-full"
+              className="cursor-pointer p-2 rounded-full transition-all duration-200 hover:scale-105 active:scale-95"
               style={{
-                background: theme === "dark" ? "#374151" : "#f3f4f6",
+                background: theme === "dark" ? "rgba(255,255,255,0.05)" : "#F3F4F6",
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
+                width: 40,
+                height: 40,
               }}
             >
-              <BellFilled style={{ fontSize: 18, color: textColor }} />
+              <BellFilled style={{ fontSize: 20, color: theme === "dark" ? "#D1D5DB" : "#4B5563" }} />
             </div>
           </Badge>
         </Popover>
@@ -143,15 +154,22 @@ const HeaderBar = ({ collapsed /* this is optional */ }) => {
         {/* User dropdown */}
         <Dropdown overlay={userMenu} placement="bottomRight" trigger={["click"]}>
           <div
-            className="cursor-pointer p-2 rounded-full"
+            className="cursor-pointer flex items-center gap-3 p-1 pr-3 rounded-full border border-transparent hover:border-gray-200 transition-all duration-200"
             style={{
-              background: theme === "dark" ? "#374151" : "#f3f4f6",
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
+              background: theme === "dark" ? "rgba(255,255,255,0.05)" : "#ffffff",
+              boxShadow: theme === "dark" ? "none" : "0 1px 2px rgba(0,0,0,0.05)",
             }}
           >
-            <UserOutlined style={{ fontSize: 18, color: textColor }} />
+            <div
+              className="rounded-full flex items-center justify-center bg-indigo-100 text-indigo-600"
+              style={{ width: 36, height: 36 }}
+            >
+              <UserOutlined style={{ fontSize: 18 }} />
+            </div>
+            <span className="text-sm font-medium hidden sm:block" style={{ color: textColor }}>
+              Admin
+            </span>
+            <DownOutlined style={{ fontSize: 10, color: theme === "dark" ? "#9CA3AF" : "#9CA3AF" }} />
           </div>
         </Dropdown>
       </div>

@@ -4,13 +4,16 @@ import logo from "../components/assets/Company_logo.png";
 import x_logo from "../components/assets/Dark Logo.png";
 import { FaEnvelope, FaEye, FaEyeSlash, FaPhone } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
-import api from "../api/api.js";
-import { message, Spin } from "antd";
+import axios from "axios";
+import { BASE_API } from "../api/api.js";
+import { message, Spin } from "antd"; // ✅ use AntD message directly
+import Loading from "../utils/Loading";
+import leftImg from "../components/assets/login_left.png";
 import { useAuth } from "../context/AuthContext";
 
 const Login = () => {
   const navigate = useNavigate();
-  const { setUser } = useAuth(); // Get setUser from AuthContext
+  const { setUser } = useAuth();
 
   const [email, setEmail] = useState("");
   const [mobile, setMobile] = useState("");
@@ -96,7 +99,16 @@ const Login = () => {
         password,
       };
 
-      const res = await api.post("/user/login", payload);
+      const res = await axios.post(
+        `${BASE_API}/user/login`,
+        payload,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+        }
+      );
 
       // ✅ rename message → responseMessage to avoid conflict
       const { message: responseMessage, token, refreshToken, user } = res.data;
@@ -105,8 +117,6 @@ const Login = () => {
         localStorage.setItem("token", token);
         localStorage.setItem("refreshToken", refreshToken);
         localStorage.setItem("user", JSON.stringify(user));
-
-        // Update AuthContext with user data
         setUser(user);
 
         // ✅ AntD success message
@@ -144,23 +154,14 @@ const Login = () => {
   return (
     <div className="login-container">
       <div className="login-left">
-        <div className="welcome-container">
-          <h3 className="welcome-heading">
-            Welcome to &nbsp;
-            <img src={x_logo} alt="XTOWN" />
-            Atelier..!
-          </h3>
-          <span className="welcome-tagline">
-            We’re here to turn your ideas into reality.
-          </span>
-        </div>
+        <img src={leftImg} alt="Login Illustration" className="left-image" />
       </div>
 
       <div className="login-right">
         <img src={logo} alt="Company Logo" className="logo" />
 
         <form className="login-form" onSubmit={handleSubmit}>
-          <h3>LOGIN TO YOUR ACCOUNT</h3>
+          <h3 className="login-title">Login into your account</h3>
           {loginError && (
             <div
               className="login-error-message"
@@ -171,9 +172,8 @@ const Login = () => {
           )}
 
           <div
-            className={`form-group ${isMobileLogin ? "mobile" : "email"} ${
-              isMobileLogin ? mobileError : emailError ? "error" : ""
-            } mb-4`}
+            className={`form-group ${isMobileLogin ? "mobile" : "email"} ${isMobileLogin ? mobileError : emailError ? "error" : ""
+              } mb-4`}
           >
             <div className="input-wrapper">
               {isMobileLogin ? (
@@ -250,6 +250,14 @@ const Login = () => {
             {passwordError && (
               <div className="login-error-message">{passwordError}</div>
             )}
+            <div className="text-right mt-1">
+              <a
+                href="#"
+                className="text-xs text-[#1E2772] hover:underline"
+              >
+                Forgot Password?
+              </a>
+            </div>
           </div>
 
           <button type="submit" className="log-button" disabled={loading}>

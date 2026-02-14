@@ -1,12 +1,13 @@
 import React from "react";
 import { Routes, Route } from "react-router-dom";
 import DashboardFull from "./pages/dashboardFull";
+import { LayoutDashboard } from "lucide-react";
 
 export const dashboardMenuItems = [
   {
     key: "/dashboard",
     label: "Dashboard",
-    icon: <span>📊</span>,
+    icon: <LayoutDashboard size={20} />,
   },
 ];
 

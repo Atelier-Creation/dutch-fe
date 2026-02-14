@@ -154,7 +154,10 @@ const MainLayout = ({ menuItems }) => {
   return (
     <ConfigProvider
       theme={{
-        token: { colorPrimary: primaryColor },
+        token: {
+          colorPrimary: primaryColor,
+          fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+        },
       }}
     >
       <Layout
@@ -170,8 +173,8 @@ const MainLayout = ({ menuItems }) => {
             trigger={null}
             collapsible
             collapsed={collapsed}
-            width={200}
-            collapsedWidth={60}
+            width={260}
+            collapsedWidth={80}
             theme={theme}
             style={{
               position: "fixed",
@@ -216,22 +219,23 @@ const MainLayout = ({ menuItems }) => {
         )}
 
         <Layout
+          className="transition-all duration-300 ease-in-out"
           style={{
             marginLeft: isMobile
               ? 0
               : selectedParent
-              ? collapsed
-                ? 230
-                : 400
-              : collapsed
-              ? 60
-              : 200,
+                ? collapsed
+                  ? 250
+                  : 460
+                : collapsed
+                  ? 80
+                  : 260,
             transition: "margin-left 0.3s",
             backgroundColor: contentBgColor,
           }}
         >
           {/* Header (logo moved to header) */}
-          <HeaderBar collapsed={collapsed} />
+          <HeaderBar collapsed={collapsed} setCollapsed={setCollapsed} />
 
           {/* Mobile Floating Hamburger */}
           {isMobile && !collapsed && (
@@ -244,22 +248,11 @@ const MainLayout = ({ menuItems }) => {
             />
           )}
 
-          {/* Theme Settings Button */}
-          <div className="fixed bottom-5 right-5 z-50">
-            <Tooltip title="Customize Theme">
-              <Button
-                type="primary"
-                shape="circle"
-                icon={<SettingOutlined spin />}
-                onClick={openSettings}
-                size="large"
-              />
-            </Tooltip>
-          </div>
+
 
           <Content
             style={{
-              padding: "6px",
+              padding: "16px",
               backgroundColor: contentBgColor,
               minHeight: "calc(100vh - 112px)",
               overflow: "auto",
@@ -267,7 +260,10 @@ const MainLayout = ({ menuItems }) => {
             }}
             onClick={handleContentClick}
           >
-            <div className="rounded-lg shadow p-6 min-h-full" style={{ backgroundColor: "#f3f4f6" }}>
+            <div
+              className="rounded-2xl shadow-sm p-6 min-h-full transition-all duration-300 ease-in-out"
+              style={{ backgroundColor: theme === "dark" ? "#1f2937" : "#ffffff" }}
+            >
               <Outlet />
             </div>
           </Content>
@@ -354,14 +350,13 @@ const MainLayout = ({ menuItems }) => {
                       <span>{scheme.name}</span>
                     </div>
                     <CheckOutlined
-                      className={`${
-                        headerBgColor === scheme.headerBgColor &&
+                      className={`${headerBgColor === scheme.headerBgColor &&
                         sidebarBgColor === scheme.sidebarBgColor &&
                         contentBgColor === scheme.contentBgColor &&
                         footerBgColor === scheme.footerBgColor
-                          ? "visible"
-                          : "invisible"
-                      }`}
+                        ? "visible"
+                        : "invisible"
+                        }`}
                     />
                   </div>
                 ))}

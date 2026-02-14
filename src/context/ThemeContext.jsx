@@ -6,58 +6,58 @@ const ThemeContext = createContext();
 const presetThemes = {
   light: {
     theme: "light",
-    primaryColor: "#1C2244",
+    primaryColor: "#282469", // Dark Blue
     backgroundColor: "#ffffff",
     layoutType: "full",
-    contentBgColor: "#ffffff",
-    headerBgColor: "#E1E6FF",
-    headerGradient: "#E1E6FF",
-    sidebarBgColor: "#E1E6FF",
-    footerBgColor: "#E1E6FF",
+    contentBgColor: "#F3F4F6", // Gray-100
+    headerBgColor: "#ffffff",
+    headerGradient: "",
+    sidebarBgColor: "#ffffff",
+    footerBgColor: "#F3F4F6",
   },
   blue: {
     theme: "light",
-    primaryColor: "#1890ff",
-    backgroundColor: "#e6f7ff",
+    primaryColor: "#0ea5e9", // Sky-500
+    backgroundColor: "#f0f9ff",
     layoutType: "full",
-    contentBgColor: "#f0f5ff",
+    contentBgColor: "#f8fafc",
     headerBgColor: "#ffffff",
-    headerGradient: "linear-gradient(to left, #1890ff, #096dd9)",
+    headerGradient: "linear-gradient(to right, #0ea5e9, #2563eb)", // Sky to Blue
     sidebarBgColor: "#ffffff",
-    footerBgColor: "#e6f7ff",
+    footerBgColor: "#f0f9ff",
   },
   purple: {
     theme: "light",
-    primaryColor: "#722ed1",
-    backgroundColor: "#f9f0ff",
+    primaryColor: "#8b5cf6", // Violet-500
+    backgroundColor: "#f5f3ff",
     layoutType: "full",
-    contentBgColor: "#f5f0fe",
+    contentBgColor: "#faf5ff",
     headerBgColor: "#ffffff",
-    headerGradient: "linear-gradient(to left, #9254de,rgb(101, 59, 160))",
+    headerGradient: "linear-gradient(to right, #8b5cf6, #d946ef)",
     sidebarBgColor: "#ffffff",
-    footerBgColor: "#f9f0ff",
+    footerBgColor: "#f5f3ff",
   },
   green: {
     theme: "light",
-    primaryColor: "#52c41a",
-    backgroundColor: "#f6ffed",
+    primaryColor: "#10b981", // Emerald-500
+    backgroundColor: "#ecfdf5",
     layoutType: "full",
-    contentBgColor: "#f0fce9",
+    contentBgColor: "#f0fdf4",
     headerBgColor: "#ffffff",
-    headerGradient: "linear-gradient(to left, #73d13d, #52c41a)",
+    headerGradient: "linear-gradient(to right, #10b981, #059669)",
     sidebarBgColor: "#ffffff",
-    footerBgColor: "#f6ffed",
+    footerBgColor: "#ecfdf5",
   },
-  grey: {
-    theme: "light",
-    primaryColor: "#8c8c8c",
-    backgroundColor: "#f5f5f5",
+  dark: {
+    theme: "dark",
+    primaryColor: "#6366f1", // Indigo-500
+    backgroundColor: "#111827", // Gray-900
     layoutType: "full",
-    contentBgColor: "#f0f2f5",
-    headerBgColor: "#ffffff",
-    headerGradient: "linear-gradient(to left, #bfbfbf, #8c8c8c)",
-    sidebarBgColor: "#ffffff",
-    footerBgColor: "#f5f5f5",
+    contentBgColor: "#1f2937", // Gray-800
+    headerBgColor: "#111827",
+    headerGradient: "",
+    sidebarBgColor: "#111827",
+    footerBgColor: "#111827",
   },
 };
 
@@ -75,13 +75,15 @@ const getStoredTheme = (key, defaultValue) => {
 };
 
 const createMildColor = (hexColor) => {
+  if (!hexColor) return "#f3f4f6";
+  // If it's already a mild color, return it, logic implies mixing with white
   // Convert hex to RGB
   const r = parseInt(hexColor.slice(1, 3), 16);
   const g = parseInt(hexColor.slice(3, 5), 16);
   const b = parseInt(hexColor.slice(5, 7), 16);
 
   // Make it milder by mixing with white (255,255,255)
-  const mildFactor = 0.85; 
+  const mildFactor = 0.95; // Increased factor for very subtle tint
   const mildR = Math.round(r * mildFactor + 255 * (1 - mildFactor));
   const mildG = Math.round(g * mildFactor + 255 * (1 - mildFactor));
   const mildB = Math.round(b * mildFactor + 255 * (1 - mildFactor));
@@ -95,31 +97,31 @@ const createMildColor = (hexColor) => {
 // Define common color schemes
 const commonColorSchemes = [
   {
-    name: "Default Light",
+    name: "Modern Clean",
     headerBgColor: "#ffffff",
     sidebarBgColor: "#ffffff",
-    contentBgColor: "#f9fafb",
-    footerBgColor: "#f4e6ff",
-    primaryColor: "#8e2de2",
-    headerGradient: "linear-gradient(90deg, #722ed1 0%, #9254de 100%)",
+    contentBgColor: "#F3F4F6",
+    footerBgColor: "#ffffff",
+    primaryColor: "#4F46E5",
+    headerGradient: "",
   },
   {
-    name: "Cool Blue",
-    headerBgColor: "#1890ff",
+    name: "Midnight Blue",
+    headerBgColor: "#1e293b",
+    sidebarBgColor: "#0f172a",
+    contentBgColor: "#f1f5f9",
+    footerBgColor: "#f8fafc",
+    primaryColor: "#3b82f6",
+    headerGradient: "",
+  },
+  {
+    name: "Royal Purple",
+    headerBgColor: "#ffffff",
     sidebarBgColor: "#ffffff",
-    contentBgColor: "#f0f5ff",
-    footerBgColor: "#e6f7ff",
-    primaryColor: "#1890ff",
-    headerGradient: "linear-gradient(to left, #1890ff, #096dd9)",
-  },
-  {
-    name: "Warm Purple",
-    headerBgColor: "#722ed1",
-    sidebarBgColor: "ffffff",
-    contentBgColor: "#f5f0fe",
-    footerBgColor: "#f9f0ff",
-    primaryColor: "#722ed1",
-    headerGradient: "linear-gradient(to left, #722ed1, #9254de )",
+    contentBgColor: "#faf5ff",
+    footerBgColor: "#ffffff",
+    primaryColor: "#7c3aed",
+    headerGradient: "linear-gradient(to right, #7c3aed, #a855f7)",
   },
 ];
 
@@ -138,9 +140,9 @@ const createGradientFromColor = (
   let b = parseInt(hexColor.slice(5, 7), 16);
 
   // Create a darker shade for the gradient
-  const darkR = Math.max(0, r - intensity);
-  const darkG = Math.max(0, g - intensity);
-  const darkB = Math.max(0, b - intensity);
+  const darkR = Math.max(0, r - 30);
+  const darkG = Math.max(0, g - 30);
+  const darkB = Math.max(0, b - 30);
 
   const darkHexColor = `#${darkR.toString(16).padStart(2, "0")}${darkG
     .toString(16)

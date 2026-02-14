@@ -5,27 +5,23 @@ import BillingForm from "./pages/billingForm";
 import CustomerBillingForm from "./pages/CustomerBillingForm";
 import CustomerBillCopy from "./pages/CustomerBillCopy";
 import SalesReport from "./pages/SalesReport";
+import { List, PlusCircle, UserPlus, BarChart } from "lucide-react";
 
 export const billingMenuItems = [
   {
     key: "/billing/list",
     label: "Billing List",
-    icon: null,
+    icon: <List size={18} />,
   },
   {
     key: "/billing/add",
     label: "Add Billing",
-    icon: null,
+    icon: <PlusCircle size={18} />,
   },
   {
     key: "/billing/customer-add",
     label: "Add Customer Billing",
-    icon: null,
-  },
-  {
-    key: "/billing/reports",
-    label: "Sales Report",
-    icon: null,
+    icon: <UserPlus size={18} />,
   }
 ];
 

@@ -2,22 +2,23 @@ import { Routes, Route } from "react-router-dom";
 import CouponValidator from "./pages/CouponValidator";
 import CustomerCoupons from "./pages/CustomerCoupons";
 import PointsManagement from "./pages/PointsManagement";
+import { CheckCircle, Ticket, Award } from "lucide-react";
 
 export const couponMenuItems = [
   {
     key: "/coupon/validate",
     label: "Validate Coupon",
-    icon: null,
+    icon: <CheckCircle size={18} />,
   },
   {
     key: "/coupon/customer-coupons",
     label: "Customer Coupons",
-    icon: null,
+    icon: <Ticket size={18} />,
   },
   {
     key: "/coupon/points",
     label: "Points Management",
-    icon: null,
+    icon: <Award size={18} />,
   },
 ];
 

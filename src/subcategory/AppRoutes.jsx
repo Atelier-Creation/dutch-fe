@@ -1,18 +1,19 @@
 import { Routes, Route } from "react-router-dom";
 import SubcategoryList from "../Product/pages/SubcategoryList";
 import SubcategoryForm from "../Product/pages/SubcategoryForm";
+import { List, PlusCircle } from "lucide-react";
 
 // Sidebar menu items for Subcategory
 export const subcategoryMenuItems = [
   {
     key: "/subcategory/list",
     label: "Subcategory List",
-    icon: null, // Icon handled in Sidebar
+    icon: <List size={18} />,
   },
   {
     key: "/subcategory/add",
     label: "Add Subcategory",
-    icon: null,
+    icon: <PlusCircle size={18} />,
   },
 ];
 

@@ -1,27 +1,41 @@
 import { Suspense, useMemo } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import MainLayout from "./components/layout/Mainlayout";
-// import hrms from "./components/assets/candidate.png";
-import dashboard from "./components/assets/dashboard.png";
+import {
+  LayoutDashboard,
+  IndianRupee,
+  Box,
+  Tags,
+  Layers,
+  ShoppingCart,
+  Database,
+  Users,
+  Percent,
+  User,
+  BarChart
+} from "lucide-react";
 import CustomerBillCopy from "./billing/pages/CustomerBillCopy";
 import CustomerBillForm from "./billing/pages/CustomerBillingForm";
-import Hotel from "../public/factory.png";
 import Login from "./login/Login";
 import ProtectedRoute from "./context/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
 import { BranchProvider } from "./context/BranchContext";
 import Loading from "./utils/Loading";
 import Settings from "./components/pages/Settings";
-// import master from "./components/assets/cloud.png";
+
 const routeModules = import.meta.glob("./*/AppRoutes.jsx", { eager: true });
 
 const moduleIcons = {
-Hotel: <img src={Hotel} alt="company" className="w-7 h-9" />,
-  // HMS: <img src={HMS} alt="HMS" className="w-7 h-9" />,
-  dashboard: <img src={dashboard} alt="iot" className="w-6 h-6" />,
-  // hrms: <img src={hrms} alt="iot" className="w-6 h-6 " />,
-
-  // master: <img src={master} alt="master" className="w-7 h-9" />,
+  dashboard: <LayoutDashboard size={20} />,
+  billing: <IndianRupee size={20} />,
+  Product: <Box size={20} />,
+  Category: <Tags size={20} />,
+  subcategory: <Layers size={20} />,
+  inward: <ShoppingCart size={20} />,
+  stock: <Database size={20} />,
+  customer: <Users size={20} />,
+  coupon: <Percent size={20} />,
+  user: <User size={20} />,
 };
 const App = () => {
   const modules = Object.entries(routeModules).map(([path, mod]) => {
@@ -37,12 +51,40 @@ const App = () => {
   });
 
   const menuItems = useMemo(() => {
-    const items = modules.map(({ name, menuItems }) => ({
-      key: name,
-      icon: moduleIcons[name] || null,
-      label: name.toUpperCase(),
-      children: menuItems,
-    }));
+    const items = modules
+      .filter(({ name }) => name !== "Category" && name !== "subcategory")
+      .map(({ name, menuItems }) => {
+        if (name === "dashboard") {
+          return {
+            key: "/dashboard",
+            icon: moduleIcons[name] || null,
+            label: "Dashboard",
+            children: null,
+          };
+        }
+        return {
+          key: name,
+          icon: moduleIcons[name] || null,
+          label: name.toUpperCase(),
+          children: menuItems,
+        };
+      });
+
+    // Add Sales Report manually
+    items.push({
+      key: "/billing/reports",
+      label: "Sales Report",
+      icon: <BarChart size={20} />,
+      children: null
+    });
+
+    // Sort: dashboard first
+    items.sort((a, b) => {
+      if (a.key === "/dashboard") return -1;
+      if (b.key === "/dashboard") return 1;
+      return 0;
+    });
+
     console.log('App.jsx modules:', modules);
     console.log('App.jsx menuItems:', items);
     return items;
@@ -57,68 +99,68 @@ const App = () => {
 
   return (
     <BrowserRouter>
-  <AuthProvider>
-    <BranchProvider>
-      <Loading duration={3000} />
-      <Suspense fallback={<div className="p-4"><Loading /></div>}>
-        <Routes>
-          {/* Public/Login routes */}
-          <Route path="/" element={<Login />} />
+      <AuthProvider>
+        <BranchProvider>
+          <Loading duration={3000} />
+          <Suspense fallback={<div className="p-4"><Loading /></div>}>
+            <Routes>
+              {/* Public/Login routes */}
+              <Route path="/" element={<Login />} />
 
-          {/* Routes WITHOUT sidebar/header */}
-          <Route
-            path="/billing/customer-copy"
-            element={
-              <ProtectedRoute>
-                <CustomerBillCopy />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/billing/customer-add"
-            element={
-              <ProtectedRoute>
-                <CustomerBillForm />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* Routes WITH sidebar/header */}
-          <Route element={<MainLayout menuItems={menuItems} />}>
-            {/* Default redirect */}
-            <Route path="/" element={<Navigate to={getDefaultRedirect()} replace />} />
-
-            {modules.map(({ name, path, element: Element }) => (
+              {/* Routes WITHOUT sidebar/header */}
               <Route
-                key={name}
-                path={path}
+                path="/billing/customer-copy"
                 element={
                   <ProtectedRoute>
-                    <Element />
+                    <CustomerBillCopy />
                   </ProtectedRoute>
                 }
               />
-            ))}
+              <Route
+                path="/billing/customer-add"
+                element={
+                  <ProtectedRoute>
+                    <CustomerBillForm />
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/settings"
-              element={
-                <ProtectedRoute>
-                  <Settings />
-                </ProtectedRoute>
-              }
-            />
+              {/* Routes WITH sidebar/header */}
+              <Route element={<MainLayout menuItems={menuItems} />}>
+                {/* Default redirect */}
+                <Route path="/" element={<Navigate to={getDefaultRedirect()} replace />} />
 
-            <Route
-              path="*"
-              element={<div className="p-4 text-red-500">404 - Page Not Found</div>}
-            />
-          </Route>
-        </Routes>
-      </Suspense>
-    </BranchProvider>
-  </AuthProvider>
-</BrowserRouter>
+                {modules.map(({ name, path, element: Element }) => (
+                  <Route
+                    key={name}
+                    path={path}
+                    element={
+                      <ProtectedRoute>
+                        <Element />
+                      </ProtectedRoute>
+                    }
+                  />
+                ))}
+
+                <Route
+                  path="/settings"
+                  element={
+                    <ProtectedRoute>
+                      <Settings />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="*"
+                  element={<div className="p-4 text-red-500">404 - Page Not Found</div>}
+                />
+              </Route>
+            </Routes>
+          </Suspense>
+        </BranchProvider>
+      </AuthProvider>
+    </BrowserRouter>
 
 
   );
