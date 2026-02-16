@@ -54,6 +54,8 @@ const App = () => {
     const items = modules
       .filter(({ name }) => name !== "Category" && name !== "subcategory")
       .map(({ name, menuItems }) => {
+
+        // Dashboard direct route
         if (name === "dashboard") {
           return {
             key: "/dashboard",
@@ -62,11 +64,33 @@ const App = () => {
             children: null,
           };
         }
+
+        // ✅ If only ONE child → make it direct route
+        if (menuItems && menuItems.length === 1) {
+          return {
+            key: menuItems[0].key,   // use actual child route
+            icon: moduleIcons[name] || null,
+            label: name.charAt(0).toUpperCase() + name.slice(1),
+            children: null,
+          };
+        }
+
+        // ✅ If MULTIPLE children → dropdown
+        if (menuItems && menuItems.length > 1) {
+          return {
+            key: name,
+            icon: moduleIcons[name] || null,
+            label: name.charAt(0).toUpperCase() + name.slice(1),
+            children: menuItems,
+          };
+        }
+
+        // ✅ If NO children → direct route fallback
         return {
-          key: name,
+          key: `/${name}`,
           icon: moduleIcons[name] || null,
           label: name.charAt(0).toUpperCase() + name.slice(1),
-          children: menuItems,
+          children: null,
         };
       });
 
@@ -78,15 +102,13 @@ const App = () => {
       children: null
     });
 
-    // Sort: dashboard first
+    // Keep dashboard first
     items.sort((a, b) => {
       if (a.key === "/dashboard") return -1;
       if (b.key === "/dashboard") return 1;
       return 0;
     });
 
-    console.log('App.jsx modules:', modules);
-    console.log('App.jsx menuItems:', items);
     return items;
   }, [modules]);
 
