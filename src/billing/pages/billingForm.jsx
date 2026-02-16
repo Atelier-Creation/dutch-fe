@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Tabs } from "antd";
+import { useBranch } from "../../context/BranchContext";
 import {
   Form,
   Input,
@@ -27,6 +28,7 @@ import productService from "../../Product/services/productService";
 import billingService from "../service/billingService";
 import couponService from "../../coupon/service/couponService";
 import customerService from "../../customer/service/customerService";
+import { Laptop, PhoneCall, Printer, ShieldCheck } from "lucide-react";
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -117,12 +119,161 @@ function BillingForm() {
   const [showCouponModal, setShowCouponModal] = useState(false);
   const [generatedCoupon, setGeneratedCoupon] = useState(null);
 
+  // Bill Management (Tabs)
+  const [bills, setBills] = useState([]);
+  const [activeBillKey, setActiveBillKey] = useState("1");
+  const { selectedBranch, branches } = useBranch();
+
+  const currentBranchDetails = branches.find(b => b.branch_id === selectedBranch?.id)?.branch;
+
+  // Helper to generate a blank bill state
+  const createNewBillState = (key) => {
+    // Leave bill_no empty so placeholder "Auto Generates" shows
+    return {
+      key: key || Date.now().toString(),
+      label: `Bill ${key || 1}`,
+      formValues: { bill_no: "", billing_date: dayjs(), status: "pending", items: [], counter_no: "Counter 1" },
+      customerData: null,
+      isNewCustomer: false,
+      couponCode: "",
+      couponData: null,
+      couponApplied: false,
+      isSplitPayment: false,
+      splitPayments: [{ method: 'cash', amount: 0 }],
+      customerHistoryBills: [],
+      preview: { items: [], customer_name: "", billing_date: dayjs(), counter_no: "Counter 1" },
+    };
+  };
+
+  // Initialize first bill
   useEffect(() => {
-    const autoBillNo = generateRandomBillNo();
-    form.setFieldsValue({ bill_no: autoBillNo, billing_date: dayjs(), status: "pending", items: [] });
-    setPreview({ items: [], billing_date: dayjs(), customer_name: "" });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Only if bills empty
+    if (bills.length === 0) {
+      const initial = createNewBillState("1");
+      setBills([initial]);
+      loadBillToForm(initial);
+    }
   }, []);
+
+  const loadBillToForm = (billState) => {
+    form.setFieldsValue(billState.formValues);
+    setCustomerData(billState.customerData);
+    setIsNewCustomer(billState.isNewCustomer);
+    setCouponCode(billState.couponCode);
+    setCouponData(billState.couponData);
+    setCouponApplied(billState.couponApplied);
+    setIsSplitPayment(billState.isSplitPayment);
+    setSplitPayments(billState.splitPayments);
+    setCustomerHistoryBills(billState.customerHistoryBills);
+    setPreview(billState.preview);
+  };
+
+  const saveCurrentBillState = () => {
+    // Return the state object representing current UI
+    return {
+      formValues: form.getFieldsValue(true), // true = include hidden/all
+      customerData,
+      isNewCustomer,
+      couponCode,
+      couponData,
+      couponApplied,
+      isSplitPayment,
+      splitPayments,
+      customerHistoryBills,
+      preview,
+    };
+  };
+
+  const handleTabChange = (newKey) => {
+    // 1. Save current bill state to the bills array
+    const updatedBills = bills.map(b =>
+      b.key === activeBillKey
+        ? { ...b, ...saveCurrentBillState() }
+        : b
+    );
+
+    // 2. Find target bill
+    const targetBill = updatedBills.find(b => b.key === newKey);
+    if (!targetBill) return;
+
+    // 3. Update active key and bills list
+    setActiveBillKey(newKey);
+    setBills(updatedBills);
+
+    // 4. Load target bill data into form/state
+    loadBillToForm(targetBill);
+  };
+
+  const handleEditTabs = (targetKey, action) => {
+    if (action === 'add') {
+      addTab();
+    } else {
+      removeTab(targetKey);
+    }
+  };
+
+  const addTab = () => {
+    if (bills.length >= 10) {
+      message.warning("Maximum 10 bills allowed");
+      return;
+    }
+    // Save current before switching? Yes, usually desired.
+    const currentSaved = saveCurrentBillState();
+    const updatedBills = bills.map(b => b.key === activeBillKey ? { ...b, ...currentSaved } : b);
+
+    const newKey = (parseInt(updatedBills[updatedBills.length - 1].key) + 1).toString();
+    const newBill = createNewBillState(newKey);
+
+    const nextBills = [...updatedBills, newBill];
+    setBills(nextBills);
+    setActiveBillKey(newKey);
+    loadBillToForm(newBill);
+  };
+
+  const removeTab = (targetKey) => {
+    let newActiveKey = activeBillKey;
+    let lastIndex = -1;
+
+    // You cannot close the last remaining tab
+    if (bills.length === 1) {
+      message.warning("At least one bill must be open");
+      return;
+    }
+
+    bills.forEach((bill, i) => {
+      if (bill.key === targetKey) {
+        lastIndex = i - 1;
+      }
+    });
+
+    const newBills = bills.filter((bill) => bill.key !== targetKey);
+
+    if (newBills.length && newActiveKey === targetKey) {
+      if (lastIndex >= 0) {
+        newActiveKey = newBills[lastIndex].key;
+      } else {
+        newActiveKey = newBills[0].key;
+      }
+    }
+
+    setBills(newBills);
+    setActiveBillKey(newActiveKey);
+
+    // If we switched tabs, load the data
+    if (newActiveKey !== activeBillKey) {
+      // Find the data for the new active key in the filtered list
+      const billToLoad = newBills.find(b => b.key === newActiveKey);
+      if (billToLoad) loadBillToForm(billToLoad);
+    } else if (newBills.length > 0 && targetKey === activeBillKey) {
+      // Should catch above, but safety:
+      loadBillToForm(newBills[0]);
+    }
+  };
+
+  const generateRandomBillNo = () => {
+    const randomNumber = Math.floor(10000 + Math.random() * 90000);
+    return `PNO${randomNumber}`;
+  };
 
   // ensure item calculations are up-to-date
   const updateItemCalculations = (item) => {
@@ -509,7 +660,9 @@ function BillingForm() {
         setGeneratedCoupon(result.coupon_generated);
         setShowCouponModal(true);
       } else {
-        navigate("/billing/list");
+        // Instead of processing to list, we close the tab (or reset if only 1)
+        // navigate("/billing/list");
+        closeCurrentTab();
       }
     } catch (err) {
       console.error("create billing error:", err);
@@ -520,6 +673,19 @@ function BillingForm() {
       message.error(serverMsg || "Failed to create billing");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const closeCurrentTab = () => {
+    // If multiple tabs, remove current.
+    if (bills.length > 1) {
+      removeTab(activeBillKey);
+    } else {
+      // Only one tab, reset it to new state
+      // We reuse the same key '1' or activeKey
+      const newBill = createNewBillState(activeBillKey);
+      setBills([newBill]);
+      loadBillToForm(newBill);
     }
   };
 
@@ -573,17 +739,22 @@ function BillingForm() {
     mainGrid: { display: "grid", gridTemplateColumns: "2fr 1fr", gap: 18 },
     leftCard: { background: "#fff", borderRadius: 8, padding: 12 },
     rightCard: { background: "#fff", borderRadius: 8, padding: 12, height: "fit-content", position: "sticky", top: 24 },
-    sectionTitle: { color: "#0b75ff", fontWeight: 600 },
+    sectionTitle: { color: "#0b75ff", fontWeight: 600, borderRadius: 8, },
   };
 
 
-  const generateRandomBillNo = () => {
-    const randomNumber = Math.floor(10000 + Math.random() * 90000);
-    return `PNO${randomNumber}`;
-  };
   return (
     <div style={styles.page}>
       <div style={styles.container}>
+        {/* Bill Tabs */}
+        <Tabs
+          type="editable-card"
+          activeKey={activeBillKey}
+          onChange={handleTabChange}
+          onEdit={handleEditTabs}
+          items={bills.map(b => ({ label: b.label, key: b.key, closable: bills.length > 1 }))}
+          style={{ marginBottom: 0 }}
+        />
         <Spin spinning={loading}>
           <Form
             form={form}
@@ -777,7 +948,7 @@ function BillingForm() {
 
                 <Row gutter={16}>
                   <Col span={12}>
-                    <Form.Item label="Counter No" name="counter_no" placeholder="Select">
+                    <Form.Item label="Counter No" name="counter_no" placeholder="Select Counter">
                       <Select>
                         <Option value="Counter 1">Counter 1</Option>
                         <Option value="Counter 2">Counter 2</Option>
@@ -799,20 +970,16 @@ function BillingForm() {
                           <Option value="credit_card">Credit Card</Option>
                           <Option value="debit_card">Debit Card</Option>
                           <Option value="UPI Current Account">UPI Current Account</Option>
-                          <Option value="UPI Normal Account">UPI Normal Account</Option>
-                          <Option value="net_banking">Net Banking</Option>
-                          <Option value="split">Split Payment (Multiple Methods)</Option>
+                          <Option value="upi">UPI</Option>
+                          <Option value="bank_transfer">Bank Transfer</Option>
+                          <Option value="split">Split Payment</Option>
+                          <Option value="hold">Hold</Option>
                         </Select>
                       ) : (
-                        <Button
-                          block
-                          onClick={() => {
-                            setIsSplitPayment(false);
-                            setSplitPayments([{ method: 'cash', amount: 0 }]);
-                          }}
-                        >
-                          Switch to Single Payment
-                        </Button>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontWeight: 600 }}>Split Payment Active</span>
+                          <Button size="small" type="link" onClick={() => setIsSplitPayment(false)}>Cancel</Button>
+                        </div>
                       )}
                     </Form.Item>
                   </Col>
@@ -1056,9 +1223,9 @@ function BillingForm() {
 
                                 <div style={{ display: "flex", justifyContent: "right", marginTop: 10 }}>
                                   <div>
-                                    <div style={{ display: "flex", justifyContent: "space-between" }}>
+                                    <div style={{ display: "flex", justifyContent: "space-between", gap: "4px" }}>
                                       <div style={{ color: "#374151" }}>Subtotal</div>
-                                      <div>₹{summary.subtotal.toFixed(2)}</div>
+                                      <div style={{ fontWeight: 700, color: "#222" }}>₹{summary.subtotal.toFixed(2)}</div>
                                     </div>
                                   </div>
                                 </div>
@@ -1070,28 +1237,28 @@ function BillingForm() {
                         </Form.List>
                       ),
                     },
- ...(customerData
-      ? [
-          {
-            key: "history",
-            label: "History",
-            children: (
-              <Spin spinning={historyLoading}>
-                <Table
-                  dataSource={customerHistoryBills}
-                  columns={historyColumns}
-                  rowKey={(record) => record.billing_no}
-                  pagination={{ pageSize: 5 }}
-                  locale={{ emptyText: "No previous bills found" }}
-                  size="small"
+                    ...(customerData
+                      ? [
+                        {
+                          key: "history",
+                          label: "History",
+                          children: (
+                            <Spin spinning={historyLoading}>
+                              <Table
+                                dataSource={customerHistoryBills}
+                                columns={historyColumns}
+                                rowKey={(record) => record.billing_no}
+                                pagination={{ pageSize: 5 }}
+                                locale={{ emptyText: "No previous bills found" }}
+                                size="small"
+                              />
+                            </Spin>
+                          ),
+                        },
+                      ]
+                      : []),
+                  ]}
                 />
-              </Spin>
-            ),
-          },
-        ]
-      : []),
-  ]}
-/>
               </div>
 
               {/* RIGHT: live preview */}
@@ -1115,14 +1282,14 @@ function BillingForm() {
                 <div className="invoiceHeader">
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <div>
-                      <div className="company">Atelier Tech</div>
-                      <div className="meta">Eldeco corporate, Saravanampatti</div>
+                      <div className="company">{currentBranchDetails?.name || currentBranchDetails?.branch_name || "Atelier Tech"}</div>
+                      <div className="meta">{currentBranchDetails?.address || "Address Not Available"}</div>
                     </div>
                     <div style={{ textAlign: "right" }}>
                       <div style={{ fontWeight: 700 }}>{preview.billing_date ? dayjs(preview.billing_date).format("DD MMM YYYY") : "-"}</div>
                       <div style={{ fontSize: 12 }}>{preview.customer_name || "-"}</div>
-                      <div style={{ fontSize: 12 }}>📞 {preview.customer_phone || preview.customer_phone_nu || "-"}</div>
-                      <div style={{ fontSize: 12 }}>⌖ {preview.counter_no || preview.couner || "-"}</div>
+                      <div style={{ fontSize: 12, display: "flex", alignItems: "center", gap: "4px" }}><PhoneCall size={12} /> {preview.customer_phone || preview.customer_phone_nu || "-"}</div>
+                      <div style={{ fontSize: 12, display: "flex", alignItems: "center", gap: "4px" }}> <Laptop size={12} /> {preview.counter_no || preview.couner || "-"}</div>
                     </div>
                   </div>
                 </div>
@@ -1179,9 +1346,12 @@ function BillingForm() {
 
                     <div style={{ display: "flex", justifyContent: "right", marginTop: 10, alignItems: "center" }}>
                       <div style={{ display: "flex", gap: 8 }}>
-                        <Button onClick={() => form.resetFields()}>Save To Draft</Button>
+                        <Button onClick={() => form.resetFields()}><ShieldCheck size={16} />Save To Draft</Button>
                         <Button type="primary" htmlType="submit" style={{ background: "#0b75ff", borderColor: "#0b75ff" }}>
                           Add Bill
+                        </Button>
+                        <Button type="primary" htmlType="submit" style={{ background: "#09b13bff", borderColor: "#09b13bff" }}>
+                          <Printer size={16} /> Print
                         </Button>
                       </div>
                     </div>
