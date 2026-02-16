@@ -128,7 +128,7 @@ const HeaderBar = ({ collapsed, setCollapsed }) => {
         <BranchSelector />
 
         {/* Notifications */}
-        <Popover
+        {/* <Popover
           content={notificationContent}
           trigger="click"
           placement="bottomRight"
@@ -149,7 +149,7 @@ const HeaderBar = ({ collapsed, setCollapsed }) => {
               <BellFilled style={{ fontSize: 20, color: theme === "dark" ? "#D1D5DB" : "#4B5563" }} />
             </div>
           </Badge>
-        </Popover>
+        </Popover> */}
 
         {/* User dropdown */}
         <Dropdown overlay={userMenu} placement="bottomRight" trigger={["click"]}>

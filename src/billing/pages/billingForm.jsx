@@ -387,8 +387,9 @@ function BillingForm() {
     const totalTax = items.reduce((sum, i) => sum + (Number(i.tax_amount) || 0), 0);
 
     let couponDiscount = 0;
-    if (appliedCoupon && appliedCoupon.valid) {
-      couponDiscount = appliedCoupon.discount?.discountAmount || 0;
+    if (appliedCoupon && couponApplied) {
+      // Handle both response structures
+      couponDiscount = appliedCoupon.discount_amount || appliedCoupon.discount?.discountAmount || 0;
     }
 
     const grandTotal = subtotal - totalDiscount + totalTax - couponDiscount;
@@ -422,15 +423,21 @@ function BillingForm() {
       const response = await couponService.validateCoupon({
         coupon_code: couponCode.toUpperCase(),
         customer_phone: customerPhone,
-        purchase_amount: summary.grandTotal,
+        purchase_amount: summary.subtotal, // Use subtotal for validation
       });
 
-      const result = response.data.data;
+      const result = response.data || response;
 
-      if (result.valid) {
-        setCouponData(result);
+      if (result.success && result.discount_amount) {
+        // Store the validated coupon data with correct structure
+        setCouponData({
+          valid: true,
+          discount_amount: result.discount_amount,
+          coupon: result.coupon,
+          message: result.message
+        });
         setCouponApplied(true);
-        message.success("Coupon applied successfully!");
+        message.success(`Coupon applied! Discount: ₹${result.discount_amount.toFixed(2)}`);
       } else {
         setCouponData(null);
         setCouponApplied(false);
@@ -506,6 +513,7 @@ function BillingForm() {
           ]);
 
           const historyData = historyRes.data.data || historyRes.data || {};
+          console.log(historyData)
           const analyticsData = analyticsRes.data.data || analyticsRes.data || {};
           const couponsData = couponsRes.data.data || couponsRes.data || [];
 
@@ -609,8 +617,8 @@ function BillingForm() {
       // Calculate coupon discount
       let coupon_discount = 0;
       let coupon_code_used = null;
-      if (couponApplied && couponData && couponData.valid) {
-        coupon_discount = couponData.discount?.discountAmount || 0;
+      if (couponApplied && couponData && couponData.discount_amount) {
+        coupon_discount = couponData.discount_amount;
         coupon_code_used = couponCode.toUpperCase();
       }
 
@@ -743,6 +751,42 @@ function BillingForm() {
   };
 
 
+  const generateRandomBillNo = () => {
+    const randomNumber = Math.floor(10000 + Math.random() * 90000);
+    return `PNO${randomNumber}`;
+  };
+
+  const renderHistoryExpandedRow = (record) => {
+    if (!customerData) return null;
+
+    return (
+      <div style={{ background: "#fafafa", padding: 16, borderRadius: 6 }}>
+        {/* Top Products */}
+        {customerData.top_products?.length > 0 && (
+          <>
+            <Title level={5}>Top Products</Title>
+            <Table
+              size="small"
+              pagination={false}
+              dataSource={customerData.top_products}
+              rowKey={(r) => r.product_id}
+              columns={[
+                { title: "Product", dataIndex: "product_name" },
+                { title: "Code", dataIndex: "product_code" },
+                { title: "Qty", dataIndex: "total_quantity" },
+                {
+                  title: "Total Amount",
+                  dataIndex: "total_amount",
+                  render: (v) => `₹${Number(v).toFixed(2)}`,
+                },
+              ]}
+            />
+            <Divider />
+          </>
+        )}
+      </div>
+    );
+  };
   return (
     <div style={styles.page}>
       <div style={styles.container}>
@@ -1170,11 +1214,7 @@ function BillingForm() {
                               </div>
                               <div>
                                 <strong>Discount:</strong> ₹
-                                {couponData?.discount?.discountAmount?.toFixed(2)}
-                              </div>
-                              <div>
-                                <strong>Your Reward:</strong>{" "}
-                                {couponData?.discount?.userRewardPoints} points
+                                {couponData?.discount_amount?.toFixed(2)}
                               </div>
                             </div>
                           }
@@ -1251,6 +1291,10 @@ function BillingForm() {
                                 pagination={{ pageSize: 5 }}
                                 locale={{ emptyText: "No previous bills found" }}
                                 size="small"
+                                expandable={{
+                                  expandedRowRender: renderHistoryExpandedRow,
+                                  rowExpandable: () => true,
+                                }}
                               />
                             </Spin>
                           ),
@@ -1339,7 +1383,7 @@ function BillingForm() {
                       <div style={{ marginTop: 8, padding: 8, background: '#f6ffed', borderRadius: 4, fontSize: 12 }}>
                         <Tag color="success">{couponCode}</Tag> applied
                         <div style={{ marginTop: 4, color: '#52c41a' }}>
-                          🎁 You'll earn {couponData?.discount?.userRewardPoints} points!
+                          🎁 Discount: ₹{couponData?.discount_amount?.toFixed(2)}
                         </div>
                       </div>
                     )}
