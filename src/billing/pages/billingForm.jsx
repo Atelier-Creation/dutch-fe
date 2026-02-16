@@ -547,7 +547,7 @@ function BillingForm() {
 
         // Auto-fill customer name if found
         form.setFieldsValue({
-          customer_name: customer.name
+          customer_name: customer.customer_name
         });
 
         message.success(`Customer found: ${customer.name}`);
