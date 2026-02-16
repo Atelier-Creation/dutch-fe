@@ -44,6 +44,40 @@ function BillingForm() {
   const [customerHistoryBills, setCustomerHistoryBills] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
 
+  // Product dropdown states
+  const [allProducts, setAllProducts] = useState([]);
+  const [productsLoading, setProductsLoading] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+
+  // Fetch all products for dropdown
+  const fetchAllProducts = async (searchTerm = "") => {
+    setProductsLoading(true);
+    try {
+      const params = {
+        page: 1,
+        limit: searchTerm ? 100 : 10, // Show more when searching
+      };
+      
+      if (searchTerm) {
+        params.search = searchTerm;
+      }
+
+      const response = await productService.getAll(params);
+      const products = response.data?.data || response.data || [];
+      setAllProducts(products);
+    } catch (err) {
+      console.error("Failed to fetch products:", err);
+      message.error("Failed to load products");
+    } finally {
+      setProductsLoading(false);
+    }
+  };
+
+  // Load initial products on mount
+  useEffect(() => {
+    fetchAllProducts();
+  }, []);
+
   const fetchCustomerBills = async () => {
     const phone = form.getFieldValue("customer_phone");
 
@@ -309,48 +343,7 @@ function BillingForm() {
         return;
       }
 
-      // resolve product id from common property names
-      const resolvedProductId =
-        product.id ||
-        product._id ||
-        product.uuid ||
-        product.product_uuid ||
-        product.productId ||
-        null;
-
-      if (!resolvedProductId) {
-        message.error("Product is missing an id/uuid and cannot be added to the bill.");
-        console.error("Product payload missing id/uuid:", product);
-        return;
-      }
-
-      let items = form.getFieldValue("items") || [];
-      const index = items.findIndex((i) => i.product_code === product.product_code);
-
-      if (index >= 0) {
-        items[index].quantity = (items[index].quantity || 0) + 1;
-        items[index] = updateItemCalculations(items[index]);
-      } else {
-        const newItem = updateItemCalculations({
-          product_id: String(resolvedProductId),
-          product_code: product.product_code,
-          product_name: product.product_name || product.name || "",
-          size: product.size || "",
-          color: product.color || "",
-          quantity: 1,
-          unit_price: product.selling_price || product.price || 0,
-          discount_amount: 0,
-          tax_percentage: product.tax_percentage || product.tax || 0,
-          tax_amount: 0,
-          total_price: 0,
-        });
-        items = [...items, newItem];
-      }
-
-      form.setFieldsValue({ items });
-      setPreview((p) => ({ ...p, items }));
-
-      message.success(`${product.product_name || product.product_code} added`);
+      addProductToItems(product);
       setProductCode("");
     } catch (err) {
       console.error("handleProductCode error:", err);
@@ -361,6 +354,61 @@ function BillingForm() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // ADD PRODUCT FROM DROPDOWN
+  const handleProductSelect = (productId) => {
+    const product = allProducts.find(p => p.id === productId);
+    if (product) {
+      addProductToItems(product);
+      setSelectedProduct(null); // Clear selection
+    }
+  };
+
+  // Common function to add product to items
+  const addProductToItems = (product) => {
+    // resolve product id from common property names
+    const resolvedProductId =
+      product.id ||
+      product._id ||
+      product.uuid ||
+      product.product_uuid ||
+      product.productId ||
+      null;
+
+    if (!resolvedProductId) {
+      message.error("Product is missing an id/uuid and cannot be added to the bill.");
+      console.error("Product payload missing id/uuid:", product);
+      return;
+    }
+
+    let items = form.getFieldValue("items") || [];
+    const index = items.findIndex((i) => i.product_code === product.product_code);
+
+    if (index >= 0) {
+      items[index].quantity = (items[index].quantity || 0) + 1;
+      items[index] = updateItemCalculations(items[index]);
+    } else {
+      const newItem = updateItemCalculations({
+        product_id: String(resolvedProductId),
+        product_code: product.product_code,
+        product_name: product.product_name || product.name || "",
+        size: product.size || "",
+        color: product.color || "",
+        quantity: 1,
+        unit_price: product.selling_price || product.price || 0,
+        discount_amount: 0,
+        tax_percentage: product.tax_percentage || product.tax || 0,
+        tax_amount: 0,
+        total_price: 0,
+      });
+      items = [...items, newItem];
+    }
+
+    form.setFieldsValue({ items });
+    setPreview((p) => ({ ...p, items }));
+
+    message.success(`${product.product_name || product.product_code} added`);
   };
 
   // update a single item field (qty/discount/price)
@@ -748,12 +796,6 @@ function BillingForm() {
     leftCard: { background: "#fff", borderRadius: 8, padding: 12 },
     rightCard: { background: "#fff", borderRadius: 8, padding: 12, height: "fit-content", position: "sticky", top: 24 },
     sectionTitle: { color: "#0b75ff", fontWeight: 600, borderRadius: 8, },
-  };
-
-
-  const generateRandomBillNo = () => {
-    const randomNumber = Math.floor(10000 + Math.random() * 90000);
-    return `PNO${randomNumber}`;
   };
 
   const renderHistoryExpandedRow = (record) => {
@@ -1159,7 +1201,6 @@ function BillingForm() {
 
 
                 <Row gutter={16}>
-
                   <Col span={12}>
                     <Form.Item label="Scan / Enter Product Code">
                       <Input
@@ -1178,6 +1219,43 @@ function BillingForm() {
                   </Col>
 
                   <Col span={12}>
+                    <Form.Item label="Or Select Product">
+                      <Select
+                        showSearch
+                        placeholder="Search and select product"
+                        value={selectedProduct}
+                        onChange={handleProductSelect}
+                        onSearch={(value) => {
+                          if (value.length >= 2) {
+                            fetchAllProducts(value);
+                          } else if (value.length === 0) {
+                            fetchAllProducts();
+                          }
+                        }}
+                        loading={productsLoading}
+                        filterOption={false}
+                        notFoundContent={productsLoading ? <Spin size="small" /> : "No products found"}
+                        style={{ width: "100%" }}
+                      >
+                        {allProducts.map((product) => (
+                          <Option key={product.id} value={product.id}>
+                            <div style={{ display: "flex", justifyContent: "space-between" }}>
+                              <span>
+                                {product.product_name} ({product.product_code})
+                              </span>
+                              <span style={{ color: "#52c41a", fontWeight: 600 }}>
+                                ₹{product.selling_price}
+                              </span>
+                            </div>
+                          </Option>
+                        ))}
+                      </Select>
+                    </Form.Item>
+                  </Col>
+                </Row>
+
+                <Row gutter={16}>
+                  <Col span={24}>
                     <Form.Item label="Apply Coupon">
                       {!couponApplied ? (
                         <Space.Compact style={{ width: "100%" }}>
