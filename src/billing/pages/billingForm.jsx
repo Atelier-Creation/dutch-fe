@@ -1197,26 +1197,6 @@ function BillingForm() {
                     💡 Tip: Earn coupons by making purchases of ₹2000 or more!
                   </div>
                 </Card> */}
-
-
-                  <Row gutter={16}>
-
-                    <Col span={12}>
-                      <Form.Item label="Scan / Enter Product Code">
-                        <Input
-                          placeholder="Scan or type code and press Enter"
-                          value={productCode}
-                          onChange={(e) => setProductCode(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleProductCode(productCode);
-                            }
-                          }}
-                        />
-                      </Form.Item>
-                    </Col>
                 <Row gutter={16}>
                   <Col span={12}>
                     <Form.Item label="Scan / Enter Product Code">
@@ -1235,59 +1215,6 @@ function BillingForm() {
                     </Form.Item>
                   </Col>
 
-                    <Col span={12}>
-                      <Form.Item label="Apply Coupon">
-                        {!couponApplied ? (
-                          <Space.Compact style={{ width: "100%" }}>
-                            <Input
-                              placeholder="Enter coupon code"
-                              value={couponCode}
-                              maxLength={10}
-                              onChange={(e) =>
-                                setCouponCode(e.target.value.toUpperCase())
-                              }
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  e.preventDefault();
-                                  handleValidateCoupon();
-                                }
-                              }}
-                              style={{ textTransform: "uppercase" }}
-                            />
-                            <Button
-                              type="primary"
-                              loading={couponValidating}
-                              onClick={handleValidateCoupon}
-                            >
-                              Apply
-                            </Button>
-                          </Space.Compact>
-                        ) : (
-                          <Alert
-                            message="Coupon Applied Successfully!"
-                            description={
-                              <div>
-                                <div>
-                                  <strong>Code:</strong> {couponCode}
-                                </div>
-                                <div>
-                                  <strong>Discount:</strong> ₹
-                                  {couponData?.discount_amount?.toFixed(2)}
-                                </div>
-                              </div>
-                            }
-                            type="success"
-                            showIcon
-                            action={
-                              <Button size="small" danger onClick={handleRemoveCoupon}>
-                                Remove
-                              </Button>
-                            }
-                          />
-                        )}
-                      </Form.Item>
-                    </Col>
-                  </Row>
                   <Col span={12}>
                     <Form.Item label="Or Select Product">
                       <Select
