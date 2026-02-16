@@ -120,7 +120,6 @@ const CustomerDetails = () => {
       key: "points",
       render: (points, record) => (
         <span className={record.type === "earned" ? "text-green-600" : "text-red-600"}>
-          {record.type === "earned" ? "+" : "-"}
           {points}
         </span>
       ),
