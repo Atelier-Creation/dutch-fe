@@ -139,11 +139,6 @@ const App = () => {
                   </ProtectedRoute>
                 }
               />
-
-              <Route
-                path="/billing/self-checkout"
-                element={<ComingSoon />}
-              />
               <Route
                 path="/billing/customer-add"
                 element={
