@@ -6,8 +6,8 @@ export const stockMenuItems = [
   {
     key: "/stock/list",
     label: "Stock List",
-    icon: <List size={18} />,
-  },
+    icon: <List size={18} />
+  }
 ];
 
 const StockRoutes = () => {

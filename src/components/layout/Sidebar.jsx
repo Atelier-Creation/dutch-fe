@@ -204,7 +204,7 @@ const Sidebar = ({ collapsed = true, setCollapsed = () => { }, selectedParent, s
     const active = isActive(item.key);
 
     // Collapsed & Desktop & has children => use Popover (modern flyout)
-    if (collapsed && !isMobile && item.children) {
+    if (collapsed && !isMobile && item.children && item.children.length > 0) {
       return (
         <Popover
           content={buildPopoverContent(item)}
@@ -253,7 +253,7 @@ const Sidebar = ({ collapsed = true, setCollapsed = () => { }, selectedParent, s
     const button = (
       <div
         onClick={() => {
-          if (item.children) {
+          if (item.children && item.children.length > 0) {
             setOpenMenu(openMenu === item.key ? null : item.key);
           } else {
             navigate(item.key);
@@ -287,7 +287,7 @@ const Sidebar = ({ collapsed = true, setCollapsed = () => { }, selectedParent, s
         </span>
         {/* show label only when not collapsed OR on mobile */}
         {(!collapsed || isMobile) && <span style={{ marginLeft: 12 }}>{item.label}</span>}
-        {item.children && (!collapsed || isMobile) && (
+{item.children && item.children.length > 0 && (!collapsed || isMobile) && (
           <span style={{ marginLeft: "auto", fontSize: 14, opacity: 0.7 }}>{openMenu === item.key ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</span>
         )}
       </div>

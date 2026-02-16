@@ -7,6 +7,7 @@ const productService = {
   create: (data) => api.post("/product/product", data),
   update: (id, data) => api.put(`/product/product/${id}`, data),
   remove: (id) => api.delete(`/product/product/${id}`),
+  bulkUpload: (data) => api.post("/product/product/bulk-upload", data),
 };
 
 export default productService;

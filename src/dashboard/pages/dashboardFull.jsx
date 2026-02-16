@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { Row, Col, Card, Typography, Skeleton, Select, Tag, Table, Empty } from "antd";
 import StatCard from "./StatCard";
+import { Tooltip } from "antd";
 import {
   IndianRupee, Users, ShoppingBasket, Wallet, TrendingUp, AlertTriangle, Package, ShoppingCart
 } from 'lucide-react';
@@ -61,12 +62,34 @@ const DashboardFull = () => {
     }
   };
 
+const formatNumber = (num) => {
+  if (!num && num !== 0) return "0";
+
+  const format = (value, suffix) => {
+    const formatted = (num / value).toFixed(1);
+    return formatted.endsWith(".0")
+      ? Math.floor(num / value) + suffix
+      : formatted + suffix;
+  };
+
+  if (num >= 10000000) return format(10000000, "Cr");
+  if (num >= 100000) return format(100000, "L");
+  if (num >= 1000) return format(1000, "K");
+
+  return num.toString();
+};
   // Prepare summary cards
   const summaryCards = dashboardData ? [
     {
       id: "revenue",
       title: "Total Revenue",
-      value: `₹${dashboardData.summary.totalRevenue}`,
+      value: (
+        <Tooltip title={`₹${dashboardData.summary.totalRevenue}`}>
+          <span>
+            ₹{formatNumber(dashboardData.summary.totalRevenue)}
+          </span>
+        </Tooltip>
+      ),
       meta: `Period: ₹${dashboardData.summary.periodRevenue}`,
       gradient: "linear-gradient(135deg,#7c3aed,#a78bfa)",
       icon: <Wallet />,

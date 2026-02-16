@@ -37,30 +37,30 @@ function BillingForm() {
   const [loading, setLoading] = useState(false);
   const [productCode, setProductCode] = useState("");
   const [preview, setPreview] = useState({ items: [], customer_name: "", billing_date: dayjs() });
-  
+
   // Coupon states
   const [couponCode, setCouponCode] = useState("");
   const [couponValidating, setCouponValidating] = useState(false);
   const [couponData, setCouponData] = useState(null);
   const [couponApplied, setCouponApplied] = useState(false);
-  
+
   // Customer states
   const [customerData, setCustomerData] = useState(null);
   const [customerLoading, setCustomerLoading] = useState(false);
   const [isNewCustomer, setIsNewCustomer] = useState(false);
-  
+
   // Split payment states
   const [isSplitPayment, setIsSplitPayment] = useState(false);
   const [splitPayments, setSplitPayments] = useState([
     { method: 'cash', amount: 0 }
   ]);
-  
+
   // Success modal for generated coupon
   const [showCouponModal, setShowCouponModal] = useState(false);
   const [generatedCoupon, setGeneratedCoupon] = useState(null);
 
   useEffect(() => {
-    form.setFieldsValue({ billing_date: dayjs(), status: "pending", items: [] });
+    const autoBillNo = generateRandomBillNo();
     setPreview({ items: [], billing_date: dayjs(), customer_name: "" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -146,7 +146,7 @@ function BillingForm() {
       console.error("handleProductCode error:", err);
       message.error(
         (err && err.response && err.response.data && (err.response.data.message || err.response.data.error)) ||
-          "Failed to fetch product"
+        "Failed to fetch product"
       );
     } finally {
       setLoading(false);
@@ -175,12 +175,12 @@ function BillingForm() {
     const subtotal = items.reduce((sum, i) => sum + (Number(i.unit_price) || 0) * (Number(i.quantity) || 0), 0);
     const totalDiscount = items.reduce((sum, i) => sum + (Number(i.discount_amount) || 0), 0);
     const totalTax = items.reduce((sum, i) => sum + (Number(i.tax_amount) || 0), 0);
-    
+
     let couponDiscount = 0;
     if (appliedCoupon && appliedCoupon.valid) {
       couponDiscount = appliedCoupon.discount?.discountAmount || 0;
     }
-    
+
     const grandTotal = subtotal - totalDiscount + totalTax - couponDiscount;
     return { subtotal, totalDiscount, totalTax, couponDiscount, grandTotal };
   };
@@ -189,24 +189,24 @@ function BillingForm() {
   const handleValidateCoupon = async () => {
     const customerPhone = form.getFieldValue("customer_phone");
     const items = form.getFieldValue("items") || [];
-    
+
     if (!couponCode.trim()) {
       message.warning("Please enter a coupon code");
       return;
     }
-    
+
     if (!customerPhone) {
       message.warning("Please enter customer phone number first");
       return;
     }
-    
+
     if (items.length === 0) {
       message.warning("Please add items to the bill first");
       return;
     }
-    
+
     const summary = calculateSummaryFromItems(items);
-    
+
     setCouponValidating(true);
     try {
       const response = await couponService.validateCoupon({
@@ -214,9 +214,9 @@ function BillingForm() {
         customer_phone: customerPhone,
         purchase_amount: summary.grandTotal,
       });
-      
+
       const result = response.data.data;
-      
+
       if (result.valid) {
         setCouponData(result);
         setCouponApplied(true);
@@ -275,18 +275,18 @@ function BillingForm() {
     try {
       const response = await customerService.getCustomerByPhone(phone);
       const customer = response.data.data;
-      
+
       if (customer) {
         setCustomerData(customer);
         setIsNewCustomer(false);
-        
+
         // Auto-fill customer name if found
         form.setFieldsValue({
           customer_name: customer.name
         });
-        
+
         message.success(`Customer found: ${customer.name}`);
-        
+
         // Fetch customer history and analytics
         try {
           const [historyRes, analyticsRes, couponsRes] = await Promise.all([
@@ -294,11 +294,11 @@ function BillingForm() {
             customerService.getCustomerAnalytics(customer.id),
             couponService.getCustomerCoupons(phone),
           ]);
-          
+
           const historyData = historyRes.data.data || historyRes.data || {};
           const analyticsData = analyticsRes.data.data || analyticsRes.data || {};
           const couponsData = couponsRes.data.data || couponsRes.data || [];
-          
+
           setCustomerData({
             ...customer,
             // From history endpoint
@@ -348,7 +348,7 @@ function BillingForm() {
       const splitTotal = getTotalSplitAmount();
       const items = form.getFieldValue("items") || [];
       const summary = calculateSummaryFromItems(items, couponApplied ? couponData : null);
-      
+
       if (Math.abs(splitTotal - summary.grandTotal) > 0.01) {
         message.error(`Split payment total (₹${splitTotal.toFixed(2)}) must equal bill total (₹${summary.grandTotal.toFixed(2)})`);
         return;
@@ -394,7 +394,7 @@ function BillingForm() {
       const discount_amount = items.reduce((s, it) => s + (it.discount_amount || 0), 0);
       const tax_amount = items.reduce((s, it) => s + (it.tax_amount || 0), 0);
       const totalQuantity = items.reduce((s, it) => s + (it.quantity || 0), 0);
-      
+
       // Calculate coupon discount
       let coupon_discount = 0;
       let coupon_code_used = null;
@@ -402,7 +402,7 @@ function BillingForm() {
         coupon_discount = couponData.discount?.discountAmount || 0;
         coupon_code_used = couponCode.toUpperCase();
       }
-      
+
       const totalAmount = subtotal - discount_amount + tax_amount - coupon_discount;
 
       // bill_no is optional — server generates billing_no; keep client-side id in bill_no if provided
@@ -443,7 +443,7 @@ function BillingForm() {
       const result = response.data || response;
 
       message.success("Billing created successfully" + (couponApplied ? " with coupon applied!" : ""));
-      
+
       // Check if a referral coupon was generated
       if (result.coupon_generated) {
         setGeneratedCoupon(result.coupon_generated);
@@ -516,6 +516,11 @@ function BillingForm() {
     sectionTitle: { color: "#0b75ff", fontWeight: 600 },
   };
 
+
+  const generateRandomBillNo = () => {
+    const randomNumber = Math.floor(10000 + Math.random() * 90000);
+    return `PNO${randomNumber}`;
+  };
   return (
     <div style={styles.page}>
       <div style={styles.container}>
@@ -537,7 +542,7 @@ function BillingForm() {
                 <Row gutter={16}>
                   <Col span={12}>
                     <Form.Item label="Bill no" name="bill_no">
-                      <Input placeholder="" />
+                      <Input disabled placeholder="Auto Generates" />
                     </Form.Item>
                   </Col>
                   <Col span={12}>
@@ -549,28 +554,16 @@ function BillingForm() {
 
                 <Row gutter={16}>
                   <Col span={12}>
-                    <Form.Item 
-                      label="Customer Name" 
-                      name="customer_name" 
-                      rules={[{ required: true, message: "Enter customer name" }]}
-                    >
-                      <Input 
-                        placeholder={isNewCustomer ? "Enter new customer name" : "Enter customer name"}
-                        disabled={customerLoading}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item 
-                      label="Customer Phone" 
+                    <Form.Item
+                      label="Customer Phone"
                       name="customer_phone"
                       rules={[
                         { required: true, message: "Enter phone number" },
                         { pattern: /^[0-9]{10}$/, message: "Enter valid 10-digit number" }
                       ]}
                     >
-                      <Input 
-                        placeholder="Enter 10-digit phone number" 
+                      <Input
+                        placeholder="Enter 10-digit phone number"
                         maxLength={10}
                         onChange={(e) => {
                           const phone = e.target.value;
@@ -593,12 +586,24 @@ function BillingForm() {
                       />
                     </Form.Item>
                   </Col>
+                  <Col span={12}>
+                    <Form.Item
+                      label="Customer Name"
+                      name="customer_name"
+                      rules={[{ required: true, message: "Enter customer name" }]}
+                    >
+                      <Input
+                        placeholder={isNewCustomer ? "Enter new customer name" : "Enter customer name"}
+                        disabled={customerLoading}
+                      />
+                    </Form.Item>
+                  </Col>
                 </Row>
 
                 {/* Customer Info Card */}
                 {customerData && (
-                  <Card 
-                    size="small" 
+                  <Card
+                    size="small"
                     style={{ marginBottom: 16, background: '#e6f7ff', border: '1px solid #91d5ff' }}
                     title={
                       <Space>
@@ -633,7 +638,7 @@ function BillingForm() {
                         </div>
                       </Col>
                     </Row>
-                    
+
                     {/* Last Purchase Info */}
                     {customerData.statistics?.last_purchase && (
                       <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #91d5ff' }}>
@@ -647,7 +652,7 @@ function BillingForm() {
                         </div>
                       </div>
                     )}
-                    
+
                     {/* Top Products */}
                     {customerData.top_products && customerData.top_products.length > 0 && (
                       <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #91d5ff' }}>
@@ -656,8 +661,8 @@ function BillingForm() {
                         </div>
                         <div style={{ maxHeight: 100, overflowY: 'auto' }}>
                           {customerData.top_products.slice(0, 3).map((product, idx) => (
-                            <div key={idx} style={{ 
-                              display: 'flex', 
+                            <div key={idx} style={{
+                              display: 'flex',
                               justifyContent: 'space-between',
                               padding: '4px 0',
                               fontSize: 12
@@ -669,7 +674,7 @@ function BillingForm() {
                         </div>
                       </div>
                     )}
-                    
+
                     {/* Recent Purchases */}
                     {customerData.recent_purchases && customerData.recent_purchases.length > 0 && (
                       <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #91d5ff' }}>
@@ -678,8 +683,8 @@ function BillingForm() {
                         </div>
                         <div style={{ maxHeight: 100, overflowY: 'auto' }}>
                           {customerData.recent_purchases.slice(0, 3).map((bill, idx) => (
-                            <div key={idx} style={{ 
-                              display: 'flex', 
+                            <div key={idx} style={{
+                              display: 'flex',
                               justifyContent: 'space-between',
                               padding: '4px 0',
                               fontSize: 12
@@ -692,7 +697,7 @@ function BillingForm() {
                         </div>
                       </div>
                     )}
-                    
+
                     {/* Available Coupons */}
                     {customerData.coupons && customerData.coupons.length > 0 && (
                       <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #91d5ff' }}>
@@ -743,8 +748,8 @@ function BillingForm() {
                           <Option value="split">Split Payment (Multiple Methods)</Option>
                         </Select>
                       ) : (
-                        <Button 
-                          block 
+                        <Button
+                          block
                           onClick={() => {
                             setIsSplitPayment(false);
                             setSplitPayments([{ method: 'cash', amount: 0 }]);
@@ -759,14 +764,14 @@ function BillingForm() {
 
                 {/* Split Payment Section */}
                 {isSplitPayment && (
-                  <Card 
-                    size="small" 
+                  <Card
+                    size="small"
                     title="Split Payment Details"
                     style={{ marginBottom: 16, background: '#fff7e6', border: '1px solid #ffd591' }}
                     extra={
-                      <Button 
-                        type="dashed" 
-                        size="small" 
+                      <Button
+                        type="dashed"
+                        size="small"
                         onClick={addSplitPayment}
                       >
                         + Add Payment
@@ -801,9 +806,9 @@ function BillingForm() {
                         </Col>
                         <Col span={4}>
                           {splitPayments.length > 1 && (
-                            <Button 
-                              danger 
-                              size="small" 
+                            <Button
+                              danger
+                              size="small"
                               onClick={() => removeSplitPayment(index)}
                             >
                               Remove
@@ -831,8 +836,8 @@ function BillingForm() {
                 )}
 
                 {/* Coupon Section - Always show */}
-                <Card 
-                  size="small" 
+                <Card
+                  size="small"
                   title={
                     <Space>
                       <GiftOutlined style={{ color: '#52c41a' }} />
@@ -850,8 +855,8 @@ function BillingForm() {
                         maxLength={10}
                         style={{ textTransform: 'uppercase' }}
                       />
-                      <Button 
-                        type="primary" 
+                      <Button
+                        type="primary"
                         onClick={handleValidateCoupon}
                         loading={couponValidating}
                       >
@@ -879,7 +884,7 @@ function BillingForm() {
                       }
                     />
                   )}
-                  
+
                   <div style={{ marginTop: 8, fontSize: 12, color: '#666' }}>
                     💡 Tip: Earn coupons by making purchases of ₹2000 or more!
                   </div>
@@ -981,7 +986,7 @@ function BillingForm() {
                       <div>Discount</div>
                       <div>₹{summary.totalDiscount.toFixed(2)}</div>
                     </div>
-                    
+
                     {couponApplied && summary.couponDiscount > 0 && (
                       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                         <div style={{ color: "#52c41a", fontWeight: 600 }}>
@@ -997,7 +1002,7 @@ function BillingForm() {
                       <div style={{ fontWeight: 800, fontSize: 16 }}>Total Amount</div>
                       <div style={{ fontWeight: 800, fontSize: 16 }}>₹{summary.grandTotal.toFixed(2)}</div>
                     </div>
-                    
+
                     {couponApplied && (
                       <div style={{ marginTop: 8, padding: 8, background: '#f6ffed', borderRadius: 4, fontSize: 12 }}>
                         <Tag color="success">{couponCode}</Tag> applied
