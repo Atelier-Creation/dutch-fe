@@ -42,6 +42,12 @@ function SalesReport() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedBranch]); // Re-fetch when branch changes
 
+  useEffect(() => {
+  if (period === "custom" && dateRange) {
+    fetchReport();
+  }
+}, [dateRange]);
+
   const fetchReport = async () => {
     setLoading(true);
     try {
@@ -63,12 +69,17 @@ function SalesReport() {
     }
   };
 
-  const handlePeriodChange = (value) => {
-    setPeriod(value);
-    if (value !== "custom") {
-      setDateRange(null);
-    }
-  };
+const handlePeriodChange = (value) => {
+  setPeriod(value);
+
+  if (value !== "custom") {
+    setDateRange(null);
+
+    setTimeout(() => {
+      fetchReport();
+    }, 0);
+  }
+};
 
   const handleGenerateReport = () => {
     if (period === "custom" && !dateRange) {
@@ -266,7 +277,7 @@ function SalesReport() {
               </Col>
             )}
 
-            <Col xs={24} sm={24} md={6}>
+            {/* <Col xs={24} sm={24} md={6}>
               <Button
                 type="primary"
                 icon={<ReloadOutlined />}
@@ -277,7 +288,7 @@ function SalesReport() {
               >
                 Generate Report
               </Button>
-            </Col>
+            </Col> */}
           </Row>
         </Card>
 
