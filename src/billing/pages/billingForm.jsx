@@ -1199,24 +1199,7 @@ function BillingForm() {
                 </Card> */}
                 <Row gutter={16}>
                   <Col span={12}>
-                    <Form.Item label="Scan / Enter Product Code">
-                      <Input
-                        placeholder="Scan or type code and press Enter"
-                        value={productCode}
-                        onChange={(e) => setProductCode(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleProductCode(productCode);
-                          }
-                        }}
-                      />
-                    </Form.Item>
-                  </Col>
-
-                  <Col span={12}>
-                    <Form.Item label="Or Select Product">
+                    <Form.Item label="Select Product">
                       <Select
                         showSearch
                         placeholder="Search and select product"
@@ -1249,10 +1232,8 @@ function BillingForm() {
                       </Select>
                     </Form.Item>
                   </Col>
-                </Row>
 
-                <Row gutter={16}>
-                  <Col span={24}>
+                  <Col span={12}>
                     <Form.Item label="Apply Coupon">
                       {!couponApplied ? (
                         <Space.Compact style={{ width: "100%" }}>
@@ -1281,7 +1262,7 @@ function BillingForm() {
                         </Space.Compact>
                       ) : (
                         <Alert
-                          message="Coupon Applied Successfully!"
+                          message="Coupon Applied!"
                           description={
                             <div>
                               <div>
