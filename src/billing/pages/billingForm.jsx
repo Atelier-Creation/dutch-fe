@@ -57,7 +57,7 @@ function BillingForm() {
         page: 1,
         limit: searchTerm ? 100 : 10, // Show more when searching
       };
-      
+
       if (searchTerm) {
         params.search = searchTerm;
       }
@@ -749,10 +749,26 @@ function BillingForm() {
   };
 
   const handleReset = () => {
-    const newBill = createNewBillState(activeBillKey);
-    setBills((prev) => prev.map((b) => (b.key === activeBillKey ? newBill : b)));
+    // Save to Draft: Preserve current bill and create a new tab
+    if (bills.length >= 10) {
+      message.warning("Maximum 10 bills allowed");
+      return;
+    }
+
+    // Save current bill state
+    const currentSaved = saveCurrentBillState();
+    const updatedBills = bills.map(b => b.key === activeBillKey ? { ...b, ...currentSaved } : b);
+
+    // Create new bill tab
+    const newKey = (parseInt(updatedBills[updatedBills.length - 1].key) + 1).toString();
+    const newBill = createNewBillState(newKey);
+
+    const nextBills = [...updatedBills, newBill];
+    setBills(nextBills);
+    setActiveBillKey(newKey);
     loadBillToForm(newBill);
-    message.success("Form reset");
+
+    message.success("Bill saved to draft. New bill ready!");
   };
 
   // table columns (editable)
@@ -1128,8 +1144,8 @@ function BillingForm() {
                                 danger
                                 size="icon"
                                 onClick={() => removeSplitPayment(index)}
-                                icon={<Trash2 size={16}/>}
-                                style={{ border: 'none', background: 'none',boxShadow:"none" }}
+                                icon={<Trash2 size={16} />}
+                                style={{ border: 'none', background: 'none', boxShadow: "none" }}
                               >
                               </Button>
                             )}
@@ -1208,95 +1224,95 @@ function BillingForm() {
                     💡 Tip: Earn coupons by making purchases of ₹2000 or more!
                   </div>
                 </Card> */}
-                <Row gutter={16}>
-                  <Col span={12}>
-                    <Form.Item label="Select Product">
-                      <Select
-                        showSearch
-                        placeholder="Search and select product"
-                        value={selectedProduct}
-                        onChange={handleProductSelect}
-                        onSearch={(value) => {
-                          if (value.length >= 2) {
-                            fetchAllProducts(value);
-                          } else if (value.length === 0) {
-                            fetchAllProducts();
-                          }
-                        }}
-                        loading={productsLoading}
-                        filterOption={false}
-                        notFoundContent={productsLoading ? <Spin size="small" /> : "No products found"}
-                        style={{ width: "100%" }}
-                      >
-                        {allProducts.map((product) => (
-                          <Option key={product.id} value={product.id}>
-                            <div style={{ display: "flex", justifyContent: "space-between" }}>
-                              <span>
-                                {product.product_name} ({product.product_code})
-                              </span>
-                              <span style={{ color: "#52c41a", fontWeight: 600 }}>
-                                ₹{product.selling_price}
-                              </span>
-                            </div>
-                          </Option>
-                        ))}
-                      </Select>
-                    </Form.Item>
-                  </Col>
-
-                  <Col span={12}>
-                    <Form.Item label="Apply Coupon">
-                      {!couponApplied ? (
-                        <Space.Compact style={{ width: "100%" }}>
-                          <Input
-                            placeholder="Enter coupon code"
-                            value={couponCode}
-                            maxLength={10}
-                            onChange={(e) =>
-                              setCouponCode(e.target.value.toUpperCase())
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item label="Select Product">
+                        <Select
+                          showSearch
+                          placeholder="Search and select product"
+                          value={selectedProduct}
+                          onChange={handleProductSelect}
+                          onSearch={(value) => {
+                            if (value.length >= 2) {
+                              fetchAllProducts(value);
+                            } else if (value.length === 0) {
+                              fetchAllProducts();
                             }
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault();
-                                handleValidateCoupon();
+                          }}
+                          loading={productsLoading}
+                          filterOption={false}
+                          notFoundContent={productsLoading ? <Spin size="small" /> : "No products found"}
+                          style={{ width: "100%" }}
+                        >
+                          {allProducts.map((product) => (
+                            <Option key={product.id} value={product.id}>
+                              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                                <span>
+                                  {product.product_name} ({product.product_code})
+                                </span>
+                                <span style={{ color: "#52c41a", fontWeight: 600 }}>
+                                  ₹{product.selling_price}
+                                </span>
+                              </div>
+                            </Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                    </Col>
+
+                    <Col span={12}>
+                      <Form.Item label="Apply Coupon">
+                        {!couponApplied ? (
+                          <Space.Compact style={{ width: "100%" }}>
+                            <Input
+                              placeholder="Enter coupon code"
+                              value={couponCode}
+                              maxLength={10}
+                              onChange={(e) =>
+                                setCouponCode(e.target.value.toUpperCase())
                               }
-                            }}
-                            style={{ textTransform: "uppercase" }}
-                          />
-                          <Button
-                            type="primary"
-                            loading={couponValidating}
-                            onClick={handleValidateCoupon}
-                          >
-                            Apply
-                          </Button>
-                        </Space.Compact>
-                      ) : (
-                        <Alert
-                          message="Coupon Applied!"
-                          description={
-                            <div>
-                              <div>
-                                <strong>Code:</strong> {couponCode}
-                              </div>
-                              <div>
-                                <strong>Discount:</strong> ₹
-                                {couponData?.discount_amount?.toFixed(2)}
-                              </div>
-                            </div>
-                          }
-                          type="success"
-                          showIcon
-                          action={
-                            <Button size="small" danger onClick={handleRemoveCoupon}>
-                              Remove
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  handleValidateCoupon();
+                                }
+                              }}
+                              style={{ textTransform: "uppercase" }}
+                            />
+                            <Button
+                              type="primary"
+                              loading={couponValidating}
+                              onClick={handleValidateCoupon}
+                            >
+                              Apply
                             </Button>
-                          }
-                        />
-                      )}
-                    </Form.Item>
-                  </Col>
-                </Row>
+                          </Space.Compact>
+                        ) : (
+                          <Alert
+                            message="Coupon Applied!"
+                            description={
+                              <div>
+                                <div>
+                                  <strong>Code:</strong> {couponCode}
+                                </div>
+                                <div>
+                                  <strong>Discount:</strong> ₹
+                                  {couponData?.discount_amount?.toFixed(2)}
+                                </div>
+                              </div>
+                            }
+                            type="success"
+                            showIcon
+                            action={
+                              <Button size="small" danger onClick={handleRemoveCoupon}>
+                                Remove
+                              </Button>
+                            }
+                          />
+                        )}
+                      </Form.Item>
+                    </Col>
+                  </Row>
 
 
 
