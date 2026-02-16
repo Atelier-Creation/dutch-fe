@@ -28,7 +28,7 @@ import productService from "../../Product/services/productService";
 import billingService from "../service/billingService";
 import couponService from "../../coupon/service/couponService";
 import customerService from "../../customer/service/customerService";
-import { Laptop, PhoneCall, Printer, ShieldCheck } from "lucide-react";
+import { Laptop, PhoneCall, Printer, ShieldCheck, Trash2 } from "lucide-react";
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -441,12 +441,15 @@ function BillingForm() {
       } else {
         setCouponData(null);
         setCouponApplied(false);
+        // Show the backend message if available; specifically handles "Cannot use your own referral coupon"
         message.error(result.message || "Invalid coupon");
       }
     } catch (error) {
       setCouponData(null);
       setCouponApplied(false);
-      message.error(error.response?.data?.message || "Failed to validate coupon");
+      // Prefer error.response.data.message as that's where the API returns the specific error message
+      const errorMsg = error.response?.data?.message || error.message || "Failed to validate coupon";
+      message.error(errorMsg);
     } finally {
       setCouponValidating(false);
     }
@@ -695,6 +698,13 @@ function BillingForm() {
       setBills([newBill]);
       loadBillToForm(newBill);
     }
+  };
+
+  const handleReset = () => {
+    const newBill = createNewBillState(activeBillKey);
+    setBills((prev) => prev.map((b) => (b.key === activeBillKey ? newBill : b)));
+    loadBillToForm(newBill);
+    message.success("Form reset");
   };
 
   // table columns (editable)
@@ -1068,10 +1078,11 @@ function BillingForm() {
                             {splitPayments.length > 1 && (
                               <Button
                                 danger
-                                size="small"
+                                size="icon"
                                 onClick={() => removeSplitPayment(index)}
+                                icon={<Trash2 size={16}/>}
+                                style={{ border: 'none', background: 'none',boxShadow:"none" }}
                               >
-                                Remove
                               </Button>
                             )}
                           </Col>
@@ -1385,7 +1396,7 @@ function BillingForm() {
 
                       <div style={{ display: "flex", justifyContent: "right", marginTop: 10, alignItems: "center" }}>
                         <div style={{ display: "flex", gap: 8 }}>
-                          <Button onClick={() => form.resetFields()}><ShieldCheck size={16} />Save To Draft</Button>
+                          <Button onClick={handleReset}><ShieldCheck size={16} />Save To Draft</Button>
                           <Button type="primary" htmlType="submit" style={{ background: "#09b13bff", borderColor: "#09b13bff" }}>
                             Add Bill
                           </Button>
