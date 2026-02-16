@@ -79,7 +79,7 @@ const Sidebar = ({ collapsed = true, setCollapsed = () => { }, selectedParent, s
         { key: "/billing/add", label: "Add Billing", icon: <PlusCircle size={18} /> },
       ],
     },
-    { key: "/billing/customer-add", label: "Self Checkout", icon: <PlusCircle size={20} /> },
+    { key: "", label: "Self Checkout", icon: <PlusCircle size={20} />, noRoute: true },
     {
       key: "Product",
       label: "Product",
@@ -162,7 +162,9 @@ const Sidebar = ({ collapsed = true, setCollapsed = () => { }, selectedParent, s
                 onClick={(e) => {
                   e.stopPropagation();
                   // navigate first, then close popover
-                  navigate(child.key);
+                  if (!child.noRoute) {
+                    navigate(child.key);
+                  }
                   setOpenMenu(null);
                   if (isMobile) setCollapsed(false);
                 }}
@@ -256,7 +258,9 @@ const Sidebar = ({ collapsed = true, setCollapsed = () => { }, selectedParent, s
           if (item.children && item.children.length > 0) {
             setOpenMenu(openMenu === item.key ? null : item.key);
           } else {
-            navigate(item.key);
+            if (!item.noRoute) {
+              navigate(item.key);
+            }
             if (isMobile) setCollapsed(false);
             setOpenMenu(null);
           }
@@ -287,7 +291,7 @@ const Sidebar = ({ collapsed = true, setCollapsed = () => { }, selectedParent, s
         </span>
         {/* show label only when not collapsed OR on mobile */}
         {(!collapsed || isMobile) && <span style={{ marginLeft: 12 }}>{item.label}</span>}
-{item.children && item.children.length > 0 && (!collapsed || isMobile) && (
+        {item.children && item.children.length > 0 && (!collapsed || isMobile) && (
           <span style={{ marginLeft: "auto", fontSize: 14, opacity: 0.7 }}>{openMenu === item.key ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</span>
         )}
       </div>
@@ -419,7 +423,9 @@ const Sidebar = ({ collapsed = true, setCollapsed = () => { }, selectedParent, s
                                 key={child.key}
                                 onClick={() => {
                                   // navigate and keep parent open (so it's visibly active)
-                                  navigate(child.key);
+                                  if (!child.noRoute) {
+                                    navigate(child.key);
+                                  }
                                   setOpenMenu(item.key); // keep parent open / active in inline mode
                                   if (isMobile) setCollapsed(false);
                                 }}

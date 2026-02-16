@@ -33,7 +33,8 @@ export const billingMenuItems = [
         <ShoppingCart size={18} color="#999" />
       </Tooltip>
     ),
-    disabled: true, // 🔥 this disables click
+    disabled: true, // This disables click visually via cursor
+    noRoute: true, // This disables click programmatically in Sidebar
   }
 ];
 
