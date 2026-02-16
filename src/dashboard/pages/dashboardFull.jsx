@@ -9,8 +9,11 @@ import {
 import dashboardService from "../service/dashboardService";
 import { useBranch } from "../../context/BranchContext";
 
+import BillDetailsModal from "./BillDetailsModal";
+
 const { Title, Text } = Typography;
 const { Option } = Select;
+import { useNavigate } from "react-router-dom";
 
 const styles = {
   page: { padding: 6, minHeight: "100vh", width: "100%" },
@@ -22,6 +25,31 @@ const DashboardFull = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const { selectedBranch } = useBranch();
+
+  // Bill Modal State
+  const [selectedBillId, setSelectedBillId] = useState(null);
+  const [selectedBill, setSelectedBill] = useState(null); // Add state for object
+  const [billModalVisible, setBillModalVisible] = useState(false);
+  const navigate = useNavigate();
+
+  const handleBillClick = (record) => {
+    // Try to get ID from standard fields
+    const id = record.id || record.billing_id || record._id;
+    if (!id) {
+      console.warn("Bill record missing ID:", record);
+      // Fallback to billing_no if numeric ID is not required by API? 
+      // Likely API needs ID. Showing error via modal content.
+    }
+    setSelectedBillId(id);
+    setSelectedBill(record); // Set the record object
+    setBillModalVisible(true);
+  };
+
+  const handleProductClick = (record) => {
+    // Assuming product list accepts search param via URL or state
+    // Passing it as query parameter 'search'
+    navigate(`/product/list?search=${encodeURIComponent(record.product_code)}`);
+  };
 
   // Fetch dashboard data
   useEffect(() => {
@@ -42,22 +70,22 @@ const DashboardFull = () => {
     }
   };
 
-const formatNumber = (num) => {
-  if (!num && num !== 0) return "0";
+  const formatNumber = (num) => {
+    if (!num && num !== 0) return "0";
 
-  const format = (value, suffix) => {
-    const formatted = (num / value).toFixed(1);
-    return formatted.endsWith(".0")
-      ? Math.floor(num / value) + suffix
-      : formatted + suffix;
+    const format = (value, suffix) => {
+      const formatted = (num / value).toFixed(1);
+      return formatted.endsWith(".0")
+        ? Math.floor(num / value) + suffix
+        : formatted + suffix;
+    };
+
+    if (num >= 10000000) return format(10000000, "Cr");
+    if (num >= 100000) return format(100000, "L");
+    if (num >= 1000) return format(1000, "K");
+
+    return num.toString();
   };
-
-  if (num >= 10000000) return format(10000000, "Cr");
-  if (num >= 100000) return format(100000, "L");
-  if (num >= 1000) return format(1000, "K");
-
-  return num.toString();
-};
   // Prepare summary cards
   const summaryCards = dashboardData ? [
     {
@@ -270,6 +298,10 @@ const formatNumber = (num) => {
                   pagination={false}
                   size="small"
                   scroll={{ x: 600 }}
+                  onRow={(record) => ({
+                    onClick: () => handleBillClick(record),
+                    style: { cursor: "pointer" },
+                  })}
                 />
               </Card>
             </Col>
@@ -290,6 +322,10 @@ const formatNumber = (num) => {
                   rowKey="product_id"
                   pagination={false}
                   size="small"
+                  onRow={(record) => ({
+                    onClick: () => handleProductClick(record),
+                    style: { cursor: "pointer" },
+                  })}
                 />
               </Card>
             </Col>
@@ -386,6 +422,16 @@ const formatNumber = (num) => {
           <Empty description="No data available" />
         </Card>
       )}
+      <BillDetailsModal
+        visible={billModalVisible}
+        onClose={() => {
+          setBillModalVisible(false);
+          setSelectedBillId(null);
+          setSelectedBill(null);
+        }}
+        billId={selectedBillId}
+        initialData={selectedBill}
+      />
     </div>
   );
 };

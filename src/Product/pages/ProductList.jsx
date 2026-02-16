@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Table, Input, Button, Space, Popconfirm, Tag, message, Dropdown } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined, DownloadOutlined, MoreOutlined } from "@ant-design/icons";
 import productService from "../services/productService.js";
@@ -11,29 +11,49 @@ const { Search } = Input;
 
 const ProductList = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
-  const [searchText, setSearchText] = useState("");
+
+  // separate input visual state from api query state
+  const [inputValue, setInputValue] = useState("");
+  // Use ref for search query to ensure fresh access in callbacks without dependency
+  const searchRef = useRef("");
+
   const [sorter, setSorter] = useState({ field: null, order: null });
 
   const qrRefs = useRef({});
 
+  // Sync state with URL only
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const s = params.get("search") || "";
+    setInputValue(s);
+    searchRef.current = s;
+    // Explicitly fetch when URL changes
+    fetchProducts({ search: s, current: 1 });
+  }, [location.search]);
+
   const fetchProducts = useCallback(async (params = {}) => {
     setLoading(true);
     try {
-      const response = await productService.getAll({
+      // Use param if provided, otherwise fallback to ref
+      const currentSearch = params.search !== undefined ? params.search : searchRef.current;
+
+      const queryParams = {
         page: params.current || pagination.current,
         limit: params.pageSize || pagination.pageSize,
-        search: params.search || searchText,
+        search: currentSearch,
         sortField: params.sortField || sorter.field,
         sortOrder: params.sortOrder || sorter.order,
-      });
+      };
 
-      // Backend returns: { total, page, limit, data: [...] }
-      // Axios returns this in response.data
+      console.log('Fetching products with params:', queryParams);
+
+      const response = await productService.getAll(queryParams);
+
       const result = response.data;
-      
       setProducts(Array.isArray(result.data) ? result.data : []);
       setPagination((prev) => ({
         ...prev,
@@ -48,22 +68,47 @@ const ProductList = () => {
     } finally {
       setLoading(false);
     }
-  }, [pagination.current, pagination.pageSize, searchText, sorter]);
+  }, [pagination.current, pagination.pageSize, sorter]);
 
-  const handleSearch = debounce((value) => {
-    setPagination((prev) => ({ ...prev, current: 1 }));
-    setSearchText(value);
-  }, 500);
+  // Initial fetch on mount if no URL param (or handle by URL effect if empty string counts as param change?)
+  // The URL effect runs on mount with "" if no param. So it handles initial fetch.
+  // We DO NOT need a generic useEffect calling fetchProducts() now.
+
+  const debouncedSearch = useCallback(
+    debounce((value) => {
+      searchRef.current = value;
+      setPagination((prev) => ({ ...prev, current: 1 }));
+      fetchProducts({ search: value, current: 1 });
+    }, 500),
+    [fetchProducts]
+  );
 
   useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+    return () => {
+      debouncedSearch.cancel();
+    };
+  }, [debouncedSearch]);
+
+  const handleInputChange = (e) => {
+    const val = e.target.value;
+    setInputValue(val);
+    debouncedSearch(val);
+  };
 
   const handleTableChange = (pag, filters, sort) => {
     setPagination(pag);
     setSorter({
       field: sort.field,
       order: sort.order === "ascend" ? "asc" : sort.order === "descend" ? "desc" : null,
+    });
+    // Explicit fetch on table change
+    // Note: State updates (setPagination, setSorter) are async. 
+    // We should pass the NEW values to fetchProducts to be safe.
+    fetchProducts({
+      current: pag.current,
+      pageSize: pag.pageSize,
+      sortField: sort.field,
+      sortOrder: sort.order === "ascend" ? "asc" : sort.order === "descend" ? "desc" : null
     });
   };
 
@@ -163,8 +208,12 @@ const ProductList = () => {
       <Space style={{ marginBottom: 16, width: "100%", justifyContent: "space-between" }}>
         <Search
           placeholder="Search products..."
-          onSearch={handleSearch}
-          onChange={(e) => handleSearch(e.target.value)}
+          value={inputValue}
+          onSearch={(v) => {
+            setSearchQuery(v);
+            setPagination(prev => ({ ...prev, current: 1 }));
+          }}
+          onChange={handleInputChange}
           enterButton
           allowClear
           style={{ width: 300 }}
