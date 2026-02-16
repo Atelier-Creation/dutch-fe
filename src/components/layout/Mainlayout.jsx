@@ -252,7 +252,7 @@ const MainLayout = ({ menuItems }) => {
 
           <Content
             style={{
-              padding: "16px",
+              padding: "8px",
               backgroundColor: contentBgColor,
               minHeight: "calc(100vh - 112px)",
               overflow: "auto",
@@ -261,7 +261,7 @@ const MainLayout = ({ menuItems }) => {
             onClick={handleContentClick}
           >
             <div
-              className="rounded-2xl shadow-sm p-6 min-h-full transition-all duration-300 ease-in-out"
+              className="rounded-2xl shadow-sm p-3 min-h-full transition-all duration-300 ease-in-out"
               style={{ backgroundColor: theme === "dark" ? "#1f2937" : "#ffffff" }}
             >
               <Outlet />

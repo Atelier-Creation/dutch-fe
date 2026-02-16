@@ -740,7 +740,7 @@ function BillingForm() {
   const summary = calculateSummaryFromItems(preview.items || [], couponApplied ? couponData : null);
 
   const styles = {
-    page: { background: "#f1f6fb", minHeight: "100vh", padding: 12 },
+    page: { background: "#f1f6fb", minHeight: "100vh", padding: 10 },
     container: { maxWidth: 1200, margin: "0 auto" },
     mainGrid: { display: "grid", gridTemplateColumns: "2fr 1fr", gap: 18 },
     leftCard: { background: "#fff", borderRadius: 8, padding: 12 },
