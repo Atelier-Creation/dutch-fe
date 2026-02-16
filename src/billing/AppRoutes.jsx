@@ -7,7 +7,7 @@ import CustomerBillCopy from "./pages/CustomerBillCopy";
 import SalesReport from "./pages/SalesReport";
 import { List, PlusCircle, UserPlus, BarChart, ShoppingCart } from "lucide-react";
 import ComingSoon from "./pages/ComingSoon";
-
+import { Tooltip } from "antd";
 export const billingMenuItems = [
   {
     key: "/billing/list",
@@ -21,8 +21,19 @@ export const billingMenuItems = [
   },
   {
     key: "/billing/self-checkout",
-    label: "Self Checkout",
-    icon: <ShoppingCart size={18} />,
+    label: (
+      <Tooltip title="Coming Soon">
+        <span style={{ cursor: "not-allowed", color: "#999" }}>
+          Self Checkout
+        </span>
+      </Tooltip>
+    ),
+    icon: (
+      <Tooltip title="Coming Soon">
+        <ShoppingCart size={18} color="#999" />
+      </Tooltip>
+    ),
+    disabled: true, // 🔥 this disables click
   }
 ];
 
