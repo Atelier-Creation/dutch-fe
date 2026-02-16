@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { Tabs } from "antd";
 import {
   Form,
   Input,
@@ -37,7 +38,64 @@ function BillingForm() {
   const [loading, setLoading] = useState(false);
   const [productCode, setProductCode] = useState("");
   const [preview, setPreview] = useState({ items: [], customer_name: "", billing_date: dayjs() });
+  const [activeTab, setActiveTab] = useState("new");
+  const [customerHistoryBills, setCustomerHistoryBills] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
+  const fetchCustomerBills = async () => {
+    const phone = form.getFieldValue("customer_phone");
+
+    if (!phone || phone.length !== 10) {
+      message.warning("Enter valid customer phone number first");
+      return;
+    }
+
+    setHistoryLoading(true);
+    try {
+      const response = await billingService.getByCustomerPhone(phone);
+      const data = response.data?.data || response.data || [];
+      setCustomerHistoryBills(data);
+    } catch (err) {
+      message.error("Failed to fetch customer billing history");
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const historyColumns = [
+    {
+      title: "Bill No",
+      dataIndex: "billing_no",
+      key: "billing_no",
+    },
+    {
+      title: "Date",
+      dataIndex: "billing_date",
+      key: "date",
+      render: (v) => dayjs(v).format("DD MMM YYYY"),
+    },
+    {
+      title: "Items",
+      dataIndex: "total_quantity",
+      key: "qty",
+    },
+    {
+      title: "Amount",
+      dataIndex: "total_amount",
+      key: "amount",
+      render: (v) => `₹${Number(v).toFixed(2)}`,
+    },
+    {
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
+      render: (v) => (
+        <Tag color={v === "paid" ? "green" : "orange"}>
+          {v?.toUpperCase()}
+        </Tag>
+      ),
+    },
+  ];
   // Coupon states
   const [couponCode, setCouponCode] = useState("");
   const [couponValidating, setCouponValidating] = useState(false);
@@ -61,6 +119,7 @@ function BillingForm() {
 
   useEffect(() => {
     const autoBillNo = generateRandomBillNo();
+    form.setFieldsValue({ bill_no: autoBillNo, billing_date: dayjs(), status: "pending", items: [] });
     setPreview({ items: [], billing_date: dayjs(), customer_name: "" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -313,6 +372,7 @@ function BillingForm() {
             // Legacy support
             totalPoints: customer.totalPoints || 0,
           });
+          setCustomerHistoryBills(historyData.recent_purchases || []);
         } catch (err) {
           console.error("Error fetching customer details:", err);
         }
@@ -547,7 +607,7 @@ function BillingForm() {
                   </Col>
                   <Col span={12}>
                     <Form.Item label="Billing Date" name="billing_date" rules={[{ required: true, message: "Select billing date" }]}>
-                      <DatePicker style={{ width: "100%" }} />
+                      <DatePicker style={{ width: "100%" }} disabled />
                     </Form.Item>
                   </Col>
                 </Row>
@@ -601,7 +661,7 @@ function BillingForm() {
                 </Row>
 
                 {/* Customer Info Card */}
-                {customerData && (
+                {/* {customerData && (
                   <Card
                     size="small"
                     style={{ marginBottom: 16, background: '#e6f7ff', border: '1px solid #91d5ff' }}
@@ -639,7 +699,6 @@ function BillingForm() {
                       </Col>
                     </Row>
 
-                    {/* Last Purchase Info */}
                     {customerData.statistics?.last_purchase && (
                       <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #91d5ff' }}>
                         <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>
@@ -653,7 +712,6 @@ function BillingForm() {
                       </div>
                     )}
 
-                    {/* Top Products */}
                     {customerData.top_products && customerData.top_products.length > 0 && (
                       <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #91d5ff' }}>
                         <div style={{ fontSize: 12, color: '#666', marginBottom: 8 }}>
@@ -675,7 +733,6 @@ function BillingForm() {
                       </div>
                     )}
 
-                    {/* Recent Purchases */}
                     {customerData.recent_purchases && customerData.recent_purchases.length > 0 && (
                       <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #91d5ff' }}>
                         <div style={{ fontSize: 12, color: '#666', marginBottom: 8 }}>
@@ -698,7 +755,6 @@ function BillingForm() {
                       </div>
                     )}
 
-                    {/* Available Coupons */}
                     {customerData.coupons && customerData.coupons.length > 0 && (
                       <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #91d5ff' }}>
                         <div style={{ fontSize: 12, color: '#666', marginBottom: 8 }}>
@@ -707,7 +763,7 @@ function BillingForm() {
                       </div>
                     )}
                   </Card>
-                )}
+                )} */}
 
                 {isNewCustomer && (
                   <Alert
@@ -836,7 +892,7 @@ function BillingForm() {
                 )}
 
                 {/* Coupon Section - Always show */}
-                <Card
+                {/* <Card
                   size="small"
                   title={
                     <Space>
@@ -888,45 +944,154 @@ function BillingForm() {
                   <div style={{ marginTop: 8, fontSize: 12, color: '#666' }}>
                     💡 Tip: Earn coupons by making purchases of ₹2000 or more!
                   </div>
-                </Card>
+                </Card> */}
 
-                <Form.Item label="Scan / Enter Product Code">
-                  <Input
-                    placeholder="Scan or type code and press Enter"
-                    value={productCode}
-                    onChange={(e) => setProductCode(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleProductCode(productCode);
-                      }
-                    }}
-                  />
-                </Form.Item>
+
+                <Row gutter={16}>
+
+                  <Col span={12}>
+                    <Form.Item label="Scan / Enter Product Code">
+                      <Input
+                        placeholder="Scan or type code and press Enter"
+                        value={productCode}
+                        onChange={(e) => setProductCode(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleProductCode(productCode);
+                          }
+                        }}
+                      />
+                    </Form.Item>
+                  </Col>
+
+                  <Col span={12}>
+                    <Form.Item label="Apply Coupon">
+                      {!couponApplied ? (
+                        <Space.Compact style={{ width: "100%" }}>
+                          <Input
+                            placeholder="Enter coupon code"
+                            value={couponCode}
+                            maxLength={10}
+                            onChange={(e) =>
+                              setCouponCode(e.target.value.toUpperCase())
+                            }
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                handleValidateCoupon();
+                              }
+                            }}
+                            style={{ textTransform: "uppercase" }}
+                          />
+                          <Button
+                            type="primary"
+                            loading={couponValidating}
+                            onClick={handleValidateCoupon}
+                          >
+                            Apply
+                          </Button>
+                        </Space.Compact>
+                      ) : (
+                        <Alert
+                          message="Coupon Applied Successfully!"
+                          description={
+                            <div>
+                              <div>
+                                <strong>Code:</strong> {couponCode}
+                              </div>
+                              <div>
+                                <strong>Discount:</strong> ₹
+                                {couponData?.discount?.discountAmount?.toFixed(2)}
+                              </div>
+                              <div>
+                                <strong>Your Reward:</strong>{" "}
+                                {couponData?.discount?.userRewardPoints} points
+                              </div>
+                            </div>
+                          }
+                          type="success"
+                          showIcon
+                          action={
+                            <Button size="small" danger onClick={handleRemoveCoupon}>
+                              Remove
+                            </Button>
+                          }
+                        />
+                      )}
+                    </Form.Item>
+                  </Col>
+                </Row>
+
+
 
                 {/* Items table (editable) */}
-                <Form.List name="items">
-                  {(fields, { remove }) => {
-                    const items = form.getFieldValue("items") || [];
-                    return (
-                      <>
-                        <Table dataSource={items} columns={columns} pagination={false} rowKey={(r, idx) => idx} size="small" style={{ marginBottom: 8 }} />
-
-                        <div style={{ display: "flex", justifyContent: "right", alignItems: "right", marginTop: 10 }}>
-                          <div style={{ textAlign: "right" }}>
-                            <div style={{ display: "flex", justifyContent: "space-between" }}>
-                              <div style={{ color: "#374151" }}>Subtotal</div>
-                              <div>₹{summary.subtotal.toFixed(2)}</div>
-                            </div>
-                          </div>
-                        </div>
-
-                        <Divider />
-                      </>
-                    );
+                <Tabs
+                  activeKey={activeTab}
+                  onChange={(key) => {
+                    setActiveTab(key);
+                    if (key === "history") {
+                      fetchCustomerBills();
+                    }
                   }}
-                </Form.List>
+                  items={[
+                    {
+                      key: "new",
+                      label: "New Bill",
+                      children: (
+                        <Form.List name="items">
+                          {() => {
+                            const items = form.getFieldValue("items") || [];
+                            return (
+                              <>
+                                <Table
+                                  dataSource={items}
+                                  columns={columns}
+                                  pagination={false}
+                                  rowKey={(r, idx) => idx}
+                                  size="small"
+                                  style={{ marginBottom: 8 }}
+                                />
+
+                                <div style={{ display: "flex", justifyContent: "right", marginTop: 10 }}>
+                                  <div>
+                                    <div style={{ display: "flex", justifyContent: "space-between" }}>
+                                      <div style={{ color: "#374151" }}>Subtotal</div>
+                                      <div>₹{summary.subtotal.toFixed(2)}</div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <Divider />
+                              </>
+                            );
+                          }}
+                        </Form.List>
+                      ),
+                    },
+ ...(customerData
+      ? [
+          {
+            key: "history",
+            label: "History",
+            children: (
+              <Spin spinning={historyLoading}>
+                <Table
+                  dataSource={customerHistoryBills}
+                  columns={historyColumns}
+                  rowKey={(record) => record.billing_no}
+                  pagination={{ pageSize: 5 }}
+                  locale={{ emptyText: "No previous bills found" }}
+                  size="small"
+                />
+              </Spin>
+            ),
+          },
+        ]
+      : []),
+  ]}
+/>
               </div>
 
               {/* RIGHT: live preview */}
