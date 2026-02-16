@@ -159,11 +159,11 @@ const StockList = () => {
                     style={{ width: 300 }}
                 />
 
-                {canEdit() && (
+                {/* {canEdit() && (
                     <Button type="primary" icon={<UploadOutlined />} onClick={() => setIsModalOpen(true)}>
                         Bulk Upload Excel
                     </Button>
-                )}
+                )} */}
             </Space>
 
             <Table
