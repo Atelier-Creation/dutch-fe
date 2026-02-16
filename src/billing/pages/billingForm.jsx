@@ -589,7 +589,38 @@ function BillingForm() {
     const randomNumber = Math.floor(10000 + Math.random() * 90000);
     return `PNO${randomNumber}`;
   };
-  
+
+  const renderHistoryExpandedRow = (record) => {
+    if (!customerData) return null;
+
+    return (
+      <div style={{ background: "#fafafa", padding: 16, borderRadius: 6 }}>
+        {/* Top Products */}
+        {customerData.top_products?.length > 0 && (
+          <>
+            <Title level={5}>Top Products</Title>
+            <Table
+              size="small"
+              pagination={false}
+              dataSource={customerData.top_products}
+              rowKey={(r) => r.product_id}
+              columns={[
+                { title: "Product", dataIndex: "product_name" },
+                { title: "Code", dataIndex: "product_code" },
+                { title: "Qty", dataIndex: "total_quantity" },
+                {
+                  title: "Total Amount",
+                  dataIndex: "total_amount",
+                  render: (v) => `₹${Number(v).toFixed(2)}`,
+                },
+              ]}
+            />
+            <Divider />
+          </>
+        )}
+      </div>
+    );
+  };
   return (
     <div style={styles.page}>
       <div style={styles.container}>
@@ -1075,28 +1106,32 @@ function BillingForm() {
                         </Form.List>
                       ),
                     },
- ...(customerData
-      ? [
-          {
-            key: "history",
-            label: "History",
-            children: (
-              <Spin spinning={historyLoading}>
-                <Table
-                  dataSource={customerHistoryBills}
-                  columns={historyColumns}
-                  rowKey={(record) => record.billing_no}
-                  pagination={{ pageSize: 5 }}
-                  locale={{ emptyText: "No previous bills found" }}
-                  size="small"
+                    ...(customerData
+                      ? [
+                        {
+                          key: "history",
+                          label: "History",
+                          children: (
+                            <Spin spinning={historyLoading}>
+                              <Table
+                                dataSource={customerHistoryBills}
+                                columns={historyColumns}
+                                rowKey={(record) => record.billing_no}
+                                pagination={{ pageSize: 5 }}
+                                locale={{ emptyText: "No previous bills found" }}
+                                size="small"
+                                expandable={{
+                                  expandedRowRender: renderHistoryExpandedRow,
+                                  rowExpandable: () => true,
+                                }}
+                              />
+                            </Spin>
+                          ),
+                        },
+                      ]
+                      : []),
+                  ]}
                 />
-              </Spin>
-            ),
-          },
-        ]
-      : []),
-  ]}
-/>
               </div>
 
               {/* RIGHT: live preview */}
