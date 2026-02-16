@@ -8,6 +8,8 @@ import {
 import dashboardService from "../service/dashboardService";
 import { useBranch } from "../../context/BranchContext";
 
+import BillDetailsModal from "./BillDetailsModal";
+
 const { Title, Text } = Typography;
 const { Option } = Select;
 
@@ -21,6 +23,24 @@ const DashboardFull = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const { selectedBranch } = useBranch();
+
+  // Bill Modal State
+  const [selectedBillId, setSelectedBillId] = useState(null);
+  const [selectedBill, setSelectedBill] = useState(null); // Add state for object
+  const [billModalVisible, setBillModalVisible] = useState(false);
+
+  const handleBillClick = (record) => {
+    // Try to get ID from standard fields
+    const id = record.id || record.billing_id || record._id;
+    if (!id) {
+      console.warn("Bill record missing ID:", record);
+      // Fallback to billing_no if numeric ID is not required by API? 
+      // Likely API needs ID. Showing error via modal content.
+    }
+    setSelectedBillId(id);
+    setSelectedBill(record); // Set the record object
+    setBillModalVisible(true);
+  };
 
   // Fetch dashboard data
   useEffect(() => {
@@ -247,6 +267,10 @@ const DashboardFull = () => {
                   pagination={false}
                   size="small"
                   scroll={{ x: 600 }}
+                  onRow={(record) => ({
+                    onClick: () => handleBillClick(record),
+                    style: { cursor: "pointer" },
+                  })}
                 />
               </Card>
             </Col>
@@ -363,6 +387,16 @@ const DashboardFull = () => {
           <Empty description="No data available" />
         </Card>
       )}
+      <BillDetailsModal
+        visible={billModalVisible}
+        onClose={() => {
+          setBillModalVisible(false);
+          setSelectedBillId(null);
+          setSelectedBill(null);
+        }}
+        billId={selectedBillId}
+        initialData={selectedBill}
+      />
     </div>
   );
 };
