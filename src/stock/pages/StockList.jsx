@@ -118,11 +118,11 @@ const StockList = () => {
         { title: "Unit", dataIndex: "unit", key: "unit" },
         { title: "Cost Price", dataIndex: "cost_price", key: "cost_price", render: (val) => `₹${val}` },
         { title: "Selling Price", dataIndex: "selling_price", key: "selling_price", render: (val) => `₹${val}` },
-        { title: "Warehouse ID", dataIndex: "warehouse_id", key: "warehouse_id" },
-        { title: "Supplier", dataIndex: "supplier", key: "supplier" },
+        // { title: "Warehouse ID", dataIndex: "warehouse_id", key: "warehouse_id" },
+        // { title: "Supplier", dataIndex: "supplier", key: "supplier" },
         { title: "Inward Qty", dataIndex: "inward_quantity", key: "inward_quantity" },
         { title: "Billing Qty", dataIndex: "billing_quantity", key: "billing_quantity" },
-        { title: "Customer Billing Qty", dataIndex: "customer_billing_quantity", key: "customer_billing_quantity" },
+        // { title: "Customer Billing Qty", dataIndex: "customer_billing_quantity", key: "customer_billing_quantity" },
     ];
 
     if (!selectedBranch) {
