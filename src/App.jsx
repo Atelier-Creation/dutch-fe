@@ -22,6 +22,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { BranchProvider } from "./context/BranchContext";
 import Loading from "./utils/Loading";
 import Settings from "./components/pages/Settings";
+import ComingSoon from "./billing/pages/ComingSoon";
 
 const routeModules = import.meta.glob("./*/AppRoutes.jsx", { eager: true });
 
@@ -138,6 +139,11 @@ const App = () => {
                   </ProtectedRoute>
                 }
               />
+
+              <Route
+                path="/billing/self-checkout"
+                element={<ComingSoon />}
+              />
               <Route
                 path="/billing/customer-add"
                 element={
@@ -148,7 +154,13 @@ const App = () => {
               />
 
               {/* Routes WITH sidebar/header */}
-              <Route element={<MainLayout menuItems={menuItems} />}>
+              <Route
+                element={
+                  <ProtectedRoute>
+                    <MainLayout menuItems={menuItems} />
+                  </ProtectedRoute>
+                }
+              >
                 {/* Default redirect */}
                 <Route path="/" element={<Navigate to={getDefaultRedirect()} replace />} />
 
