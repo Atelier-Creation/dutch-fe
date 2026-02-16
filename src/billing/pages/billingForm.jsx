@@ -355,6 +355,7 @@ function BillingForm() {
           ]);
 
           const historyData = historyRes.data.data || historyRes.data || {};
+          console.log(historyData)
           const analyticsData = analyticsRes.data.data || analyticsRes.data || {};
           const couponsData = couponsRes.data.data || couponsRes.data || [];
 
@@ -581,6 +582,7 @@ function BillingForm() {
     const randomNumber = Math.floor(10000 + Math.random() * 90000);
     return `PNO${randomNumber}`;
   };
+  
   return (
     <div style={styles.page}>
       <div style={styles.container}>
