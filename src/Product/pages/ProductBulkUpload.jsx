@@ -61,7 +61,7 @@ const ProductBulkUpload = () => {
           barcode: row.barcode || row['Barcode'] || '',
           sku: row.sku || row['SKU'] || '',
           stock_quantity: parseInt(row.stock_quantity || row['Stock Quantity'] || 0),
-          status: row.status || row['Status'] || 'active'
+          status: row.status || row['Status'] || 'active',
         }));
 
         setProducts(parsedProducts);
@@ -112,7 +112,6 @@ const ProductBulkUpload = () => {
         product_name: 'Sample Dress',
         category_name: 'Women Wear',
         subcategory_name: 'Casual Dresses',
-        branch_name: 'Main Branch',
         branch_code: 'BR001',
         brand: 'Fashion Brand',
         size: 'M',
@@ -136,7 +135,7 @@ const ProductBulkUpload = () => {
         barcode: '',
         sku: '',
         stock_quantity: 10,
-        status: 'active'
+        status: 'active',
       }
     ];
 
@@ -152,7 +151,7 @@ const ProductBulkUpload = () => {
         <h1 className="text-2xl font-bold">Bulk Product Upload</h1>
         <button
           onClick={() => navigate('/products')}
-          className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+          className="px-4 py-2 bg-gray-500 !text-white rounded hover:bg-gray-600"
         >
           Back to Products
         </button>
@@ -162,7 +161,7 @@ const ProductBulkUpload = () => {
         <div className="mb-4">
           <button
             onClick={downloadTemplate}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            className="px-4 py-2 bg-blue-500 !text-white rounded hover:bg-blue-600"
           >
             Download Excel Template
           </button>
@@ -213,7 +212,7 @@ const ProductBulkUpload = () => {
             <button
               onClick={handleUpload}
               disabled={loading}
-              className="px-6 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:bg-gray-400"
+              className="px-6 py-2 bg-green-500 !text-white rounded hover:bg-green-600 disabled:bg-gray-400"
             >
               {loading ? 'Uploading...' : 'Upload Products'}
             </button>
