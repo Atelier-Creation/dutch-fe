@@ -378,9 +378,9 @@ function BillingList() {
             <Button type="default" icon={<EyeOutlined />} onClick={() => showDetails(record)} />
           </Tooltip>
           <Button type="primary" icon={<EditOutlined />} onClick={() => navigate(`/billing/edit/${record.id}`)} />
-          <Popconfirm title="Are you sure to delete this billing?" onConfirm={() => handleDelete(record.id)}>
+          {/* <Popconfirm title="Are you sure to delete this billing?" onConfirm={() => handleDelete(record.id)}>
             <Button danger icon={<DeleteOutlined />} />
-          </Popconfirm>
+          </Popconfirm> */}
         </Space>
       ),
     },
@@ -566,9 +566,9 @@ function BillingList() {
 
                           <Button type="primary" icon={<EditOutlined />} onClick={() => navigate(`/billing/edit/${item.id}`)} style={{ borderRadius: 8, padding: "6px 14px" }} />
 
-                          <Popconfirm title="Are you sure to delete this billing?" onConfirm={() => handleDelete(item.id)}>
+                          {/* <Popconfirm title="Are you sure to delete this billing?" onConfirm={() => handleDelete(item.id)}>
                             <Button danger icon={<DeleteOutlined />} style={{ borderRadius: 8, padding: "6px 14px" }} />
-                          </Popconfirm>
+                          </Popconfirm> */}
                         </div>
                       </div>
                     </Card>
