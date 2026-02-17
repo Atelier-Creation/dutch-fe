@@ -102,7 +102,10 @@ const CategoryForm = () => {
 
   // Character counter for description
   const onDescriptionChange = (e) => {
-    setDescCount(e.target.value.length);
+    const value = e.target.value;
+    setDescCount(value.length);
+    // Update form field value
+    form.setFieldValue('description', value);
   };
 
   // if (saved) {
