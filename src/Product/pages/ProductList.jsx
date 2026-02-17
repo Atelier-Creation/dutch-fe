@@ -15,7 +15,7 @@ const ProductList = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
-
+const [messageApi, contextHolder] = message.useMessage();
   // separate input visual state from api query state
   const [inputValue, setInputValue] = useState("");
   // Use ref for search query to ensure fresh access in callbacks without dependency
@@ -115,11 +115,11 @@ const ProductList = () => {
   const handleDelete = async (id) => {
     try {
       await productService.remove(id);
-      message.success("Product deleted successfully");
+      messageApi.success("Product deleted successfully");
       fetchProducts();
     } catch (err) {
       console.error(err);
-      message.error("Failed to delete product");
+      messageApi.error("Failed to delete product");
     }
   };
 
@@ -190,6 +190,8 @@ const ProductList = () => {
         ];
 
         return (
+          <>
+          {contextHolder}
           <Space>
             <Button type="primary" icon={<EditOutlined />} onClick={() => navigate(`/Product/edit/${record.id}`)}>
               Edit
@@ -198,6 +200,7 @@ const ProductList = () => {
               <Button danger icon={<DeleteOutlined />}>Delete</Button>
             </Popconfirm>
           </Space>
+          </>
         );
       },
     },
