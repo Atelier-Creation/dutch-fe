@@ -714,12 +714,12 @@ function BillingForm() {
         notes: values.remarks || "",
         total_quantity: totalQuantity,
         is_active: true,
-        items,
+        billing_items: items, // Changed from 'items' to 'billing_items' to match backend schema
       };
 
       console.log("Billing payload ->", payload);
 
-      if (!Array.isArray(payload.items) || payload.items.length === 0) {
+      if (!Array.isArray(payload.billing_items) || payload.billing_items.length === 0) {
         message.error("No billing items detected. Please add items to the bill.");
         setLoading(false);
         return;
