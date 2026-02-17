@@ -10,7 +10,7 @@ const PointsManagement = () => {
   const [pointsData, setPointsData] = useState(null);
   const [history, setHistory] = useState([]);
   const [customerPhone, setCustomerPhone] = useState("");
-
+const [messageApi, contextHolder] = message.useMessage();
   const onFinish = async (values) => {
     setLoading(true);
     try {

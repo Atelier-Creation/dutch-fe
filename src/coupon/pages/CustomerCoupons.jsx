@@ -9,7 +9,7 @@ const CustomerCoupons = () => {
   const [loading, setLoading] = useState(false);
   const [coupons, setCoupons] = useState([]);
   const [customerPhone, setCustomerPhone] = useState("");
-
+const [messageApi, contextHolder] = message.useMessage();
   const onFinish = async (values) => {
     setLoading(true);
     try {
@@ -18,12 +18,12 @@ const CustomerCoupons = () => {
       setCustomerPhone(values.phone);
       
       if (!response.data.data || response.data.data.length === 0) {
-        message.info("No coupons found for this customer");
+        messageApi.info("No coupons found for this customer");
       } else {
-        message.success(`Found ${response.data.data.length} coupon(s)`);
+        messageApi.success(`Found ${response.data.data.length} coupon(s)`);
       }
     } catch (error) {
-      message.error(error.response?.data?.message || "Failed to fetch coupons");
+      messageApi.error(error.response?.data?.message || "Failed to fetch coupons");
       setCoupons([]);
     } finally {
       setLoading(false);
@@ -32,7 +32,7 @@ const CustomerCoupons = () => {
 
   const handleCopyCoupon = (code) => {
     navigator.clipboard.writeText(code);
-    message.success("Coupon code copied to clipboard!");
+    messageApi.success("Coupon code copied to clipboard!");
   };
 
   const columns = [
@@ -114,6 +114,8 @@ const CustomerCoupons = () => {
   ];
 
   return (
+    <>
+    {contextHolder}
     <div className="p-6">
       <Card title="Search Customer Coupons">
         <Form
@@ -187,6 +189,7 @@ const CustomerCoupons = () => {
         </div>
       </Card>
     </div>
+    </>
   );
 };
 

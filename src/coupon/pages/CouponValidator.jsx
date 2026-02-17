@@ -7,7 +7,7 @@ const CouponValidator = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [validationResult, setValidationResult] = useState(null);
-
+const [messageApi, contextHolder] = message.useMessage();
   const onFinish = async (values) => {
     setLoading(true);
     setValidationResult(null);
@@ -21,12 +21,12 @@ const CouponValidator = () => {
       setValidationResult(response.data.data);
       
       if (response.data.data.valid) {
-        message.success("Coupon is valid!");
+        messageApi.success("Coupon is valid!");
       } else {
-        message.warning(response.data.data.message);
+        messageApi.warning(response.data.data.message);
       }
     } catch (error) {
-      message.error(error.response?.data?.message || "Failed to validate coupon");
+      messageApi.error(error.response?.data?.message || "Failed to validate coupon");
       setValidationResult({
         valid: false,
         message: error.response?.data?.message || "Validation failed"
@@ -37,6 +37,8 @@ const CouponValidator = () => {
   };
 
   return (
+    <>
+    {contextHolder}
     <div className="p-6">
       <Card title="Validate Coupon Code">
         <Form
@@ -152,6 +154,7 @@ const CouponValidator = () => {
         </ul>
       </Card>
     </div>
+    </>
   );
 };
 
