@@ -35,7 +35,7 @@ const CategoryForm = () => {
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
   const [descCount, setDescCount] = useState(0);
-
+const [messageApi, contextHolder] = message.useMessage();
   // Fetch category for edit
   useEffect(() => {
     if (!id) return;
@@ -72,10 +72,10 @@ const CategoryForm = () => {
 
       if (id) {
         await categoryService.update(id, payload);
-        message.success("Category updated successfully");
+        messageApi.success("Category updated successfully");
       } else {
         await categoryService.create(payload);
-        message.success("Category added successfully");
+        messageApi.success("Category added successfully");
       }
 
       // show success Result briefly before redirecting
@@ -88,9 +88,9 @@ const CategoryForm = () => {
       // try to surface structured server errors
       const serverData = err?.response?.data;
       if (serverData && serverData?.error && Array.isArray(serverData.error)) {
-        serverData.error.forEach((e) => message.error(e.message || JSON.stringify(e)));
+        serverData.error.forEach((e) => messageApi.error(e.message || JSON.stringify(e)));
       } else {
-        message.error("Operation failed");
+        messageApi.error("Operation failed");
       }
     } finally {
       setLoading(false);
@@ -123,6 +123,8 @@ const CategoryForm = () => {
   // }
 
   return (
+    <>
+    {contextHolder}
     <div style={{ padding: 10, display: "flex", justifyContent: "center" }}>
       <div style={{ width: "100%", maxWidth: 980 }}>
         <Card
@@ -252,7 +254,7 @@ const CategoryForm = () => {
                     htmlType="submit"
                     icon={<SaveOutlined />}
                     loading={loading}
-                    onClick={() => form.submit()}
+                    // onClick={() => form.submit()}
                     style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
                   >
                     <span>{id ? "Update Category" : "Add Category"}</span>
@@ -264,6 +266,7 @@ const CategoryForm = () => {
         </Card>
       </div>
     </div>
+    </>
   );
 };
 

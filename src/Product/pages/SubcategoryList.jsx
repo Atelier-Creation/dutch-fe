@@ -14,7 +14,7 @@ const SubCategoryList = () => {
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
   const [searchText, setSearchText] = useState("");
   const [sorter, setSorter] = useState({ field: null, order: null });
-
+const [messageApi, contextHolder] = message.useMessage();
   const fetchSubcategories = useCallback(
     async (params = {}) => {
       setLoading(true);
@@ -69,11 +69,11 @@ const SubCategoryList = () => {
   const handleDelete = async (id) => {
     try {
       await subcategoryService.remove(id);
-      message.success("Subcategory deleted successfully");
+      messageApi.success("Subcategory deleted successfully");
       fetchSubcategories();
     } catch (err) {
       console.error(err);
-      message.error("Failed to delete subcategory");
+      messageApi.error("Failed to delete subcategory");
     }
   };
 
@@ -86,6 +86,8 @@ const SubCategoryList = () => {
       key: "actions",
       fixed: "right",
       render: (_, record) => (
+        <>
+        {contextHolder}
         <Space>
           <Button
             type="primary"
@@ -98,6 +100,7 @@ const SubCategoryList = () => {
             <Button danger icon={<DeleteOutlined />}>Delete</Button>
           </Popconfirm>
         </Space>
+        </>
       ),
     },
   ];
