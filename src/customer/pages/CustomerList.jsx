@@ -9,7 +9,7 @@ const CustomerList = () => {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState("");
-
+const [messageApi, contextHolder] = message.useMessage();
   useEffect(() => {
     fetchCustomers();
   }, []);
@@ -29,10 +29,10 @@ const CustomerList = () => {
   const handleDelete = async (id) => {
     try {
       await customerService.deleteCustomer(id);
-      message.success("Customer deleted successfully");
+      messageApi.success("Customer deleted successfully");
       fetchCustomers();
     } catch (error) {
-      message.error("Failed to delete customer");
+      messageApi.error("Failed to delete customer");
     }
   };
 
@@ -74,6 +74,8 @@ const CustomerList = () => {
       title: "Actions",
       key: "actions",
       render: (_, record) => (
+        <>
+        {contextHolder}
         <Space>
           <Button
             type="default"
@@ -94,6 +96,7 @@ const CustomerList = () => {
             <Button type="primary" danger icon={<DeleteOutlined />} />
           </Popconfirm>
         </Space>
+        </>
       ),
     },
   ];

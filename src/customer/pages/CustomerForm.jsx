@@ -8,7 +8,7 @@ const CustomerForm = () => {
   const { id } = useParams();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-
+const [messageApi, contextHolder] = message.useMessage();
   useEffect(() => {
     if (id) {
       fetchCustomer();
@@ -62,20 +62,22 @@ const CustomerForm = () => {
       
       if (id) {
         await customerService.updateCustomer(id, payload);
-        message.success("Customer updated successfully");
+        await messageApi.success("Customer updated successfully");
       } else {
         await customerService.createCustomer(payload);
-        message.success("Customer created successfully");
+        await messageApi.success("Customer created successfully");
       }
       navigate("/customer/list");
     } catch (error) {
-      message.error(error.response?.data?.message || "Operation failed");
+      messageApi.error(error.response?.data?.message || "Operation failed");
     } finally {
       setLoading(false);
     }
   };
 
   return (
+    <>
+    {contextHolder}
     <div className="p-6">
       <Card title={id ? "Edit Customer" : "Add Customer"}>
         <Form
@@ -126,6 +128,7 @@ const CustomerForm = () => {
         </Form>
       </Card>
     </div>
+    </>
   );
 };
 
