@@ -28,7 +28,7 @@ import productService from "../../Product/services/productService";
 import billingService from "../service/billingService";
 import couponService from "../../coupon/service/couponService";
 import customerService from "../../customer/service/customerService";
-import { Laptop, PhoneCall, Printer, ShieldCheck, Trash2 } from "lucide-react";
+import { Gift, Laptop, PhoneCall, Printer, ShieldCheck, Trash2 } from "lucide-react";
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -48,7 +48,7 @@ function BillingForm() {
   const [allProducts, setAllProducts] = useState([]);
   const [productsLoading, setProductsLoading] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
-
+const [messageApi, contextHolder] = message.useMessage();
   // Fetch all products for dropdown
   const fetchAllProducts = async (searchTerm = "") => {
     setProductsLoading(true);
@@ -137,6 +137,7 @@ function BillingForm() {
   const [couponValidating, setCouponValidating] = useState(false);
   const [couponData, setCouponData] = useState(null);
   const [couponApplied, setCouponApplied] = useState(false);
+  const [couponError, setCouponError] = useState(""); // Track coupon validation errors
 
   // Customer states
   const [customerData, setCustomerData] = useState(null);
@@ -450,17 +451,23 @@ function BillingForm() {
     const items = form.getFieldValue("items") || [];
 
     if (!couponCode.trim()) {
-      message.warning("Please enter a coupon code");
+      const errorMsg = "Please enter a coupon code";
+      setCouponError(errorMsg);
+      message.warning(errorMsg);
       return;
     }
 
     if (!customerPhone) {
-      message.warning("Please enter customer phone number first");
+      const errorMsg = "Please enter customer phone number first";
+      setCouponError(errorMsg);
+      message.warning(errorMsg);
       return;
     }
 
     if (items.length === 0) {
-      message.warning("Please add items to the bill first");
+      const errorMsg = "Please add items to the bill first";
+      setCouponError(errorMsg);
+      message.warning(errorMsg);
       return;
     }
 
@@ -485,18 +492,26 @@ function BillingForm() {
           message: result.message
         });
         setCouponApplied(true);
+        setCouponError(""); // Clear any previous errors
         message.success(`Coupon applied! Discount: ₹${result.discount_amount.toFixed(2)}`);
       } else {
+        // Handle validation failure - backend returned success: false
         setCouponData(null);
         setCouponApplied(false);
-        // Show the backend message if available; specifically handles "Cannot use your own referral coupon"
-        message.error(result.message || "Invalid coupon");
+        setCouponCode(""); // Clear the invalid coupon code
+        // Show the backend message if available; handles specific errors like:
+        // "Cannot use your own referral coupon", "Coupon will be valid in 24 hours", etc.
+        const errorMessage = result.message || "Invalid coupon code";
+        setCouponError(errorMessage); // Set error for UI display
+        message.error(errorMessage);
       }
     } catch (error) {
       setCouponData(null);
       setCouponApplied(false);
+      setCouponCode(""); // Clear the invalid coupon code
       // Prefer error.response.data.message as that's where the API returns the specific error message
       const errorMsg = error.response?.data?.message || error.message || "Failed to validate coupon";
+      setCouponError(errorMsg); // Set error for UI display
       message.error(errorMsg);
     } finally {
       setCouponValidating(false);
@@ -508,6 +523,7 @@ function BillingForm() {
     setCouponCode("");
     setCouponData(null);
     setCouponApplied(false);
+    setCouponError(""); // Clear any error messages
     message.info("Coupon removed");
   };
 
@@ -620,7 +636,7 @@ function BillingForm() {
       const summary = calculateSummaryFromItems(items, couponApplied ? couponData : null);
 
       if (Math.abs(splitTotal - summary.grandTotal) > 0.01) {
-        message.error(`Split payment total (₹${splitTotal.toFixed(2)}) must equal bill total (₹${summary.grandTotal.toFixed(2)})`);
+        messageApi.error(`Split payment total (₹${splitTotal.toFixed(2)}) must equal bill total (₹${summary.grandTotal.toFixed(2)})`);
         return;
       }
     }
@@ -630,14 +646,14 @@ function BillingForm() {
       const itemsRaw = form.getFieldValue("items") || [];
 
       if (!Array.isArray(itemsRaw) || itemsRaw.length === 0) {
-        message.error("Add at least one product/item before submitting the bill.");
+        messageApi.error("Add at least one product/item before submitting the bill.");
         setLoading(false);
         return;
       }
 
       for (const it of itemsRaw) {
         if (!it.product_id) {
-          message.error("One or more items are missing product_id. Remove and re-add them.");
+          messageApi.error("One or more items are missing product_id. Remove and re-add them.");
           console.error("Invalid item (missing product_id):", it);
           setLoading(false);
           return;
@@ -704,24 +720,23 @@ function BillingForm() {
       console.log("Billing payload ->", payload);
 
       if (!Array.isArray(payload.items) || payload.items.length === 0) {
-        message.error("No billing items detected. Please add items to the bill.");
+        messageApi.error("No billing items detected. Please add items to the bill.");
         setLoading(false);
         return;
       }
 
       const response = await billingService.create(payload);
       const result = response.data || response;
-
-      message.success("Billing created successfully" + (couponApplied ? " with coupon applied!" : ""));
+      messageApi.success("Billing created successfully" + (couponApplied ? " with coupon applied!" : ""));
 
       // Check if a referral coupon was generated
       if (result.coupon_generated) {
         setGeneratedCoupon(result.coupon_generated);
         setShowCouponModal(true);
-      } else {
-        // Instead of processing to list, we close the tab (or reset if only 1)
-        // navigate("/billing/list");
-        closeCurrentTab();
+      }else {
+  setTimeout(() => {
+    closeCurrentTab();
+  }, 1500);
       }
     } catch (err) {
       console.error("create billing error:", err);
@@ -729,7 +744,7 @@ function BillingForm() {
         err &&
         err.response &&
         (err.response.data?.error || err.response.data?.message || JSON.stringify(err.response.data));
-      message.error(serverMsg || "Failed to create billing");
+      messageApi.error(serverMsg || "Failed to create billing");
     } finally {
       setLoading(false);
     }
@@ -793,7 +808,7 @@ function BillingForm() {
     { title: "Tax", dataIndex: "tax_amount", key: "tax", render: (v) => `₹${(Number(v) || 0).toFixed(2)}` },
     { title: "Total", dataIndex: "total_price", key: "total", render: (v) => `₹${(Number(v) || 0).toFixed(2)}` },
     {
-      title: "",
+      title: "Action",
       key: "actions",
       render: (_, __, idx) => (
         <Button danger size="small" type="text" icon={<DeleteOutlined />} onClick={() => removeItem(idx)} />
@@ -854,6 +869,8 @@ function BillingForm() {
     );
   };
   return (
+    <>
+    {contextHolder}
     <div style={styles.page}>
       <div style={styles.container}>
         {/* Bill Tabs */}
@@ -1081,8 +1098,8 @@ function BillingForm() {
                             <Option value="credit_card">Credit Card</Option>
                             <Option value="debit_card">Debit Card</Option>
                             <Option value="UPI Current Account">UPI Current Account</Option>
-                            <Option value="upi">UPI</Option>
-                            <Option value="bank_transfer">Bank Transfer</Option>
+                            <Option value="UPI Normal Account">UPI</Option>
+                            <Option value="net_banking">Net Banking(Bank Transfer)</Option>
                             <Option value="split">Split Payment</Option>
                             <Option value="hold">Hold</Option>
                           </Select>
@@ -1263,52 +1280,72 @@ function BillingForm() {
                     <Col span={12}>
                       <Form.Item label="Apply Coupon">
                         {!couponApplied ? (
-                          <Space.Compact style={{ width: "100%" }}>
-                            <Input
-                              placeholder="Enter coupon code"
-                              value={couponCode}
-                              maxLength={10}
-                              onChange={(e) =>
-                                setCouponCode(e.target.value.toUpperCase())
-                              }
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  e.preventDefault();
-                                  handleValidateCoupon();
-                                }
-                              }}
-                              style={{ textTransform: "uppercase" }}
-                            />
-                            <Button
-                              type="primary"
-                              loading={couponValidating}
-                              onClick={handleValidateCoupon}
-                            >
-                              Apply
-                            </Button>
-                          </Space.Compact>
-                        ) : (
-                          <Alert
-                            message="Coupon Applied!"
-                            description={
-                              <div>
-                                <div>
-                                  <strong>Code:</strong> {couponCode}
-                                </div>
-                                <div>
-                                  <strong>Discount:</strong> ₹
-                                  {couponData?.discount_amount?.toFixed(2)}
-                                </div>
-                              </div>
-                            }
-                            type="success"
-                            showIcon
-                            action={
-                              <Button size="small" danger onClick={handleRemoveCoupon}>
-                                Remove
+                          <>
+                            <Space.Compact style={{ width: "100%" }}>
+                              <Input
+                                placeholder="Enter coupon code"
+                                value={couponCode}
+                                maxLength={10}
+                                onChange={(e) => {
+                                  setCouponCode(e.target.value.toUpperCase());
+                                  setCouponError(""); // Clear error when user types
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    handleValidateCoupon();
+                                  }
+                                }}
+                                style={{ textTransform: "uppercase" }}
+                                status={couponError ? "error" : ""}
+                              />
+                              <Button
+                                type="primary"
+                                loading={couponValidating}
+                                onClick={handleValidateCoupon}
+                              >
+                                Apply
                               </Button>
-                            }
-                          />
+                            </Space.Compact>
+                            {couponError && (
+                              <Alert
+                                message={couponError}
+                                type="error"
+                                showIcon
+                                style={{ marginTop: "8px", fontSize: "12px" }}
+                                closable
+                                onClose={() => setCouponError("")}
+                              />
+                            )}
+                          </>
+                        ) : (
+                          <div
+                            style={{
+                              background: "#f6ffed",
+                              border: "1px solid #b7eb8f",
+                              borderRadius: "6px",
+                              padding: "0px 10px",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "12px",
+                            }}
+                          >
+                            <CheckCircleOutlined
+                              style={{ color: "#52c41a", fontSize: "16px" }}
+                            />
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontWeight: 600, color: "#52c41a", marginBottom: "2px" }}>
+                                Coupon Applied! <Tag style={{ marginLeft: "6px" }} color="warning">{couponCode}</Tag>
+                              </div>
+                            </div>
+                            <Button
+                              danger
+                              type="text"
+                              icon={<Trash2 size={16} />}
+                              onClick={handleRemoveCoupon}
+                              style={{ padding: "0px 8px" }}
+                            />
+                          </div>
                         )}
                       </Form.Item>
                     </Col>
@@ -1341,7 +1378,8 @@ function BillingForm() {
                                     pagination={false}
                                     rowKey={(r, idx) => idx}
                                     size="small"
-                                    scroll={{ x: 800 }}
+                                    scroll={{ x: 600 }}
+                                    className="billingItemsTable"
                                     style={{ marginBottom: 8 }}
                                   />
 
@@ -1406,6 +1444,10 @@ function BillingForm() {
                   .badge{display:inline-block; padding:4px 8px; border-radius:999px; font-weight:700}
                   .badge-paid{background:#bbf7d0; color:#065f46}
                   .badge-pending{background:#fee2e2; color:#991b1b}
+                  .billingItemsTable .ant-table-thead > tr > th{font-size:12px; padding:8px 4px;}
+                  .billingItemsTable .ant-table-tbody > tr > td{font-size:12px; padding:8px 4px;}
+                  .billingItemsTable .ant-input-number{font-size:12px;}
+                  .billingItemsTable .ant-input-number-input{font-size:12px; padding:2px 6px;}
                 `}</style>
 
                   <div className="invoiceHeader">
@@ -1466,9 +1508,15 @@ function BillingForm() {
 
                       {couponApplied && (
                         <div style={{ marginTop: 8, padding: 8, background: '#f6ffed', borderRadius: 4, fontSize: 12 }}>
-                          <Tag color="success">{couponCode}</Tag> applied
-                          <div style={{ marginTop: 4, color: '#52c41a' }}>
-                            🎁 Discount: ₹{couponData?.discount_amount?.toFixed(2)}
+                          Coupon code <Tag color="success">{couponCode}</Tag> is Applied <Button
+                            danger
+                            type="text"
+                            icon={<Trash2 size={16} />}
+                            onClick={handleRemoveCoupon}
+                            style={{ padding: "0px 8px" }}
+                          />
+                          <div style={{ marginTop: 4, color: '#52c41a', display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <Gift color="red" size={16} /> Discount: ₹{couponData?.discount_amount?.toFixed(2)}
                           </div>
                         </div>
                       )}
@@ -1584,6 +1632,7 @@ function BillingForm() {
         </div>
       </Modal >
     </div >
+    </>
   );
 }
 
