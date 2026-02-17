@@ -113,7 +113,12 @@ const SubcategoryForm = () => {
     if (fieldErrors.length) form.setFields(fieldErrors);
   };
 
-  const onDescriptionChange = (e) => setDescCount(e.target.value.length);
+  const onDescriptionChange = (e) => {
+    const value = e.target.value;
+    setDescCount(value.length);
+    // Update form field value
+    form.setFieldValue('description', value);
+  };
 
   const onCancel = () => navigate("/Product/subcategories");
 

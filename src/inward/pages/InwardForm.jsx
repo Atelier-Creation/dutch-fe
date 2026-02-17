@@ -38,6 +38,40 @@ const InwardForm = () => {
   const { branches, selectedBranch } = useBranch();
   const [selectedFormBranch, setSelectedFormBranch] = useState(null);
   
+  // Product dropdown states
+  const [allProducts, setAllProducts] = useState([]);
+  const [productsLoading, setProductsLoading] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+
+  // Fetch all products for dropdown
+  const fetchAllProducts = async (searchTerm = "") => {
+    setProductsLoading(true);
+    try {
+      const params = {
+        page: 1,
+        limit: searchTerm ? 100 : 10, // Show more when searching
+      };
+      
+      if (searchTerm) {
+        params.search = searchTerm;
+      }
+
+      const response = await productService.getAll(params);
+      const products = response.data?.data || response.data || [];
+      setAllProducts(products);
+    } catch (err) {
+      console.error("Failed to fetch products:", err);
+      message.error("Failed to load products");
+    } finally {
+      setProductsLoading(false);
+    }
+  };
+
+  // Load initial products on mount
+  useEffect(() => {
+    fetchAllProducts();
+  }, []);
+  
   // summary now stores items array plus totals and lastAdded index
   const [summary, setSummary] = useState({
     items: [],
@@ -111,42 +145,58 @@ const InwardForm = () => {
         return;
       }
 
-      let items = form.getFieldValue("items") || [];
-
-      // check if product already exists
-      const existingIndex = items.findIndex(
-        (item) => item.product_code === product.product_code
-      );
-
-      if (existingIndex >= 0) {
-        // increase quantity
-        items[existingIndex].quantity += 1;
-        items[existingIndex].total_price = items[existingIndex].quantity * items[existingIndex].unit_price;
-        form.setFieldsValue({ items });
-        updateSummary(items, existingIndex);
-      } else {
-        // add new row
-        const unitPrice = product.purchase_price || 0;
-        items.push({
-          product_id: product.id,
-          product_code: product.product_code,
-          product_name: product.product_name,
-          quantity: 1,
-          unit_price: unitPrice,
-          total_price: unitPrice,
-          unit: product.unit || "piece",
-          size: product.size || "",
-          color: product.color || "",
-          expiry_date: null,
-          batch_number: "",
-          barcode: product.barcode || "",
-        });
-        form.setFieldsValue({ items });
-        updateSummary(items, items.length - 1);
-      }
+      addProductToItems(product);
     } catch (err) {
       console.error("Fetch product error:", err);
       message.error("Failed to fetch product");
+    }
+  };
+
+  /** 🔹 Add product from dropdown */
+  const handleProductSelect = (productId) => {
+    const product = allProducts.find(p => p.id === productId);
+    if (product) {
+      addProductToItems(product);
+      setSelectedProduct(null); // Clear selection
+    }
+  };
+
+  /** 🔹 Common function to add product to items */
+  const addProductToItems = (product) => {
+    let items = form.getFieldValue("items") || [];
+
+    // check if product already exists
+    const existingIndex = items.findIndex(
+      (item) => item.product_code === product.product_code
+    );
+
+    if (existingIndex >= 0) {
+      // increase quantity
+      items[existingIndex].quantity += 1;
+      items[existingIndex].total_price = items[existingIndex].quantity * items[existingIndex].unit_price;
+      form.setFieldsValue({ items });
+      updateSummary(items, existingIndex);
+      message.success(`${product.product_name} quantity increased`);
+    } else {
+      // add new row
+      const unitPrice = product.purchase_price || 0;
+      items.push({
+        product_id: product.id,
+        product_code: product.product_code,
+        product_name: product.product_name,
+        quantity: 1,
+        unit_price: unitPrice,
+        total_price: unitPrice,
+        unit: product.unit || "piece",
+        size: product.size || "",
+        color: product.color || "",
+        expiry_date: null,
+        batch_number: "",
+        barcode: product.barcode || "",
+      });
+      form.setFieldsValue({ items });
+      updateSummary(items, items.length - 1);
+      message.success(`${product.product_name} added`);
     }
   };
 
@@ -517,15 +567,37 @@ const InwardForm = () => {
                   </Col>
 
                   <Col xs={24}>
-                    <Form.Item label="Scan/Enter Product Code" shouldUpdate={false}>
-                      <Input
-                        placeholder="Scan or type code, press Enter"
-                        onPressEnter={(e) => {
-                          e.preventDefault(""); 
-                          handleProductCode(e); // only add/update product
+                    <Form.Item label="Select Product">
+                      <Select
+                        showSearch
+                        placeholder="Search and select product"
+                        value={selectedProduct}
+                        onChange={handleProductSelect}
+                        onSearch={(value) => {
+                          if (value.length >= 2) {
+                            fetchAllProducts(value);
+                          } else if (value.length === 0) {
+                            fetchAllProducts();
+                          }
                         }}
-                        allowClear
-                      />
+                        loading={productsLoading}
+                        filterOption={false}
+                        notFoundContent={productsLoading ? <Spin size="small" /> : "No products found"}
+                        style={{ width: "100%" }}
+                      >
+                        {allProducts.map((product) => (
+                          <Option key={product.id} value={product.id}>
+                            <div style={{ display: "flex", justifyContent: "space-between" }}>
+                              <span>
+                                {product.product_name} ({product.product_code})
+                              </span>
+                              <span style={{ color: "#52c41a", fontWeight: 600 }}>
+                                ₹{product.purchase_price || product.selling_price}
+                              </span>
+                            </div>
+                          </Option>
+                        ))}
+                      </Select>
                     </Form.Item>
                   </Col>
 

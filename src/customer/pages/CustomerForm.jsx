@@ -19,7 +19,22 @@ const CustomerForm = () => {
     setLoading(true);
     try {
       const response = await customerService.getCustomerById(id);
-      form.setFieldsValue(response.data.data);
+      const customerData = response.data.data;
+      
+      // Map backend field names to form field names
+      form.setFieldsValue({
+        name: customerData.customer_name,
+        phone: customerData.customer_phone,
+        email: customerData.customer_email,
+        address: customerData.address,
+        city: customerData.city,
+        state: customerData.state,
+        pincode: customerData.pincode,
+        gender: customerData.gender,
+        date_of_birth: customerData.date_of_birth,
+        anniversary_date: customerData.anniversary_date,
+        notes: customerData.notes,
+      });
     } catch (error) {
       message.error("Failed to fetch customer");
     } finally {
@@ -30,11 +45,26 @@ const CustomerForm = () => {
   const onFinish = async (values) => {
     setLoading(true);
     try {
+      // Map form field names to backend field names
+      const payload = {
+        customer_name: values.name,
+        customer_phone: values.phone,
+        customer_email: values.email || null,
+        address: values.address || null,
+        city: values.city || null,
+        state: values.state || null,
+        pincode: values.pincode || null,
+        gender: values.gender || null,
+        date_of_birth: values.date_of_birth || null,
+        anniversary_date: values.anniversary_date || null,
+        notes: values.notes || null,
+      };
+      
       if (id) {
-        await customerService.updateCustomer(id, values);
+        await customerService.updateCustomer(id, payload);
         message.success("Customer updated successfully");
       } else {
-        await customerService.createCustomer(values);
+        await customerService.createCustomer(payload);
         message.success("Customer created successfully");
       }
       navigate("/customer/list");
