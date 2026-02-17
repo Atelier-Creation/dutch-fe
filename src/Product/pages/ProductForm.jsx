@@ -38,7 +38,7 @@ const ProductForm = () => {
   const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
   const [form] = Form.useForm();
-
+const [messageApi, contextHolder] = message.useMessage();
   // Fetch categories
   const fetchCategories = async () => {
     try {
@@ -223,10 +223,10 @@ const ProductForm = () => {
 
       if (routeId) {
         await productService.update(routeId, payload);
-        message.success("Product updated successfully");
+        messageApi.success("Product updated successfully");
       } else {
         await productService.create(payload);
-        message.success("Product created successfully");
+        messageApi.success("Product created successfully");
       }
 
       navigate("/Product/list");
@@ -235,11 +235,11 @@ const ProductForm = () => {
       const resp = err?.response?.data;
       if (resp?.error && Array.isArray(resp.error)) {
         applyServerValidationToForm(resp.error);
-        resp.error.forEach((e) => message.error(e.message || JSON.stringify(e)));
+        resp.error.forEach((e) => messageApi.error(e.message || JSON.stringify(e)));
       } else if (err?.message) {
-        message.error(err.message);
+        messageApi.error(err.message);
       } else {
-        message.error("Failed to save product");
+        messageApi.error("Failed to save product");
       }
     } finally {
       setLoading(false);

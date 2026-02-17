@@ -13,7 +13,7 @@ const CategoryList = () => {
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
   const [searchText, setSearchText] = useState("");
-
+const [messageApi, contextHolder] = message.useMessage();
   const fetchCategories = useCallback(async (params = {}) => {
     setLoading(true);
     try {
@@ -55,11 +55,11 @@ const CategoryList = () => {
   const handleDelete = async (id) => {
     try {
       await categoryService.remove(id);
-      message.success("Category deleted successfully");
+      messageApi.success("Category deleted successfully");
       fetchCategories();
     } catch (err) {
       console.error(err);
-      message.error("Failed to delete category");
+      messageApi.error("Failed to delete category");
     }
   };
 
@@ -70,6 +70,8 @@ const CategoryList = () => {
       title: "Actions",
       key: "actions",
       render: (_, record) => (
+        <>
+        {contextHolder}
         <Space>
           <Button type="primary" icon={<EditOutlined />} onClick={() => navigate(`/Product/categories/edit/${record.id}`)}>
             Edit
@@ -78,6 +80,7 @@ const CategoryList = () => {
             <Button danger icon={<DeleteOutlined />}>Delete</Button>
           </Popconfirm>
         </Space>
+        </>
       ),
     },
   ];

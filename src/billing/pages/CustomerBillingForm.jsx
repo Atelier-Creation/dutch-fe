@@ -30,7 +30,7 @@ const CustomerBillingForm = () => {
   const navigate = useNavigate();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-
+const [messageApi, contextHolder] = message.useMessage();
   // ✅ summary state
   const [summary, setSummary] = useState({ subtotal: 0, totalTax: 0, grandTotal: 0 });
   const [manualCode, setManualCode] = useState("");
@@ -125,11 +125,11 @@ const CustomerBillingForm = () => {
         remarks: values.remarks,
       };
       await BillingService.create(payload);
-      message.success("Billing created successfully");
+      messageApi.success("Billing created successfully");
       navigate("/billing/customer-copy", { state: { billing: payload } });
     } catch (err) {
       console.error(err);
-      message.error("Failed to save billing");
+      messageApi.error("Failed to save billing");
     } finally {
       setLoading(false);
     }
@@ -186,6 +186,8 @@ const CustomerBillingForm = () => {
   ];
 
   return (
+    <>
+    {contextHolder}
     <Card
       style={{
         margin: "16px auto",
@@ -323,6 +325,7 @@ const CustomerBillingForm = () => {
         </Form>
       </Spin>
     </Card>
+    </>
   );
 };
 

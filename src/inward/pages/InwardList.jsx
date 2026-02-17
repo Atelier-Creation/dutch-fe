@@ -13,6 +13,7 @@ const { Option } = Select;
 
 const InwardList = () => {
   const navigate = useNavigate();
+  const [messageApi, contextHolder] = message.useMessage();
   const [inwards, setInwards] = useState([]);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({
@@ -107,11 +108,11 @@ const InwardList = () => {
   const handleDelete = async (id) => {
     try {
       await inwardService.remove(id);
-      message.success("Inward deleted successfully");
+      messageApi.success("Inward deleted successfully");
       fetchInwards();
     } catch (err) {
       console.error(err);
-      message.error("Failed to delete inward");
+      messageApi.error("Failed to delete inward");
     }
   };
 
@@ -196,6 +197,8 @@ const InwardList = () => {
       key: "actions",
       fixed: "right",
       render: (_, record) => (
+        <>
+        {contextHolder}
         <Space>
           <Button
             type="primary"
@@ -213,6 +216,7 @@ const InwardList = () => {
             </Button>
           </Popconfirm>
         </Space>
+        </>
       ),
     },
   ];
