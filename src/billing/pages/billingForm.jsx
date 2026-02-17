@@ -714,7 +714,7 @@ const [messageApi, contextHolder] = message.useMessage();
         notes: values.remarks || "",
         total_quantity: totalQuantity,
         is_active: true,
-        items,
+        billing_items: items, // Changed from 'items' to 'billing_items' to match backend schema
       };
 
       console.log("Billing payload ->", payload);
