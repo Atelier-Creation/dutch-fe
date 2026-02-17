@@ -169,7 +169,7 @@ const Settings = () => {
             key="profile"
           >
             <Spin spinning={fetchingData}>
-              <div className="mb-6 flex justify-center">
+              {/* <div className="mb-6 flex justify-center">
                 <Space direction="vertical" align="center">
                   <Avatar size={100} icon={<UserOutlined />} src={avatarUrl} />
                   <Upload
@@ -180,7 +180,7 @@ const Settings = () => {
                     <Button icon={<UploadOutlined />}>Change Avatar</Button>
                   </Upload>
                 </Space>
-              </div>
+              </div> */}
 
               <Form
                 form={profileForm}
