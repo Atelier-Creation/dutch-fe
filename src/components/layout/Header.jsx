@@ -111,7 +111,7 @@ const HeaderBar = ({ collapsed, setCollapsed }) => {
     >
       {/* Left side: Collapse Button */}
       <div
-        className="cursor-pointer p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+        className="cursor-pointer p-2 rounded-lg hover:bg-gray-100  transition-colors"
         onClick={() => setCollapsed(!collapsed)}
         style={{ color: textColor }}
       >

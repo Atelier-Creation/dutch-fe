@@ -12,9 +12,28 @@ const styles = {
     statChevron: { width: 44, height: 44, borderRadius: 10, background: "rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center" },
 };
 
-const StatCard = ({ title, value, meta, gradient, icon }) => {
+const StatCard = ({ title, value, meta, gradient, icon, onClick }) => {
     return (
-        <div style={{ ...styles.statGridCardWrap }}>
+        <div 
+            style={{ 
+                ...styles.statGridCardWrap, 
+                cursor: onClick ? 'pointer' : 'default',
+                transition: 'transform 0.2s, box-shadow 0.2s'
+            }}
+            onClick={onClick}
+            onMouseEnter={(e) => {
+                if (onClick) {
+                    e.currentTarget.style.transform = 'translateY(-4px)';
+                    e.currentTarget.style.boxShadow = '0 12px 35px rgba(2,6,23,0.12)';
+                }
+            }}
+            onMouseLeave={(e) => {
+                if (onClick) {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 10px 30px rgba(2,6,23,0.06)';
+                }
+            }}
+        >
             <div style={{ ...styles.statInner, background: gradient }}>
                 <div style={styles.statLeft}>
                     <div style={styles.statTitle}>{title}</div>

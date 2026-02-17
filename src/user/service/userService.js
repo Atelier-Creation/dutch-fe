@@ -12,6 +12,7 @@ const userService = {
   // Auth
   login: (data) => api.post("/user/login", data),
   logout: () => api.post("/user/logout"),
+  getMe: () => api.get("/user/me"),
   getProfile: () => api.get("/user/me/profile"),
   changePassword: (data) => api.post("/user/change-password", data),
   sendOtp: (data) => api.post("/user/send-otp", data),

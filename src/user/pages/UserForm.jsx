@@ -75,19 +75,29 @@ const UserForm = () => {
   const fetchUser = async () => {
     setLoading(true);
     try {
+      console.log('Fetching user with ID:', id);
       const response = await userService.getUserById(id);
+      console.log('User response:', response);
+      
       const user = response.data;
+      console.log('User data:', user);
       
       // Map backend field names to frontend field names
-      form.setFieldsValue({
+      const formValues = {
         name: user.username,
         email: user.email,
         phone: user.phone,
         roleId: user.role_id,
-      });
+      };
+      
+      console.log('Setting form values:', formValues);
+      form.setFieldsValue(formValues);
+      
+      console.log('Form values after set:', form.getFieldsValue());
     } catch (error) {
       message.error("Failed to fetch user");
       console.error('Fetch user error:', error);
+      console.error('Error response:', error.response?.data);
     } finally {
       setLoading(false);
     }
