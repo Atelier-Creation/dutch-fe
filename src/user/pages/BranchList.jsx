@@ -8,7 +8,7 @@ const BranchList = () => {
   const navigate = useNavigate();
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(false);
-
+const [messageApi, contextHolder] = message.useMessage();
   useEffect(() => {
     fetchBranches();
   }, []);
@@ -44,10 +44,10 @@ const BranchList = () => {
   const handleDelete = async (id) => {
     try {
       await userService.deleteBranch(id);
-      message.success("Branch deleted successfully");
+      messageApi.success("Branch deleted successfully");
       fetchBranches();
     } catch (error) {
-      message.error("Failed to delete branch");
+      messageApi.error("Failed to delete branch");
     }
   };
 
@@ -87,6 +87,8 @@ const BranchList = () => {
       title: "Actions",
       key: "actions",
       render: (_, record) => (
+        <>
+        {contextHolder}
         <Space>
           <Button
             type="primary"
@@ -102,6 +104,7 @@ const BranchList = () => {
             <Button type="primary" danger icon={<DeleteOutlined />} />
           </Popconfirm>
         </Space>
+        </>
       ),
     },
   ];

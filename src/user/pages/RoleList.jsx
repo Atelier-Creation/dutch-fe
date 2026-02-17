@@ -8,7 +8,7 @@ const RoleList = () => {
   const navigate = useNavigate();
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(false);
-
+const [messageApi, contextHolder] = message.useMessage();
   useEffect(() => {
     fetchRoles();
   }, []);
@@ -41,10 +41,10 @@ const RoleList = () => {
   const handleDelete = async (id) => {
     try {
       await userService.deleteRole(id);
-      message.success("Role deleted successfully");
+      messageApi.success("Role deleted successfully");
       fetchRoles();
     } catch (error) {
-      message.error("Failed to delete role");
+      messageApi.error("Failed to delete role");
     }
   };
 
@@ -63,6 +63,8 @@ const RoleList = () => {
       title: "Actions",
       key: "actions",
       render: (_, record) => (
+        <>
+        {contextHolder}
         <Space>
           <Button
             type="primary"
@@ -78,6 +80,7 @@ const RoleList = () => {
             <Button type="primary" danger icon={<DeleteOutlined />} />
           </Popconfirm>
         </Space>
+        </>
       ),
     },
   ];

@@ -8,7 +8,7 @@ const BranchForm = () => {
   const { id } = useParams();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-
+const [messageApi, contextHolder] = message.useMessage();
   useEffect(() => {
     if (id) {
       fetchBranch();
@@ -53,20 +53,22 @@ const BranchForm = () => {
 
       if (id) {
         await userService.updateBranch(id, payload);
-        message.success("Branch updated successfully");
+        messageApi.success("Branch updated successfully");
       } else {
         await userService.createBranch(payload);
-        message.success("Branch created successfully");
+        messageApi.success("Branch created successfully");
       }
       navigate("/user/branches");
     } catch (error) {
-      message.error(error.response?.data?.message || "Operation failed");
+      messageApi.error(error.response?.data?.message || "Operation failed");
     } finally {
       setLoading(false);
     }
   };
 
   return (
+    <>
+    {contextHolder}
     <div className="p-6">
       <Card title={id ? "Edit Branch" : "Add Branch"}>
         <Form
@@ -123,6 +125,7 @@ const BranchForm = () => {
         </Form>
       </Card>
     </div>
+    </>
   );
 };
 

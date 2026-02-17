@@ -11,7 +11,7 @@ const UserForm = () => {
   const [roles, setRoles] = useState([]);
   const [branches, setBranches] = useState([]);
   const [selectedBranches, setSelectedBranches] = useState([]);
-
+const [messageApi, contextHolder] = message.useMessage();
   useEffect(() => {
     fetchRoles();
     fetchBranches();
@@ -126,11 +126,11 @@ const UserForm = () => {
 
       if (id) {
         await userService.updateUser(id, payload);
-        message.success("User updated successfully");
+        messageApi.success("User updated successfully");
       } else {
         const response = await userService.createUser(payload);
         userId = response.data.user?.id || response.data.id;
-        message.success("User created successfully");
+        messageApi.success("User created successfully");
       }
 
       // Assign branches to user
@@ -138,7 +138,7 @@ const UserForm = () => {
         const roleId = values.roleId;
         
         if (!roleId) {
-          message.error("Role is required to assign branches");
+          messageApi.error("Role is required to assign branches");
           return;
         }
 
@@ -181,24 +181,26 @@ const UserForm = () => {
               console.log('Assigned branch:', branchId);
             } catch (error) {
               console.error('Error assigning branch:', error);
-              message.error(`Failed to assign branch: ${error.response?.data?.message || error.message}`);
+              messageApi.error(`Failed to assign branch: ${error.response?.data?.message || error.message}`);
             }
           }
         }
-        message.success("Branches assigned successfully");
+        messageApi.success("Branches assigned successfully");
       }
 
       navigate("/user/users");
     } catch (error) {
       console.error('Save user error:', error);
       console.error('Error response:', error.response?.data);
-      message.error(error.response?.data?.error || error.response?.data?.message || "Operation failed");
+      messageApi.error(error.response?.data?.error || error.response?.data?.message || "Operation failed");
     } finally {
       setLoading(false);
     }
   };
 
   return (
+    <>
+    {contextHolder}
     <div className="p-6">
       <Card title={id ? "Edit User" : "Add User"}>
         <Form
@@ -291,6 +293,7 @@ const UserForm = () => {
         </Form>
       </Card>
     </div>
+    </>
   );
 };
 

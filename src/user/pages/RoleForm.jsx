@@ -8,7 +8,7 @@ const RoleForm = () => {
   const { id } = useParams();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-
+const [messageApi, contextHolder] = message.useMessage();
   useEffect(() => {
     if (id) {
       fetchRole();
@@ -45,14 +45,14 @@ const RoleForm = () => {
 
       if (id) {
         await userService.updateRole(id, payload);
-        message.success("Role updated successfully");
+        messageApi.success("Role updated successfully");
       } else {
         await userService.createRole(payload);
-        message.success("Role created successfully");
+        messageApi.success("Role created successfully");
       }
       navigate("/user/roles");
     } catch (error) {
-      message.error(error.response?.data?.error || error.response?.data?.message || "Operation failed");
+      messageApi.error(error.response?.data?.error || error.response?.data?.message || "Operation failed");
       console.error('Save role error:', error);
     } finally {
       setLoading(false);
@@ -60,6 +60,8 @@ const RoleForm = () => {
   };
 
   return (
+    <>
+    {contextHolder}
     <div className="p-6">
       <Card title={id ? "Edit Role" : "Add Role"}>
         <Form
@@ -91,6 +93,7 @@ const RoleForm = () => {
         </Form>
       </Card>
     </div>
+    </>
   );
 };
 

@@ -9,6 +9,7 @@ const UserList = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState("");
+  const [messageApi, contextHolder] = message.useMessage();
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
@@ -73,10 +74,10 @@ const UserList = () => {
   const handleDelete = async (id) => {
     try {
       await userService.deleteUser(id);
-      message.success("User deleted successfully");
+      messageApi.success("User deleted successfully");
       fetchUsers();
     } catch (error) {
-      message.error("Failed to delete user");
+      messageApi.error("Failed to delete user");
     }
   };
 
@@ -116,6 +117,8 @@ const UserList = () => {
       title: "Actions",
       key: "actions",
       render: (_, record) => (
+        <>
+        {contextHolder}
         <Space>
           <Button
             type="primary"
@@ -131,6 +134,7 @@ const UserList = () => {
             <Button type="primary" danger icon={<DeleteOutlined />} />
           </Popconfirm>
         </Space>
+        </>
       ),
     },
   ];
