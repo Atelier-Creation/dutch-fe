@@ -87,14 +87,14 @@ const [messageApi, contextHolder] = message.useMessage();
             icon={<EditOutlined />}
             onClick={() => navigate(`/customer/edit/${record.id}`)}
           />
-          <Popconfirm
+          {/* <Popconfirm
             title="Delete customer?"
             onConfirm={() => handleDelete(record.id)}
             okText="Yes"
             cancelText="No"
           >
             <Button type="primary" danger icon={<DeleteOutlined />} />
-          </Popconfirm>
+          </Popconfirm> */}
         </Space>
         </>
       ),

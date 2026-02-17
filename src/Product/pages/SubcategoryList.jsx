@@ -68,6 +68,7 @@ const [messageApi, contextHolder] = message.useMessage();
 
   const handleDelete = async (id) => {
     try {
+      console.log(id)
       await subcategoryService.remove(id);
       messageApi.success("Subcategory deleted successfully");
       fetchSubcategories();
@@ -96,9 +97,9 @@ const [messageApi, contextHolder] = message.useMessage();
           >
             Edit
           </Button>
-          <Popconfirm title="Are you sure to delete this subcategory?" onConfirm={() => handleDelete(record.id)}>
+          {/* <Popconfirm title="Are you sure to delete this subcategory?" onConfirm={() => handleDelete(record.id)}>
             <Button danger icon={<DeleteOutlined />}>Delete</Button>
-          </Popconfirm>
+          </Popconfirm> */}
         </Space>
         </>
       ),

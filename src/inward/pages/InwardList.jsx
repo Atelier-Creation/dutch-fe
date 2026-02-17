@@ -207,14 +207,14 @@ const InwardList = () => {
           >
             Edit
           </Button>
-          <Popconfirm
+          {/* <Popconfirm
             title="Are you sure to delete this inward?"
             onConfirm={() => handleDelete(record.id)}
           >
             <Button danger icon={<DeleteOutlined />}>
               Delete
             </Button>
-          </Popconfirm>
+          </Popconfirm> */}
         </Space>
         </>
       ),

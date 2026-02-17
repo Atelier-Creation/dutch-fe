@@ -196,9 +196,9 @@ const [messageApi, contextHolder] = message.useMessage();
             <Button type="primary" icon={<EditOutlined />} onClick={() => navigate(`/Product/edit/${record.id}`)}>
               Edit
             </Button>
-            <Popconfirm title="Are you sure to delete this product?" onConfirm={() => handleDelete(record.id)}>
+            {/* <Popconfirm title="Are you sure to delete this product?" onConfirm={() => handleDelete(record.id)}>
               <Button danger icon={<DeleteOutlined />}>Delete</Button>
-            </Popconfirm>
+            </Popconfirm> */}
           </Space>
           </>
         );

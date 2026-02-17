@@ -125,14 +125,14 @@ const UserList = () => {
             icon={<EditOutlined />}
             onClick={() => navigate(`/user/users/edit/${record.id}`)}
           />
-          <Popconfirm
+          {/* <Popconfirm
             title="Delete user?"
             onConfirm={() => handleDelete(record.id)}
             okText="Yes"
             cancelText="No"
           >
             <Button type="primary" danger icon={<DeleteOutlined />} />
-          </Popconfirm>
+          </Popconfirm> */}
         </Space>
         </>
       ),
