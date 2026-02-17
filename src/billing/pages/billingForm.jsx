@@ -48,7 +48,7 @@ function BillingForm() {
   const [allProducts, setAllProducts] = useState([]);
   const [productsLoading, setProductsLoading] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
-
+const [messageApi, contextHolder] = message.useMessage();
   // Fetch all products for dropdown
   const fetchAllProducts = async (searchTerm = "") => {
     setProductsLoading(true);
@@ -636,7 +636,7 @@ function BillingForm() {
       const summary = calculateSummaryFromItems(items, couponApplied ? couponData : null);
 
       if (Math.abs(splitTotal - summary.grandTotal) > 0.01) {
-        message.error(`Split payment total (₹${splitTotal.toFixed(2)}) must equal bill total (₹${summary.grandTotal.toFixed(2)})`);
+        messageApi.error(`Split payment total (₹${splitTotal.toFixed(2)}) must equal bill total (₹${summary.grandTotal.toFixed(2)})`);
         return;
       }
     }
@@ -646,14 +646,14 @@ function BillingForm() {
       const itemsRaw = form.getFieldValue("items") || [];
 
       if (!Array.isArray(itemsRaw) || itemsRaw.length === 0) {
-        message.error("Add at least one product/item before submitting the bill.");
+        messageApi.error("Add at least one product/item before submitting the bill.");
         setLoading(false);
         return;
       }
 
       for (const it of itemsRaw) {
         if (!it.product_id) {
-          message.error("One or more items are missing product_id. Remove and re-add them.");
+          messageApi.error("One or more items are missing product_id. Remove and re-add them.");
           console.error("Invalid item (missing product_id):", it);
           setLoading(false);
           return;
@@ -719,25 +719,24 @@ function BillingForm() {
 
       console.log("Billing payload ->", payload);
 
-      if (!Array.isArray(payload.billing_items) || payload.billing_items.length === 0) {
-        message.error("No billing items detected. Please add items to the bill.");
+      if (!Array.isArray(payload.items) || payload.items.length === 0) {
+        messageApi.error("No billing items detected. Please add items to the bill.");
         setLoading(false);
         return;
       }
 
       const response = await billingService.create(payload);
       const result = response.data || response;
-
-      message.success("Billing created successfully" + (couponApplied ? " with coupon applied!" : ""));
+      messageApi.success("Billing created successfully" + (couponApplied ? " with coupon applied!" : ""));
 
       // Check if a referral coupon was generated
       if (result.coupon_generated) {
         setGeneratedCoupon(result.coupon_generated);
         setShowCouponModal(true);
-      } else {
-        // Instead of processing to list, we close the tab (or reset if only 1)
-        // navigate("/billing/list");
-        closeCurrentTab();
+      }else {
+  setTimeout(() => {
+    closeCurrentTab();
+  }, 1500);
       }
     } catch (err) {
       console.error("create billing error:", err);
@@ -745,7 +744,7 @@ function BillingForm() {
         err &&
         err.response &&
         (err.response.data?.error || err.response.data?.message || JSON.stringify(err.response.data));
-      message.error(serverMsg || "Failed to create billing");
+      messageApi.error(serverMsg || "Failed to create billing");
     } finally {
       setLoading(false);
     }
@@ -870,6 +869,8 @@ function BillingForm() {
     );
   };
   return (
+    <>
+    {contextHolder}
     <div style={styles.page}>
       <div style={styles.container}>
         {/* Bill Tabs */}
@@ -1631,6 +1632,7 @@ function BillingForm() {
         </div>
       </Modal >
     </div >
+    </>
   );
 }
 

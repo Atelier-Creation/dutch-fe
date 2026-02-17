@@ -469,7 +469,7 @@ const Sidebar = ({ collapsed = true, setCollapsed = () => { }, selectedParent, s
                   }}
                   role="button"
                   tabIndex={0}
-                  className="transition-all duration-200 hover:bg-gray-50 dark:hover:bg-gray-800"
+                  className="transition-all duration-200 hover:bg-gray-50"
                   style={{
                     padding: 16,
                     display: "flex",

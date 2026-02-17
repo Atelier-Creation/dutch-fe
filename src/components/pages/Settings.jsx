@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   Form,
@@ -15,6 +15,8 @@ import {
   Row,
   Col,
   Avatar,
+  message,
+  Spin,
 } from "antd";
 import {
   SaveOutlined,
@@ -27,17 +29,21 @@ import {
   PlusOutlined
 } from "@ant-design/icons";
 import { useTheme } from "../../context/ThemeContext";
-// import ComapanyForm from "../../Hotel/components/HotelForm";
-// import AddMachineType from "../../ssms/pages/Subfields/AddMachineType";
+import { useAuth } from "../../context/AuthContext";
+import userService from "../../user/service/userService";
 
 const { Option } = Select;
 const { TabPane } = Tabs;
 
 const Settings = () => {
-  const [form] = Form.useForm();
+  const [profileForm] = Form.useForm();
+  const [securityForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [fetchingData, setFetchingData] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(null);
-    const [activeTab, setActiveTab] = useState("profile");
+  const [activeTab, setActiveTab] = useState("profile");
+  const [userData, setUserData] = useState(null);
+  const { user } = useAuth();
 
   const {
     theme,
@@ -57,22 +63,91 @@ const Settings = () => {
     currentPreset,
   } = useTheme();
 
-  const handleSubmit = (values) => {
+  // Fetch user data on component mount
+  useEffect(() => {
+    fetchUserData();
+  }, []);
+
+  const fetchUserData = async () => {
+    try {
+      setFetchingData(true);
+      
+      // Check if token exists
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      console.log('Token exists:', !!token);
+      console.log('Token value:', token ? token.substring(0, 20) + '...' : 'null');
+      
+      console.log('Fetching user profile data...');
+      const response = await userService.getMe();
+      console.log('Profile response:', response);
+      
+      // Handle different response structures
+      const data = response.data?.data || response.data;
+      console.log('User data:', data);
+      
+      setUserData(data);
+      
+      // Set profile form values
+      const formValues = {
+        username: data.username,
+        email: data.email,
+        phone: data.phone,
+        role: data.role?.role_name || 'N/A',
+      };
+      
+      console.log('Setting profile form values:', formValues);
+      profileForm.setFieldsValue(formValues);
+      console.log('Profile form values after set:', profileForm.getFieldsValue());
+    } catch (error) {
+      console.error('Failed to fetch user data:', error);
+      console.error('Error response:', error.response?.data);
+      message.error('Failed to load user profile');
+    } finally {
+      setFetchingData(false);
+    }
+  };
+
+  const handleProfileSubmit = async (values) => {
     setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      console.log("Settings saved:", values);
-      notification.success({
-        message: "Settings Saved",
-        description: "Your settings have been updated successfully.",
-      });
+    try {
+      const payload = {
+        username: values.username,
+        email: values.email,
+        phone: values.phone,
+      };
+
+      await userService.updateUser(userData.id, payload);
+      
+      message.success('Profile updated successfully');
+      fetchUserData(); // Refresh user data
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      message.error(error.response?.data?.error || 'Failed to update profile');
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
+  };
+
+  const handleSecuritySubmit = async (values) => {
+    setLoading(true);
+    try {
+      await userService.changePassword({
+        oldPassword: values.currentPassword,
+        newPassword: values.newPassword,
+      });
+      
+      message.success('Password changed successfully');
+      securityForm.resetFields();
+    } catch (error) {
+      console.error('Failed to change password:', error);
+      message.error(error.response?.data?.error || 'Failed to change password');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleAvatarChange = (info) => {
     if (info.file.status === "done") {
-      // Get this url from response in real world
       setAvatarUrl(URL.createObjectURL(info.file.originFileObj));
     }
   };
@@ -84,255 +159,110 @@ const Settings = () => {
       </div>
 
       <Card variant={"borderless"}>
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleSubmit}
-          initialValues={{
-            firstName: "John",
-            lastName: "Doe",
-            email: "john.doe@example.com",
-            phone: "+1 (555) 123-4567",
-            jobTitle: "Software Developer",
-            department: "Engineering",
-            theme: theme,
-            primaryColor: primaryColor,
-            notificationsEnabled: true,
-            emailNotifications: true,
-            pushNotifications: true,
-            currentPassword: "",
-            newPassword: "",
-            confirmPassword: "",
-          }}
-        >
-             <Tabs activeKey={activeTab} onChange={(key) => setActiveTab(key)}>
-            <TabPane
-              tab={
-                <span>
-                  <UserOutlined /> Profile
-                </span>
-              }
-              key="profile"
-            >
+        <Tabs activeKey={activeTab} onChange={(key) => setActiveTab(key)}>
+          <TabPane
+            tab={
+              <span>
+                <UserOutlined /> Profile
+              </span>
+            }
+            key="profile"
+          >
+            <Spin spinning={fetchingData}>
               <div className="mb-6 flex justify-center">
                 <Space direction="vertical" align="center">
                   <Avatar size={100} icon={<UserOutlined />} src={avatarUrl} />
                   <Upload
-                    onChange={handleAvatarChange}
                     showUploadList={false}
-                    maxCount={1}
+                    beforeUpload={() => false}
+                    onChange={handleAvatarChange}
                   >
                     <Button icon={<UploadOutlined />}>Change Avatar</Button>
                   </Upload>
                 </Space>
               </div>
 
-              {/* <ComapanyForm /> */}
-
-              {/* <Row gutter={16}>
-                <Col span={12}>
+              <Form
+                form={profileForm}
+                layout="vertical"
+                onFinish={handleProfileSubmit}
+              >
+                <Row gutter={16}>
+                  <Col span={12}>
+                    <Form.Item
+                      name="username"
+                      label="Username"
+                      rules={[
+                        { required: true, message: 'Please enter your username' },
+                        { min: 3, message: 'Username must be at least 3 characters' }
+                      ]}
+                    >
+                      <Input placeholder="Username" />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item
+                      name="email"
+                      label="Email"
+                      rules={[
+                        { required: true, message: 'Please enter your email' },
+                        { type: 'email', message: 'Please enter a valid email' }
+                      ]}
+                    >
+                      <Input placeholder="Email" />
+                    </Form.Item>
+                  </Col>
+                </Row>
+                
+                <Row gutter={16}>
+                  <Col span={12}>
                   <Form.Item
-                    name="firstName"
-                    label="First Name"
-                    rules={[{ required: true, message: 'Please enter your first name' }]}
+                    name="phone"
+                    label="Phone Number"
+                    rules={[
+                      { required: true, message: 'Please enter your phone number' },
+                      { pattern: /^\d{10}$/, message: 'Phone must be 10 digits' }
+                    ]}
                   >
-                    <Input placeholder="First Name" />
+                    <Input placeholder="Phone Number" maxLength={10} />
                   </Form.Item>
                 </Col>
                 <Col span={12}>
                   <Form.Item
-                    name="lastName"
-                    label="Last Name"
-                    rules={[{ required: true, message: 'Please enter your last name' }]}
+                    name="role"
+                    label="Role"
                   >
-                    <Input placeholder="Last Name" />
+                    <Input disabled placeholder="Role" />
                   </Form.Item>
                 </Col>
               </Row>
-              
-              <Form.Item
-                name="email"
-                label="Email"
-                rules={[
-                  { required: true, message: 'Please enter your email' },
-                  { type: 'email', message: 'Please enter a valid email' }
-                ]}
-              >
-                <Input placeholder="Email" />
-              </Form.Item>
-              
-              <Form.Item
-                name="phone"
-                label="Phone Number"
-              >
-                <Input placeholder="Phone Number" />
-              </Form.Item>
-              
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item
-                    name="jobTitle"
-                    label="Job Title"
-                  >
-                    <Input placeholder="Job Title" />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item
-                    name="department"
-                    label="Department"
-                  >
-                    <Select placeholder="Select Department">
-                      <Option value="engineering">Engineering</Option>
-                      <Option value="marketing">Marketing</Option>
-                      <Option value="sales">Sales</Option>
-                      <Option value="hr">Human Resources</Option>
-                      <Option value="finance">Finance</Option>
-                    </Select>
-                  </Form.Item>
-                </Col>
-              </Row> */}
-            </TabPane>
 
-            <TabPane
-              tab={
-                <span>
-                  <SettingOutlined /> Config
-                </span>
-              }
-              key="config"
-            >
-              <Form.Item name="theme" label="Theme Mode">
-                <Radio.Group onChange={(e) => setTheme(e.target.value)}>
-                  <Radio.Button value="light">Light</Radio.Button>
-                  <Radio.Button value="dark">Dark</Radio.Button>
-                </Radio.Group>
-              </Form.Item>
-
-              <Form.Item name="presetTheme" label="Preset Theme">
-                <Select
-                  placeholder="Select Preset Theme"
-                  onChange={(value) => applyPresetTheme(value)}
-                  defaultValue={currentPreset}
+              <Form.Item className="mb-0">
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  icon={<SaveOutlined />}
+                  loading={loading}
                 >
-                  <Option value="light">Default Light</Option>
-                  <Option value="blue">Blue</Option>
-                  <Option value="purple">Purple</Option>
-                  <Option value="green">Green</Option>
-                  <Option value="grey">Grey</Option>
-                </Select>
+                  Update Profile
+                </Button>
               </Form.Item>
+            </Form>
+            </Spin>
+          </TabPane>
 
-              <Form.Item name="primaryColor" label="Primary Color">
-                <Input
-                  type="color"
-                  value={primaryColor}
-                  onChange={(e) => setPrimaryColor(e.target.value)}
-                  style={{ width: "100%", height: "32px" }}
-                />
-              </Form.Item>
-
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="contentBgColor" label="Content Background">
-                    <Input
-                      type="color"
-                      value={contentBgColor}
-                      onChange={(e) => setContentBgColor(e.target.value)}
-                      style={{ width: "100%", height: "32px" }}
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="headerBgColor" label="Header Background">
-                    <Input
-                      type="color"
-                      value={headerBgColor}
-                      onChange={(e) => setHeaderBgColor(e.target.value)}
-                      style={{ width: "100%", height: "32px" }}
-                    />
-                  </Form.Item>
-                </Col>
-              </Row>
-
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="sidebarBgColor" label="Sidebar Background">
-                    <Input
-                      type="color"
-                      value={sidebarBgColor}
-                      onChange={(e) => setSidebarBgColor(e.target.value)}
-                      style={{ width: "100%", height: "32px" }}
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="footerBgColor" label="Footer Background">
-                    <Input
-                      type="color"
-                      value={footerBgColor}
-                      onChange={(e) => setFooterBgColor(e.target.value)}
-                      style={{ width: "100%", height: "32px" }}
-                    />
-                  </Form.Item>
-                </Col>
-              </Row>
-            </TabPane>
-
-            <TabPane
-              tab={
-                <span>
-                  <BellOutlined /> Notifications
-                </span>
-              }
-              key="notifications"
-            >
-              <Form.Item
-                name="notificationsEnabled"
-                label="Enable Notifications"
-                valuePropName="checked"
-              >
-                <Switch />
-              </Form.Item>
-
-              <Divider />
-
-              <Form.Item
-                name="emailNotifications"
-                label="Email Notifications"
-                valuePropName="checked"
-              >
-                <Switch />
-              </Form.Item>
-
-              <Form.Item
-                name="pushNotifications"
-                label="Push Notifications"
-                valuePropName="checked"
-              >
-                <Switch />
-              </Form.Item>
-
-              <Form.Item
-                name="notificationFrequency"
-                label="Notification Frequency"
-              >
-                <Select placeholder="Select Frequency">
-                  <Option value="immediate">Immediate</Option>
-                  <Option value="hourly">Hourly Digest</Option>
-                  <Option value="daily">Daily Digest</Option>
-                  <Option value="weekly">Weekly Digest</Option>
-                </Select>
-              </Form.Item>
-            </TabPane>
-
-            <TabPane
-              tab={
-                <span>
-                  <SecurityScanOutlined /> Security
-                </span>
-              }
-              key="security"
+          <TabPane
+            tab={
+              <span>
+                <SecurityScanOutlined /> Security
+              </span>
+            }
+            key="security"
+          >
+            <Form
+              form={securityForm}
+              layout="vertical"
+              onFinish={handleSecuritySubmit}
             >
               <Form.Item
                 name="currentPassword"
@@ -344,7 +274,7 @@ const Settings = () => {
                   },
                 ]}
               >
-                <Input.Password />
+                <Input.Password placeholder="Enter current password" />
               </Form.Item>
 
               <Form.Item
@@ -352,9 +282,10 @@ const Settings = () => {
                 label="New Password"
                 rules={[
                   { required: true, message: "Please enter your new password" },
+                  { min: 6, message: "Password must be at least 6 characters" }
                 ]}
               >
-                <Input.Password />
+                <Input.Password placeholder="Enter new password" />
               </Form.Item>
 
               <Form.Item
@@ -378,88 +309,24 @@ const Settings = () => {
                   }),
                 ]}
               >
-                <Input.Password />
+                <Input.Password placeholder="Confirm new password" />
               </Form.Item>
 
-              <Form.Item
-                name="twoFactorAuth"
-                label="Two-Factor Authentication"
-                valuePropName="checked"
-              >
-                <Switch />
+              <Divider />
+
+              <Form.Item className="mb-0">
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  icon={<LockOutlined />}
+                  loading={loading}
+                >
+                  Change Password
+                </Button>
               </Form.Item>
-            </TabPane>
-
-            <TabPane
-              tab={
-                <span>
-                  <LockOutlined /> Privacy
-                </span>
-              }
-              key="privacy"
-            >
-              <Form.Item
-                name="dataSharing"
-                label="Data Sharing"
-                valuePropName="checked"
-              >
-                <Switch />
-              </Form.Item>
-
-              <Form.Item
-                name="activityTracking"
-                label="Activity Tracking"
-                valuePropName="checked"
-              >
-                <Switch />
-              </Form.Item>
-
-              <Form.Item name="cookiePreferences" label="Cookie Preferences">
-                <Select mode="multiple" placeholder="Select Cookie Preferences">
-                  <Option value="essential">Essential</Option>
-                  <Option value="functional">Functional</Option>
-                  <Option value="analytics">Analytics</Option>
-                  <Option value="advertising">Advertising</Option>
-                </Select>
-              </Form.Item>
-
-              <Form.Item name="dataRetention" label="Data Retention Period">
-                <Select placeholder="Select Retention Period">
-                  <Option value="30days">30 Days</Option>
-                  <Option value="90days">90 Days</Option>
-                  <Option value="1year">1 Year</Option>
-                  <Option value="forever">Forever</Option>
-                </Select>
-              </Form.Item>
-            </TabPane>
-
-            <TabPane
-              tab={
-                <span>
-                  <PlusOutlined /> Sub Fields
-                </span>
-              }
-              key="subfields" 
-            >
-             {/* <AddMachineType /> */}
-            </TabPane>
-          </Tabs>
-
-          <Divider />
-
-         {activeTab !== "subfields" && (
-            <Form.Item className="mb-0">
-              <Button
-                type="primary"
-                htmlType="submit"
-                icon={<SaveOutlined />}
-                loading={loading}
-              >
-                Save Settings
-              </Button>
-            </Form.Item>
-          )}
-        </Form>
+            </Form>
+          </TabPane>
+        </Tabs>
       </Card>
     </div>
   );

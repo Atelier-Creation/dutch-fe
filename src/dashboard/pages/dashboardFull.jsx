@@ -101,6 +101,7 @@ const DashboardFull = () => {
       meta: `Period: ₹${dashboardData.summary.periodRevenue}`,
       gradient: "linear-gradient(135deg,#7c3aed,#a78bfa)",
       icon: <Wallet />,
+      onClick: () => navigate('/billing/reports'),
     },
     {
       id: "bills",
@@ -109,6 +110,7 @@ const DashboardFull = () => {
       meta: `Period: ${dashboardData.summary.periodBills} bills`,
       gradient: "linear-gradient(135deg,#ff8a00,#ff5e3a)",
       icon: <IndianRupee />,
+      onClick: () => navigate('/billing/list'),
     },
     {
       id: "customers",
@@ -117,6 +119,7 @@ const DashboardFull = () => {
       meta: "Registered customers",
       gradient: "linear-gradient(135deg,#1e3a8a,#3b82f6)",
       icon: <Users />,
+      onClick: () => navigate('/customer/list'),
     },
     {
       id: "products",
@@ -125,6 +128,7 @@ const DashboardFull = () => {
       meta: `Stock: ${dashboardData.summary.totalStockQuantity} items`,
       gradient: "linear-gradient(135deg,#059669,#34d399)",
       icon: <ShoppingBasket />,
+      onClick: () => navigate('/Product/list'),
     },
   ] : [];
 
@@ -267,7 +271,14 @@ const DashboardFull = () => {
         ) : (
           summaryCards.map((s) => (
             <Col xs={24} sm={12} md={6} key={s.id}>
-              <StatCard title={s.title} value={s.value} meta={s.meta} gradient={s.gradient} icon={s.icon} />
+              <StatCard 
+                title={s.title} 
+                value={s.value} 
+                meta={s.meta} 
+                gradient={s.gradient} 
+                icon={s.icon}
+                onClick={s.onClick}
+              />
             </Col>
           ))
         )}
