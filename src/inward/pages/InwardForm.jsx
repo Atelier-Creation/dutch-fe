@@ -37,7 +37,7 @@ const InwardForm = () => {
   const [loading, setLoading] = useState(false);
   const { branches, selectedBranch } = useBranch();
   const [selectedFormBranch, setSelectedFormBranch] = useState(null);
-  
+  const [messageApi, contextHolder] = message.useMessage();
   // Product dropdown states
   const [allProducts, setAllProducts] = useState([]);
   const [productsLoading, setProductsLoading] = useState(false);
@@ -141,7 +141,7 @@ const InwardForm = () => {
       const product = response.data || response;
 
       if (!product) {
-        message.error("No product found with that code");
+        messageApi.error("No product found with that code");
         return;
       }
 
@@ -176,7 +176,7 @@ const InwardForm = () => {
       items[existingIndex].total_price = items[existingIndex].quantity * items[existingIndex].unit_price;
       form.setFieldsValue({ items });
       updateSummary(items, existingIndex);
-      message.success(`${product.product_name} quantity increased`);
+      messageApi.success(`${product.product_name} quantity increased`);
     } else {
       // add new row
       const unitPrice = product.purchase_price || 0;
@@ -196,7 +196,7 @@ const InwardForm = () => {
       });
       form.setFieldsValue({ items });
       updateSummary(items, items.length - 1);
-      message.success(`${product.product_name} added`);
+      messageApi.success(`${product.product_name} added`);
     }
   };
 
@@ -204,7 +204,7 @@ const InwardForm = () => {
   const handleSubmit = async (values) => {
     // Check if branch is selected when "All" is active
     if (needsBranchSelection && !selectedFormBranch) {
-      message.error("Please select a branch for this inward entry");
+      messageApi.error("Please select a branch for this inward entry");
       return;
     }
     
@@ -256,17 +256,17 @@ const InwardForm = () => {
 
       if (id) {
         await inwardService.update(id, payload);
-        message.success("Inward entry updated successfully");
+        messageApi.success("Inward entry updated successfully");
       } else {
         await inwardService.create(payload);
-        message.success("Inward entry created successfully");
+        messageApi.success("Inward entry created successfully");
       }
       
       navigate("/inward/list");
     } catch (err) {
       console.error("Save error:", err);
       const errorMsg = err?.response?.data?.error || err?.message || "Failed to save inward entry";
-      message.error(errorMsg);
+      messageApi.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -469,6 +469,8 @@ const InwardForm = () => {
   ];
 
   return (
+    <>
+    {contextHolder}
     <div style={{ padding: 5 }}>
       <Row gutter={16} align="middle" justify="space-between" style={{ marginBottom: 16 }}>
         <Col>
@@ -705,6 +707,7 @@ const InwardForm = () => {
         </Row>
       </Spin>
     </div>
+    </>
   );
 };
 
