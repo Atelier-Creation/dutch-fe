@@ -148,6 +148,11 @@ const ProductForm = () => {
   const buildPayloadFromForm = () => {
     const values = form.getFieldsValue(true);
     const trim = (v) => (typeof v === "string" ? v.trim() : v);
+    const toNumber = (v) => {
+      if (v === null || v === undefined || v === "") return undefined;
+      const num = Number(v);
+      return isNaN(num) ? undefined : num;
+    };
 
     const payload = {
       product_name: trim(values.product_name ?? ""),
@@ -165,11 +170,11 @@ const ProductForm = () => {
       season: trim(values.season ?? "") || undefined,
       gender: values.gender || undefined,
       unit: trim(values.unit ?? "piece"),
-      purchase_price: values.purchase_price ?? 0,
-      selling_price: values.selling_price ?? 0,
-      mrp: values.mrp || undefined,
-      discount_percentage: values.discount_percentage ?? 0,
-      tax_percentage: values.tax_percentage ?? 0,
+      purchase_price: toNumber(values.purchase_price) ?? 0,
+      selling_price: toNumber(values.selling_price) ?? 0,
+      mrp: toNumber(values.mrp),
+      discount_percentage: toNumber(values.discount_percentage) ?? 0,
+      tax_percentage: toNumber(values.tax_percentage) ?? 0,
       description: trim(values.description ?? "") || undefined,
       care_instructions: trim(values.care_instructions ?? "") || undefined,
       barcode: trim(values.barcode ?? "") || undefined,

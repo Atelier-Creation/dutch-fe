@@ -96,13 +96,17 @@ const UserForm = () => {
   const onFinish = async (values) => {
     setLoading(true);
     try {
+      console.log('Form values:', values);
+      
       // Map frontend field names to backend field names
       const payload = {
         username: values.name,
         email: values.email,
         phone: values.phone,
-        role_id: values.roleId,
+        role_id: values.roleId, // Map roleId to role_id
       };
+
+      console.log('Payload to send:', payload);
 
       if (!id && values.password) {
         payload.password = values.password;
@@ -176,8 +180,9 @@ const UserForm = () => {
 
       navigate("/user/users");
     } catch (error) {
-      message.error(error.response?.data?.error || error.response?.data?.message || "Operation failed");
       console.error('Save user error:', error);
+      console.error('Error response:', error.response?.data);
+      message.error(error.response?.data?.error || error.response?.data?.message || "Operation failed");
     } finally {
       setLoading(false);
     }
