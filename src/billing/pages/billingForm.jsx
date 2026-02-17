@@ -38,6 +38,7 @@ function BillingForm() {
   const navigate = useNavigate();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [fetchingData, setFetchingData] = useState(false);
   const [productCode, setProductCode] = useState("");
   const [preview, setPreview] = useState({ items: [], customer_name: "", billing_date: dayjs() });
   const [activeTab, setActiveTab] = useState("new");
@@ -77,6 +78,119 @@ const [messageApi, contextHolder] = message.useMessage();
   useEffect(() => {
     fetchAllProducts();
   }, []);
+
+  // Fetch billing data for edit mode
+  useEffect(() => {
+    if (id) {
+      fetchBillingData();
+    }
+  }, [id]);
+
+  const fetchBillingData = async () => {
+    setFetchingData(true);
+    try {
+      console.log('Fetching billing data for ID:', id);
+      const response = await billingService.getById(id);
+      console.log('Full response object:', response);
+      console.log('Response keys:', Object.keys(response));
+      console.log('Response.data:', response.data);
+      console.log('Response.data type:', typeof response.data);
+      
+      // Try different possible response structures
+      let billingData = null;
+      
+      if (response.data) {
+        billingData = response.data;
+      } else if (response) {
+        billingData = response;
+      }
+      
+      console.log('Extracted billing data:', billingData);
+      console.log('Billing data type:', typeof billingData);
+
+      if (!billingData || typeof billingData !== 'object') {
+        console.error('Invalid billing data structure');
+        throw new Error('No billing data received');
+      }
+
+      // Process items to include product details
+      const processedItems = (billingData.items || []).map(item => {
+        const quantity = parseFloat(item.quantity) || 1;
+        const unitPrice = parseFloat(item.unit_price) || 0;
+        const tax = parseFloat(item.tax) || 0;
+        const discount = parseFloat(item.discount) || 0;
+        
+        // Calculate tax_percentage from tax amount if not provided
+        // tax_percentage = (tax / (quantity * unitPrice)) * 100
+        let taxPercentage = parseFloat(item.tax_percentage) || 0;
+        if (!taxPercentage && tax > 0 && quantity > 0 && unitPrice > 0) {
+          taxPercentage = (tax / (quantity * unitPrice)) * 100;
+        }
+        
+        return {
+          key: item.id || Math.random().toString(),
+          product_id: item.product_id,
+          product_code: item.product?.product_code || item.product_code || '',
+          product_name: item.product?.product_name || item.product_name || '',
+          quantity: quantity,
+          unit_price: unitPrice,
+          mrp: parseFloat(item.mrp) || 0,
+          discount_percentage: parseFloat(item.discount_percentage) || 0,
+          discount_amount: discount,
+          tax_percentage: parseFloat(taxPercentage.toFixed(2)),
+          tax_amount: tax,
+          total_price: parseFloat(item.total_price) || 0,
+          size: item.size || '',
+          color: item.color || '',
+          unit: item.unit || 'piece',
+          barcode: item.barcode || '',
+        };
+      });
+
+      console.log('Processed items:', processedItems);
+
+      // Populate form with billing data
+      const formValues = {
+        customer_name: billingData.customer_name || '',
+        customer_phone: billingData.customer_phone || '',
+        customer_email: billingData.customer_email || '',
+        billing_date: billingData.billing_date ? dayjs(billingData.billing_date) : dayjs(),
+        payment_method: billingData.payment_method || 'cash',
+        payment_status: billingData.status || 'paid',
+        items: processedItems,
+        subtotal: parseFloat(billingData.subtotal_amount) || 0,
+        discount: parseFloat(billingData.discount_amount) || 0,
+        tax: parseFloat(billingData.tax_amount) || 0,
+        total_amount: parseFloat(billingData.total_amount) || 0,
+        paid_amount: parseFloat(billingData.paid_amount) || 0,
+        due_amount: parseFloat(billingData.due_amount) || 0,
+        notes: billingData.notes || '',
+      };
+      
+      console.log('Form values to set:', formValues);
+      form.setFieldsValue(formValues);
+
+      // Set preview
+      setPreview({
+        items: processedItems,
+        customer_name: billingData.customer_name || '',
+        billing_date: billingData.billing_date ? dayjs(billingData.billing_date) : dayjs(),
+      });
+
+      console.log('Form values after set:', form.getFieldsValue());
+      message.success('Billing data loaded');
+    } catch (error) {
+      console.error('Failed to fetch billing data:', error);
+      console.error('Error message:', error.message);
+      console.error('Error response:', error.response);
+      console.error('Error response data:', error.response?.data);
+      message.error('Failed to load billing data: ' + error.message);
+      // Don't navigate away, let user see the error
+      // navigate('/billing/list');
+    } finally {
+      setFetchingData(false);
+    }
+  };
 
   const fetchCustomerBills = async () => {
     const phone = form.getFieldValue("customer_phone");
@@ -719,21 +833,30 @@ const [messageApi, contextHolder] = message.useMessage();
 
       console.log("Billing payload ->", payload);
 
-      if (!Array.isArray(payload.items) || payload.items.length === 0) {
+      if (!Array.isArray(payload.billing_items) || payload.billing_items.length === 0) {
         messageApi.error("No billing items detected. Please add items to the bill.");
         setLoading(false);
         return;
       }
 
-      const response = await billingService.create(payload);
+      let response;
+      if (id) {
+        // Update existing billing
+        response = await billingService.update(id, payload);
+        messageApi.success("Billing updated successfully" + (couponApplied ? " with coupon applied!" : ""));
+      } else {
+        // Create new billing
+        response = await billingService.create(payload);
+        messageApi.success("Billing created successfully" + (couponApplied ? " with coupon applied!" : ""));
+      }
+      
       const result = response.data || response;
-      messageApi.success("Billing created successfully" + (couponApplied ? " with coupon applied!" : ""));
 
-      // Check if a referral coupon was generated
-      if (result.coupon_generated) {
+      // Check if a referral coupon was generated (only for new billings)
+      if (!id && result.coupon_generated) {
         setGeneratedCoupon(result.coupon_generated);
         setShowCouponModal(true);
-      }else {
+      } else {
   setTimeout(() => {
     closeCurrentTab();
   }, 1500);
