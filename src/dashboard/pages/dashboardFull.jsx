@@ -308,7 +308,7 @@ const DashboardFull = () => {
                   rowKey="id"
                   pagination={false}
                   size="small"
-                  scroll={{ x: 600 }}
+                  scroll={{ x: 800 }}
                   onRow={(record) => ({
                     onClick: () => handleBillClick(record),
                     style: { cursor: "pointer" },
