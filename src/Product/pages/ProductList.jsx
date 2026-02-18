@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Table, Input, Button, Space, Popconfirm, Tag, message, Dropdown } from "antd";
+import { Table, Input, Button, Space, Popconfirm, Tag, message, Dropdown, Grid, List, Card } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined, DownloadOutlined, MoreOutlined } from "@ant-design/icons";
 import productService from "../services/productService.js";
 import debounce from "lodash.debounce";
@@ -12,10 +12,11 @@ const { Search } = Input;
 const ProductList = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const screens = Grid.useBreakpoint();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
-const [messageApi, contextHolder] = message.useMessage();
+  const [messageApi, contextHolder] = message.useMessage();
   // separate input visual state from api query state
   const [inputValue, setInputValue] = useState("");
   // Use ref for search query to ensure fresh access in callbacks without dependency
@@ -191,15 +192,15 @@ const [messageApi, contextHolder] = message.useMessage();
 
         return (
           <>
-          {contextHolder}
-          <Space>
-            <Button type="primary" icon={<EditOutlined />} onClick={() => navigate(`/Product/edit/${record.id}`)}>
-              Edit
-            </Button>
-            {/* <Popconfirm title="Are you sure to delete this product?" onConfirm={() => handleDelete(record.id)}>
+            {contextHolder}
+            <Space>
+              <Button type="primary" icon={<EditOutlined />} onClick={() => navigate(`/Product/edit/${record.id}`)}>
+                Edit
+              </Button>
+              {/* <Popconfirm title="Are you sure to delete this product?" onConfirm={() => handleDelete(record.id)}>
               <Button danger icon={<DeleteOutlined />}>Delete</Button>
             </Popconfirm> */}
-          </Space>
+            </Space>
           </>
         );
       },
@@ -208,39 +209,97 @@ const [messageApi, contextHolder] = message.useMessage();
 
   return (
     <div className="p-4">
-      <Space style={{ marginBottom: 16, width: "100%", justifyContent: "space-between" }}>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
         <Search
           placeholder="Search products..."
           value={inputValue}
           onSearch={(v) => {
-            setSearchQuery(v);
-            setPagination(prev => ({ ...prev, current: 1 }));
+            // Assuming setSearchQuery was intended to be setInputValue or trigger fetch
+            // But based on original code:
+            searchRef.current = v;
+            setPagination((prev) => ({ ...prev, current: 1 }));
+            fetchProducts({ search: v, current: 1 });
           }}
           onChange={handleInputChange}
           enterButton
           allowClear
-          style={{ width: 300 }}
+          className="w-full md:w-[300px]"
         />
-        <Space>
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate("/Product/add")}>
+        <div className="flex flex-wrap gap-2 w-full md:w-auto">
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate("/Product/add")} className="flex-1 md:flex-none">
             Add Product
           </Button>
-          <Button type="default" icon={<DownloadOutlined />} onClick={downloadAllQRPDF}>
+          <Button type="default" icon={<DownloadOutlined />} onClick={downloadAllQRPDF} className="flex-1 md:flex-none">
             Download All QR PDF
           </Button>
-        </Space>
-      </Space>
+        </div>
+      </div>
 
-      <Table
-        columns={columns}
-        rowKey={(record) => record.id}
-        dataSource={products}
-        pagination={pagination}
-        loading={loading}
-        onChange={handleTableChange}
-        bordered
-        scroll={{ x: true }}
-      />
+      {!screens.md ? (
+        <List
+          grid={{ gutter: 16, column: 1 }}
+          dataSource={products}
+          loading={loading}
+          pagination={{
+            ...pagination,
+            onChange: (page, pageSize) => {
+              setPagination((prev) => ({ ...prev, current: page, pageSize }));
+              fetchProducts({ current: page, pageSize });
+            },
+          }}
+          renderItem={(item) => (
+            <List.Item key={item.id}>
+              <Card
+                title={item.product_name}
+                extra={
+                  <Button
+                    type="text"
+                    icon={<EditOutlined />}
+                    onClick={() => navigate(`/Product/edit/${item.id}`)}
+                  />
+                }
+              >
+                <div className="flex justify-between mb-2">
+                  <span className="text-gray-500">Code:</span>
+                  <span className="font-medium">{item.product_code}</span>
+                </div>
+                <div className="flex justify-between mb-2">
+                  <span className="text-gray-500">Price:</span>
+                  <span className="font-medium">₹{item.selling_price}</span>
+                </div>
+                <div className="flex justify-between mb-2">
+                  <span className="text-gray-500">Category:</span>
+                  <span className="font-medium">{item.category_name}</span>
+                </div>
+
+                <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-100">
+                  <div ref={(el) => (qrRefs.current[item.id] = el)}>
+                    <QRCodeCanvas value={item.product_code || ""} size={64} level="H" />
+                  </div>
+                  <Button
+                    size="small"
+                    icon={<DownloadOutlined />}
+                    onClick={() => downloadQR(item.id, item.product_code)}
+                  >
+                    Download QR
+                  </Button>
+                </div>
+              </Card>
+            </List.Item>
+          )}
+        />
+      ) : (
+        <Table
+          columns={columns}
+          rowKey={(record) => record.id}
+          dataSource={products}
+          pagination={pagination}
+          loading={loading}
+          onChange={handleTableChange}
+          bordered
+          scroll={{ x: true }}
+        />
+      )}
     </div>
   );
 };

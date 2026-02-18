@@ -17,15 +17,14 @@ const BranchSelector = ({ className = '' }) => {
     <Select
       value={selectedBranch?.id}
       onChange={changeBranch}
-      className={className}
-      style={{ minWidth: 200 }}
+      className={`w-32 sm:w-48 ${className}`}
       placeholder="Select Branch"
     >
       {/* Add "All" option for multi-branch users */}
       <Select.Option key="all" value="all">
         All Branches
       </Select.Option>
-      
+
       {branches.map((branch) => (
         <Select.Option key={branch.branch_id} value={branch.branch_id}>
           {branch.branch?.branch_name || branch.branch?.name} ({branch.branch?.branch_code || branch.branch?.code})

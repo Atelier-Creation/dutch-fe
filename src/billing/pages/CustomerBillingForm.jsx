@@ -30,7 +30,7 @@ const CustomerBillingForm = () => {
   const navigate = useNavigate();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-const [messageApi, contextHolder] = message.useMessage();
+  const [messageApi, contextHolder] = message.useMessage();
   // ✅ summary state
   const [summary, setSummary] = useState({ subtotal: 0, totalTax: 0, grandTotal: 0 });
   const [manualCode, setManualCode] = useState("");
@@ -187,144 +187,138 @@ const [messageApi, contextHolder] = message.useMessage();
 
   return (
     <>
-    {contextHolder}
-    <Card
-      style={{
-        margin: "16px auto",
-        maxWidth: 800,
-        borderRadius: 12,
-        boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-      }}
-    >
-      <Spin spinning={loading}>
-        <Title level={4} style={{ textAlign: "center", marginBottom: 24 }}>
-          Customer Billing
-        </Title>
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleSubmit}
-          initialValues={{ status: "pending", billing_date: dayjs(), items: [] }}
-        >
-          <Row gutter={[16, 16]}>
-            <Col xs={24} sm={12}>
-              <Form.Item
-                label="Customer Name"
-                name="customer_name"
-                rules={[{ required: true, message: "Enter customer name" }]}
-              >
-                <Input placeholder="Enter customer name" />
-              </Form.Item>
-            </Col>
-
-            <Col xs={24} sm={12}>
-              <Form.Item label="Billing Date" name="billing_date">
-                <DatePicker style={{ width: "100%" }} />
-              </Form.Item>
-            </Col>
-
-            <Col xs={24} sm={12}>
-              <Form.Item label="Status" name="status">
-                <Select>
-                  <Option value="pending">Pending</Option>
-                  <Option value="paid">Paid</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-
-            <Col xs={24} sm={12}>
-              <Form.Item label="Remarks" name="remarks">
-                <TextArea rows={2} placeholder="Any remarks?" />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          {/* 🔹 Barcode Scanner */}
-          <div
-            style={{
-              width: "100%",
-              maxHeight: 220,
-              overflow: "hidden",
-              marginBottom: 16,
-              border: "2px dashed #1890ff",
-              borderRadius: 8,
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
+      {contextHolder}
+      <Card
+        style={{
+          margin: "16px auto",
+          maxWidth: 800,
+          borderRadius: 12,
+          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+        }}
+      >
+        <Spin spinning={loading}>
+          <Title level={4} style={{ textAlign: "center", marginBottom: 24 }}>
+            Customer Billing
+          </Title>
+          <Form
+            form={form}
+            layout="vertical"
+            onFinish={handleSubmit}
+            initialValues={{ status: "pending", billing_date: dayjs(), items: [] }}
           >
-            <BarcodeScannerComponent
-              width={200}
-              height={200}
-              facingMode="environment"
-              onUpdate={(err, result) => {
-                if (result) handleProductCode(result.text);
+            <Row gutter={[16, 16]}>
+              <Col xs={24} sm={12}>
+                <Form.Item
+                  label="Customer Name"
+                  name="customer_name"
+                  rules={[{ required: true, message: "Enter customer name" }]}
+                >
+                  <Input placeholder="Enter customer name" />
+                </Form.Item>
+              </Col>
+
+              <Col xs={24} sm={12}>
+                <Form.Item label="Billing Date" name="billing_date">
+                  <DatePicker style={{ width: "100%" }} />
+                </Form.Item>
+              </Col>
+
+              <Col xs={24} sm={12}>
+                <Form.Item label="Status" name="status">
+                  <Select>
+                    <Option value="pending">Pending</Option>
+                    <Option value="paid">Paid</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+
+              <Col xs={24} sm={12}>
+                <Form.Item label="Remarks" name="remarks">
+                  <TextArea rows={2} placeholder="Any remarks?" />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            {/* 🔹 Barcode Scanner */}
+            <div
+              style={{
+                width: "100%",
+                maxHeight: 220,
+                overflow: "hidden",
+                marginBottom: 16,
+                border: "2px dashed #1890ff",
+                borderRadius: 8,
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
               }}
-            />
-          </div>
+            >
+              <BarcodeScannerComponent
+                width={200}
+                height={200}
+                facingMode="environment"
+                onUpdate={(err, result) => {
+                  if (result) handleProductCode(result.text);
+                }}
+              />
+            </div>
 
-          {/* 🔹 Manual Product Code Entry */}
-          <Form.Item label="Enter Product Code (if not scanned)">
-            <Search
-              placeholder="Type product code and press Enter"
-              value={manualCode}
-              onChange={(e) => setManualCode(e.target.value)}
-              enterButton="Add"
-              onSearch={(value) => {
-                if (value) {
-                  handleProductCode(value);
-                  setManualCode("");
-                }
+            {/* 🔹 Manual Product Code Entry */}
+            <Form.Item label="Enter Product Code (if not scanned)">
+              <Search
+                placeholder="Type product code and press Enter"
+                value={manualCode}
+                onChange={(e) => setManualCode(e.target.value)}
+                enterButton="Add"
+                onSearch={(value) => {
+                  if (value) {
+                    handleProductCode(value);
+                    setManualCode("");
+                  }
+                }}
+              />
+            </Form.Item>
+
+            {/* 🔹 Items Table */}
+            <Form.List name="items">
+              {() => {
+                const items = form.getFieldValue("items") || [];
+                return (
+                  <>
+                    <Table
+                      dataSource={items}
+                      columns={columns}
+                      pagination={false}
+                      rowKey={(r, idx) => idx}
+                      size="small"
+                      scroll={{ x: 600 }}
+                      style={{ marginBottom: 16 }}
+                    />
+                    <Divider />
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mt-4">
+                      <Text strong className="text-base">
+                        Subtotal: <Text type="success">₹{summary.subtotal.toFixed(2)}</Text>
+                      </Text>
+                      <Text strong className="text-base">
+                        Total Tax: <Text type="warning">₹{summary.totalTax.toFixed(2)}</Text>
+                      </Text>
+                      <Text strong className="text-lg text-blue-500">
+                        Grand Total: ₹{summary.grandTotal.toFixed(2)}
+                      </Text>
+                    </div>
+                  </>
+                );
               }}
-            />
-          </Form.Item>
+            </Form.List>
 
-          {/* 🔹 Items Table */}
-          <Form.List name="items">
-            {() => {
-              const items = form.getFieldValue("items") || [];
-              return (
-                <>
-                  <Table
-                    dataSource={items}
-                    columns={columns}
-                    pagination={false}
-                    rowKey={(r, idx) => idx}
-                    scroll={{ x: true }}
-                    size="small"
-                    style={{ marginBottom: 16 }}
-                  />
-                  <Divider />
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <Text strong style={{ fontSize: 16 }}>
-                      Subtotal: <Text type="success">₹{summary.subtotal.toFixed(2)}</Text>
-                    </Text>
-                    <Text strong style={{ fontSize: 16 }}>
-                      Total Tax: <Text type="warning">₹{summary.totalTax.toFixed(2)}</Text>
-                    </Text>
-                    <Text strong style={{ fontSize: 18, color: "#1890ff" }}>
-                      Grand Total: ₹{summary.grandTotal.toFixed(2)}
-                    </Text>
-                  </div>
-                </>
-              );
-            }}
-          </Form.List>
-
-          <Form.Item style={{ marginTop: 24 }}>
-            <Button type="primary" htmlType="submit" block size="large">
-              Submit Billing
-            </Button>
-          </Form.Item>
-        </Form>
-      </Spin>
-    </Card>
+            <Form.Item style={{ marginTop: 24 }}>
+              <Button type="primary" htmlType="submit" block size="large">
+                Submit Billing
+              </Button>
+            </Form.Item>
+          </Form>
+        </Spin>
+      </Card>
     </>
   );
 };

@@ -376,7 +376,7 @@ const Sidebar = ({ collapsed = true, setCollapsed = () => { }, selectedParent, s
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: collapsed && !isMobile ? "center" : "flex-start",
+                  justifyContent: collapsed && !isMobile ? "center" : "center",
                   padding: collapsed && !isMobile ? "20px 0" : "20px 24px",
                   height: 80,
                   borderBottom: theme === "dark" ? "1px solid #374151" : "1px solid #f3f4f6",

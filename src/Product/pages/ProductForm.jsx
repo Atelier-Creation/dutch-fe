@@ -13,6 +13,7 @@ import {
   Row,
   Col,
   Divider,
+  Grid,
 } from "antd";
 import { LeftOutlined, RightOutlined, CheckCircleTwoTone } from "@ant-design/icons";
 import { useNavigate, useParams } from "react-router-dom";
@@ -23,6 +24,7 @@ import subcategoryService from "../services/subcategoryService";
 const { TextArea } = Input;
 const { Option } = Select;
 const { Step } = Steps;
+const { useBreakpoint } = Grid;
 
 const STEP_COLORS = ["#FF7A7A", "#FFB86B", "#7BD389", "#6B9BD3"];
 
@@ -31,6 +33,7 @@ const isUUID = (v) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
 
 const ProductForm = () => {
+  const screens = useBreakpoint();
   const { id: routeId } = useParams() || {};
   const navigate = useNavigate();
   const [current, setCurrent] = useState(0);
@@ -38,7 +41,7 @@ const ProductForm = () => {
   const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
   const [form] = Form.useForm();
-const [messageApi, contextHolder] = message.useMessage();
+  const [messageApi, contextHolder] = message.useMessage();
   // Fetch categories
   const fetchCategories = async () => {
     try {
@@ -77,9 +80,9 @@ const [messageApi, contextHolder] = message.useMessage();
     try {
       const response = await productService.getById(productId);
       const data = response.data || response;
-      
+
       if (data?.category_id) await handleCategoryChange(data.category_id);
-      
+
       form.setFieldsValue({
         product_name: data.product_name,
         category_id: data.category_id,
@@ -287,7 +290,7 @@ const [messageApi, contextHolder] = message.useMessage();
             </Form.Item>
 
             <Row gutter={16}>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item
                   label="Category"
                   name="category_id"
@@ -310,7 +313,7 @@ const [messageApi, contextHolder] = message.useMessage();
                 </Form.Item>
               </Col>
 
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item label="Subcategory" name="sub_category_id">
                   <Select
                     placeholder="Select subcategory (optional)"
@@ -330,13 +333,13 @@ const [messageApi, contextHolder] = message.useMessage();
             </Row>
 
             <Row gutter={16}>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item label="Brand" name="brand">
                   <Input placeholder="Enter brand name" />
                 </Form.Item>
               </Col>
 
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item label="Unit" name="unit">
                   <Input placeholder="piece, kg, meter" defaultValue="piece" />
                 </Form.Item>
@@ -350,7 +353,7 @@ const [messageApi, contextHolder] = message.useMessage();
         return (
           <Card title="Dress Attributes" bordered={false}>
             <Row gutter={16}>
-              <Col span={8}>
+              <Col xs={24} sm={12} md={8}>
                 <Form.Item label="Size" name="size">
                   <Select placeholder="Select size" allowClear>
                     <Option value="XS">XS</Option>
@@ -365,13 +368,13 @@ const [messageApi, contextHolder] = message.useMessage();
                 </Form.Item>
               </Col>
 
-              <Col span={8}>
+              <Col xs={24} sm={12} md={8}>
                 <Form.Item label="Color" name="color">
                   <Input placeholder="e.g., Red, Blue, Black" />
                 </Form.Item>
               </Col>
 
-              <Col span={8}>
+              <Col xs={24} sm={12} md={8}>
                 <Form.Item label="Gender" name="gender">
                   <Select placeholder="Select gender" allowClear>
                     <Option value="Women">Women</Option>
@@ -385,7 +388,7 @@ const [messageApi, contextHolder] = message.useMessage();
             </Row>
 
             <Row gutter={16}>
-              <Col span={8}>
+              <Col xs={24} sm={12} md={8}>
                 <Form.Item label="Material" name="material">
                   <Select placeholder="Select material" allowClear>
                     <Option value="Cotton">Cotton</Option>
@@ -400,7 +403,7 @@ const [messageApi, contextHolder] = message.useMessage();
                 </Form.Item>
               </Col>
 
-              <Col span={8}>
+              <Col xs={24} sm={12} md={8}>
                 <Form.Item label="Style" name="style">
                   <Select placeholder="Select style" allowClear>
                     <Option value="Casual">Casual</Option>
@@ -413,7 +416,7 @@ const [messageApi, contextHolder] = message.useMessage();
                 </Form.Item>
               </Col>
 
-              <Col span={8}>
+              <Col xs={24} sm={12} md={8}>
                 <Form.Item label="Pattern" name="pattern">
                   <Select placeholder="Select pattern" allowClear>
                     <Option value="Solid">Solid</Option>
@@ -428,7 +431,7 @@ const [messageApi, contextHolder] = message.useMessage();
             </Row>
 
             <Row gutter={16}>
-              <Col span={8}>
+              <Col xs={24} sm={12} md={8}>
                 <Form.Item label="Sleeve Type" name="sleeve_type">
                   <Select placeholder="Select sleeve type" allowClear>
                     <Option value="Full Sleeve">Full Sleeve</Option>
@@ -439,7 +442,7 @@ const [messageApi, contextHolder] = message.useMessage();
                 </Form.Item>
               </Col>
 
-              <Col span={8}>
+              <Col xs={24} sm={12} md={8}>
                 <Form.Item label="Length" name="length">
                   <Select placeholder="Select length" allowClear>
                     <Option value="Mini">Mini</Option>
@@ -451,7 +454,7 @@ const [messageApi, contextHolder] = message.useMessage();
                 </Form.Item>
               </Col>
 
-              <Col span={8}>
+              <Col xs={24} sm={12} md={8}>
                 <Form.Item label="Season" name="season">
                   <Select placeholder="Select season" allowClear>
                     <Option value="Summer">Summer</Option>
@@ -481,7 +484,7 @@ const [messageApi, contextHolder] = message.useMessage();
         return (
           <Card title="Pricing Information" bordered={false}>
             <Row gutter={16}>
-              <Col span={8}>
+              <Col xs={24} sm={12} md={8}>
                 <Form.Item
                   label="Purchase Price"
                   name="purchase_price"
@@ -497,7 +500,7 @@ const [messageApi, contextHolder] = message.useMessage();
                 </Form.Item>
               </Col>
 
-              <Col span={8}>
+              <Col xs={24} sm={12} md={8}>
                 <Form.Item
                   label="Selling Price"
                   name="selling_price"
@@ -513,7 +516,7 @@ const [messageApi, contextHolder] = message.useMessage();
                 </Form.Item>
               </Col>
 
-              <Col span={8}>
+              <Col xs={24} sm={12} md={8}>
                 <Form.Item label="MRP" name="mrp">
                   <InputNumber
                     style={{ width: "100%" }}
@@ -527,7 +530,7 @@ const [messageApi, contextHolder] = message.useMessage();
             </Row>
 
             <Row gutter={16}>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item label="Discount %" name="discount_percentage">
                   <InputNumber
                     style={{ width: "100%" }}
@@ -540,7 +543,7 @@ const [messageApi, contextHolder] = message.useMessage();
                 </Form.Item>
               </Col>
 
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item label="Tax %" name="tax_percentage">
                   <InputNumber
                     style={{ width: "100%" }}
@@ -557,13 +560,13 @@ const [messageApi, contextHolder] = message.useMessage();
             <Divider />
 
             <Row gutter={16}>
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item label="Barcode" name="barcode">
                   <Input placeholder="Enter barcode" />
                 </Form.Item>
               </Col>
 
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item label="SKU" name="sku">
                   <Input placeholder="Enter SKU" />
                 </Form.Item>
@@ -609,16 +612,16 @@ const [messageApi, contextHolder] = message.useMessage();
         <div style={{ maxWidth: 1200, margin: "0 auto" }}>
           <Card>
             <Row gutter={24}>
-              <Col span={6}>
-                <Steps direction="vertical" current={current} onChange={(idx) => setCurrent(idx)}>
-                  <Step title={<StepIcon index={0} title="Basic" />} description="Product info" />
-                  <Step title={<StepIcon index={1} title="Attributes" />} description="Dress details" />
-                  <Step title={<StepIcon index={2} title="Pricing" />} description="Price & codes" />
-                  <Step title={<StepIcon index={3} title="Details" />} description="Description" />
+              <Col xs={24} md={6}>
+                <Steps direction={screens.md ? "vertical" : "horizontal"} current={current} onChange={(idx) => setCurrent(idx)} className="mb-6 md:mb-0">
+                  <Step title={<StepIcon index={0} title="Basic" />} description={screens.md ? "Product info" : ""} />
+                  <Step title={<StepIcon index={1} title="Attributes" />} description={screens.md ? "Dress details" : ""} />
+                  <Step title={<StepIcon index={2} title="Pricing" />} description={screens.md ? "Price & codes" : ""} />
+                  <Step title={<StepIcon index={3} title="Details" />} description={screens.md ? "Description" : ""} />
                 </Steps>
               </Col>
 
-              <Col span={18}>
+              <Col xs={24} md={18}>
                 <div style={{ marginBottom: 16 }}>
                   <h2 style={{ margin: 0 }}>{routeId ? "Edit Product" : "Add Product"}</h2>
                   <div style={{ color: "#666", fontSize: 13 }}>

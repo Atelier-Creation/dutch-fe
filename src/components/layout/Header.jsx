@@ -123,7 +123,7 @@ const HeaderBar = ({ collapsed, setCollapsed }) => {
       </div>
 
       {/* Right side: notifications + user */}
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-2 sm:gap-6">
         {/* Branch Selector */}
         <BranchSelector />
 

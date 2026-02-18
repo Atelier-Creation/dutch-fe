@@ -271,11 +271,11 @@ const DashboardFull = () => {
         ) : (
           summaryCards.map((s) => (
             <Col xs={24} sm={12} md={6} key={s.id}>
-              <StatCard 
-                title={s.title} 
-                value={s.value} 
-                meta={s.meta} 
-                gradient={s.gradient} 
+              <StatCard
+                title={s.title}
+                value={s.value}
+                meta={s.meta}
+                gradient={s.gradient}
                 icon={s.icon}
                 onClick={s.onClick}
               />
@@ -333,6 +333,7 @@ const DashboardFull = () => {
                   rowKey="product_id"
                   pagination={false}
                   size="small"
+                  scroll={{ x: true }}
                   onRow={(record) => ({
                     onClick: () => handleProductClick(record),
                     style: { cursor: "pointer" },
@@ -362,6 +363,7 @@ const DashboardFull = () => {
                     rowKey="product_id"
                     pagination={false}
                     size="small"
+                    scroll={{ x: true }}
                   />
                 ) : (
                   <Empty description="All products have sufficient stock" />

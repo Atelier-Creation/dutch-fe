@@ -43,10 +43,10 @@ function SalesReport() {
   }, [selectedBranch]); // Re-fetch when branch changes
 
   useEffect(() => {
-  if (period === "custom" && dateRange) {
-    fetchReport();
-  }
-}, [dateRange]);
+    if (period === "custom" && dateRange) {
+      fetchReport();
+    }
+  }, [dateRange]);
 
   const fetchReport = async () => {
     setLoading(true);
@@ -69,17 +69,17 @@ function SalesReport() {
     }
   };
 
-const handlePeriodChange = (value) => {
-  setPeriod(value);
+  const handlePeriodChange = (value) => {
+    setPeriod(value);
 
-  if (value !== "custom") {
-    setDateRange(null);
+    if (value !== "custom") {
+      setDateRange(null);
 
-    setTimeout(() => {
-      fetchReport();
-    }, 0);
-  }
-};
+      setTimeout(() => {
+        fetchReport();
+      }, 0);
+    }
+  };
 
   const handleGenerateReport = () => {
     if (period === "custom" && !dateRange) {
@@ -349,6 +349,7 @@ const handlePeriodChange = (value) => {
                 pagination={false}
                 rowKey="method"
                 size="small"
+                scroll={{ x: true }}
               />
             </Card>
 
@@ -369,6 +370,7 @@ const handlePeriodChange = (value) => {
                   pagination={false}
                   rowKey="branch_id"
                   size="small"
+                  scroll={{ x: true }}
                 />
               </Card>
             )}
@@ -389,6 +391,7 @@ const handlePeriodChange = (value) => {
                   pagination={false}
                   rowKey="date"
                   size="small"
+                  scroll={{ x: true }}
                 />
               </Card>
             )}

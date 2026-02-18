@@ -398,66 +398,71 @@ function BillingList() {
   return (
     <div className="p-4 min-h-screen">
       {/* Filters + Controls */}
-      <Row style={{ marginBottom: 16 }} align="middle" justify="space-between">
-        <Col>
-          <Space size="middle" align="center">
-            <Tabs
-              activeKey={statusFilter}
-              onChange={(key) => {
-                setStatusFilter(key);
-                setPagination((prev) => ({ ...prev, current: 1 }));
-                fetchBillings({ current: 1, status: key, search: searchText, type: typeFilter });
-              }}
-              items={[
-                { key: "all", label: "All" },
-                { key: "paid", label: "Paid" },
-                { key: "pending", label: "Pending" },
-                { key: "failed", label: "Failed" },
-                { key: "overdue", label: "Overdue" },
-              ]}
-            />
+      {/* Filters + Controls */}
+      <div className="flex flex-col justify-between items-start gap-4 mb-4">
+        {/* Left Side: Tabs */}
+        <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto overflow-x-auto">
+          <Tabs
+            activeKey={statusFilter}
+            onChange={(key) => {
+              setStatusFilter(key);
+              setPagination((prev) => ({ ...prev, current: 1 }));
+              fetchBillings({ current: 1, status: key, search: searchText, type: typeFilter });
+            }}
+            items={[
+              { key: "all", label: "All" },
+              { key: "paid", label: "Paid" },
+              { key: "pending", label: "Pending" },
+              { key: "failed", label: "Failed" },
+              { key: "overdue", label: "Overdue" },
+            ]}
+            className="w-full sm:w-auto"
+          />
 
-            <Tabs
-              activeKey={typeFilter}
-              onChange={(key) => {
-                setTypeFilter(key);
-                setPagination((prev) => ({ ...prev, current: 1 }));
-                fetchBillings({ current: 1, status: statusFilter, search: searchText, type: key });
-              }}
-              items={[
-                { key: "all", label: "All Types" },
-                { key: "mobile", label: "Mobile" },
-                { key: "casier", label: "Casier" },
-              ]}
-            />
-          </Space>
-        </Col>
+          <Tabs
+            activeKey={typeFilter}
+            onChange={(key) => {
+              setTypeFilter(key);
+              setPagination((prev) => ({ ...prev, current: 1 }));
+              fetchBillings({ current: 1, status: statusFilter, search: searchText, type: key });
+            }}
+            items={[
+              { key: "all", label: "All Types" },
+              { key: "mobile", label: "Mobile" },
+              { key: "casier", label: "Casier" },
+            ]}
+            className="w-full sm:w-auto"
+          />
+        </div>
 
-        <Col>
-          <Space>
-            <Search
-              placeholder="Search billings..."
-              onSearch={(v) => doSearch(v)}
-              onChange={(e) => doSearch(e.target.value)}
-              enterButton
-              allowClear
-              style={{ width: 300 }}
-            />
+        {/* Right Side: Actions */}
+        <div className="flex flex-col sm:flex-row lg:justify-between gap-2 w-full lg:w-auto">
+          <Search
+            placeholder="Search billings..."
+            onSearch={(v) => doSearch(v)}
+            onChange={(e) => doSearch(e.target.value)}
+            enterButton
+            allowClear
+            className="w-full sm:w-[250px]"
+          />
 
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate("/billing/add")}>
-              Add Billing
+          <div className="flex gap-2">
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate("/billing/add")} className="flex-1 sm:flex-none">
+              Add
             </Button>
-            <Button icon={<FilePdfOutlined />} onClick={exportPDF}>
-              Export PDF
+            <Button icon={<FilePdfOutlined />} onClick={exportPDF} className="flex-1 sm:flex-none">
+              PDF
             </Button>
 
-            <Radio.Group value={viewMode} onChange={(e) => setViewMode(e.target.value)} optionType="button" buttonStyle="solid">
-              <Radio.Button value="table">Table</Radio.Button>
-              <Radio.Button value="card">Card</Radio.Button>
-            </Radio.Group>
-          </Space>
-        </Col>
-      </Row>
+            <div className="hidden md:block">
+              <Radio.Group value={viewMode} onChange={(e) => setViewMode(e.target.value)} optionType="button" buttonStyle="solid" style={{display:'flex !important',justifyContent:'center',alignItems:'center'}}>
+                <Radio.Button value="table">Table</Radio.Button>
+                <Radio.Button value="card">Card</Radio.Button>
+              </Radio.Group>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {viewMode === "table" ? (
         <Table
@@ -481,6 +486,7 @@ function BillingList() {
             });
           }}
           bordered
+          scroll={{ x: 800 }}
           expandable={{
             expandedRowRender: (record) => (
               <Table
@@ -622,7 +628,7 @@ function BillingList() {
           </Space>,
         ]}
         width={980}
-        bodyStyle={{ maxHeight: "80vh", overflowY: "auto", padding: 0, scrollbarWidth: "none",scrollbarWidth: "none", }}
+        bodyStyle={{ maxHeight: "80vh", overflowY: "auto", padding: 0, scrollbarWidth: "none", scrollbarWidth: "none", }}
       >
 
 

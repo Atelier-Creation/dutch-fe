@@ -237,18 +237,6 @@ const MainLayout = ({ menuItems }) => {
           {/* Header (logo moved to header) */}
           <HeaderBar collapsed={collapsed} setCollapsed={setCollapsed} />
 
-          {/* Mobile Floating Hamburger */}
-          {isMobile && !collapsed && (
-            <Button
-              type="primary"
-              shape="circle"
-              icon={<MenuUnfoldOutlined />}
-              onClick={toggleCollapsed}
-              className="fixed top-4 left-4 z-50"
-            />
-          )}
-
-
 
           <Content
             style={{

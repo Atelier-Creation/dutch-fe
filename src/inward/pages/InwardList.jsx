@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Table, Input, Button, Space, Popconfirm, Tag, message, Select, Alert } from "antd";
+import { Table, Input, Button, Space, Popconfirm, Tag, message, Select, Alert, Grid, List, Card } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import inwardService from "../service/inwardService.js";
 import { useBranch } from "../../context/BranchContext";
@@ -26,7 +26,7 @@ const InwardList = () => {
   const [availableBranches, setAvailableBranches] = useState([]);
   const [selectedBranch, setSelectedBranch] = useState(null);
   const [showBranchFilter, setShowBranchFilter] = useState(false);
-  
+
   // Get branch context to listen for changes
   const { selectedBranch: contextBranch } = useBranch();
 
@@ -52,7 +52,7 @@ const InwardList = () => {
         }));
       } catch (err) {
         console.error(err);
-        
+
         // Check if error is about multiple branches
         if (err?.response?.data?.availableBranches) {
           setAvailableBranches(err.response.data.availableBranches);
@@ -72,6 +72,8 @@ const InwardList = () => {
     setPagination((prev) => ({ ...prev, current: 1 }));
     setSearchText(value);
   }, 500);
+
+  const screens = Grid.useBreakpoint();
 
   const handleBranchChange = (branchId) => {
     setSelectedBranch(branchId);
@@ -100,8 +102,8 @@ const InwardList = () => {
         sort.order === "ascend"
           ? "asc"
           : sort.order === "descend"
-          ? "desc"
-          : null,
+            ? "desc"
+            : null,
     });
   };
 
@@ -198,16 +200,16 @@ const InwardList = () => {
       fixed: "right",
       render: (_, record) => (
         <>
-        {contextHolder}
-        <Space>
-          <Button
-            type="primary"
-            icon={<EditOutlined />}
-            onClick={() => navigate(`/inward/edit/${record.id}`)}
-          >
-            Edit
-          </Button>
-          {/* <Popconfirm
+          {contextHolder}
+          <Space>
+            <Button
+              type="primary"
+              icon={<EditOutlined />}
+              onClick={() => navigate(`/inward/edit/${record.id}`)}
+            >
+              Edit
+            </Button>
+            {/* <Popconfirm
             title="Are you sure to delete this inward?"
             onConfirm={() => handleDelete(record.id)}
           >
@@ -215,14 +217,14 @@ const InwardList = () => {
               Delete
             </Button>
           </Popconfirm> */}
-        </Space>
+          </Space>
         </>
       ),
     },
   ];
 
   return (
-    <div className="p-4">
+    <div className="p-4 sm:p-6">
       {showBranchFilter && availableBranches.length > 0 && (
         <Alert
           message="Multiple Branches Access"
@@ -232,28 +234,22 @@ const InwardList = () => {
           style={{ marginBottom: 16 }}
         />
       )}
-      
-      <Space
-        style={{
-          marginBottom: 16,
-          width: "100%",
-          justifyContent: "space-between",
-        }}
-      >
-        <Space>
+
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row gap-4 w-full xl:w-auto">
           <Search
             placeholder="Search inwards..."
             onSearch={handleSearch}
             onChange={(e) => handleSearch(e.target.value)}
             enterButton
             allowClear
-            style={{ width: 300 }}
+            className="w-full sm:w-[300px]"
           />
-          
+
           {showBranchFilter && availableBranches.length > 0 && (
             <Select
               placeholder="Filter by Branch"
-              style={{ width: 250 }}
+              className="w-full sm:w-[250px]"
               onChange={handleBranchChange}
               value={selectedBranch}
               allowClear
@@ -266,57 +262,108 @@ const InwardList = () => {
               ))}
             </Select>
           )}
-        </Space>
-        
-        <Space>
+        </div>
+
+        <div className="flex flex-wrap gap-2 w-full xl:w-auto">
           <Button
             type="primary"
             icon={<PlusOutlined />}
             onClick={() => navigate("/inward/add")}
+            className="flex-1 sm:flex-none"
           >
             Add Inward
           </Button>
-          <Button type="default" onClick={exportPDF}>
+          <Button type="default" onClick={exportPDF} className="flex-1 sm:flex-none">
             Export PDF
           </Button>
-        </Space>
-      </Space>
+        </div>
+      </div>
 
-      <Table
-        columns={columns}
-        rowKey={(record) => record.id}
-        dataSource={inwards}
-        pagination={pagination}
-        loading={loading}
-        onChange={handleTableChange}
-        bordered
-        expandable={{
-          expandedRowRender: (record) => (
-            <Table
-              columns={[
-                { title: "Product", dataIndex: ["product", "product_name"], key: "product_name" },
-                { title: "Code", dataIndex: ["product", "product_code"], key: "product_code" },
-                { title: "Quantity", dataIndex: "quantity", key: "quantity" },
-                { title: "Unit Price", dataIndex: "unit_price", key: "unit_price", render: (v) => `₹${v}` },
-                { title: "Total", dataIndex: "total_price", key: "total_price", render: (v) => `₹${v}` },
-                { title: "Batch", dataIndex: "batch_number", key: "batch_number" },
-                {
-                  title: "Expiry Date",
-                  dataIndex: "expiry_date",
-                  key: "expiry_date",
-                  render: (date) =>
-                    date ? new Date(date).toLocaleDateString() : "-",
-                },
-              ]}
-              dataSource={record.items || []}
-              pagination={false}
-              rowKey={(item) => item.id}
-              size="small"
-            />
-          ),
-        }}
-        scroll={{ x: true }}
-      />
+      {!screens.md ? (
+        <List
+          grid={{ gutter: 16, column: 1 }}
+          dataSource={inwards}
+          loading={loading}
+          pagination={{ ...pagination, onChange: (page) => setPagination({ ...pagination, current: page }) }}
+          renderItem={(item) => (
+            <List.Item>
+              <Card
+                title={item.inward_no}
+                bordered={false}
+                style={{ borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
+                extra={
+                  <Button
+                    type="text"
+                    icon={<EditOutlined />}
+                    onClick={() => navigate(`/inward/edit/${item.id}`)}
+                  />
+                }
+              >
+                <div className="flex flex-col gap-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Supplier:</span>
+                    <span className="font-medium">{item.supplier_name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Date:</span>
+                    <span className="font-medium">{new Date(item.received_date).toLocaleDateString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Amount:</span>
+                    <span className="font-medium">₹{item.total_amount}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-500">Status:</span>
+                    <Tag color={item.status === "completed" ? "green" : "orange"}>{item.status}</Tag>
+                  </div>
+                  {item.branch && (
+                    <div className="mt-2 pt-2 border-t flex justify-between">
+                      <span className="text-gray-500">Branch:</span>
+                      <span className="text-xs text-gray-700">{item.branch.branch_name}</span>
+                    </div>
+                  )}
+                </div>
+              </Card>
+            </List.Item>
+          )}
+        />
+      ) : (
+        <Table
+          columns={columns}
+          rowKey={(record) => record.id}
+          dataSource={inwards}
+          pagination={pagination}
+          loading={loading}
+          onChange={handleTableChange}
+          bordered
+          expandable={{
+            expandedRowRender: (record) => (
+              <Table
+                columns={[
+                  { title: "Product", dataIndex: ["product", "product_name"], key: "product_name" },
+                  { title: "Code", dataIndex: ["product", "product_code"], key: "product_code" },
+                  { title: "Quantity", dataIndex: "quantity", key: "quantity" },
+                  { title: "Unit Price", dataIndex: "unit_price", key: "unit_price", render: (v) => `₹${v}` },
+                  { title: "Total", dataIndex: "total_price", key: "total_price", render: (v) => `₹${v}` },
+                  { title: "Batch", dataIndex: "batch_number", key: "batch_number" },
+                  {
+                    title: "Expiry Date",
+                    dataIndex: "expiry_date",
+                    key: "expiry_date",
+                    render: (date) =>
+                      date ? new Date(date).toLocaleDateString() : "-",
+                  },
+                ]}
+                dataSource={record.items || []}
+                pagination={false}
+                rowKey={(item) => item.id}
+                size="small"
+              />
+            ),
+          }}
+          scroll={{ x: true }}
+        />
+      )}
     </div>
   );
 };

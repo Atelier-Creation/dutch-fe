@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Table, Button, Space, Popconfirm, message, Tag } from "antd";
+import { Table, Button, Space, Popconfirm, message, Tag, Grid, List, Card } from "antd";
 import { EditOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import userService from "../service/userService";
 
@@ -8,7 +8,7 @@ const BranchList = () => {
   const navigate = useNavigate();
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(false);
-const [messageApi, contextHolder] = message.useMessage();
+  const [messageApi, contextHolder] = message.useMessage();
   useEffect(() => {
     fetchBranches();
   }, []);
@@ -18,7 +18,7 @@ const [messageApi, contextHolder] = message.useMessage();
     try {
       const response = await userService.getBranches();
       const branchesData = response.data.data || [];
-      
+
       // Map backend field names to frontend field names
       const mappedBranches = branchesData.map(branch => ({
         id: branch.id,
@@ -32,7 +32,7 @@ const [messageApi, contextHolder] = message.useMessage();
         createdAt: branch.createdAt,
         updatedAt: branch.updatedAt,
       }));
-      
+
       setBranches(mappedBranches);
     } catch (error) {
       message.error("Failed to fetch branches");
@@ -88,14 +88,14 @@ const [messageApi, contextHolder] = message.useMessage();
       key: "actions",
       render: (_, record) => (
         <>
-        {contextHolder}
-        <Space>
-          <Button
-            type="primary"
-            icon={<EditOutlined />}
-            onClick={() => navigate(`/user/branches/edit/${record.id}`)}
-          />
-          {/* <Popconfirm
+          {contextHolder}
+          <Space>
+            <Button
+              type="primary"
+              icon={<EditOutlined />}
+              onClick={() => navigate(`/user/branches/edit/${record.id}`)}
+            />
+            {/* <Popconfirm
             title="Delete branch?"
             onConfirm={() => handleDelete(record.id)}
             okText="Yes"
@@ -103,32 +103,90 @@ const [messageApi, contextHolder] = message.useMessage();
           >
             <Button type="primary" danger icon={<DeleteOutlined />} />
           </Popconfirm> */}
-        </Space>
+          </Space>
         </>
       ),
     },
   ];
 
+  const screens = Grid.useBreakpoint();
+
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Branches</h1>
+    <div className="p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <h1 className="text-2xl font-bold m-0">Branches</h1>
         <Button
           type="primary"
           icon={<PlusOutlined />}
           onClick={() => navigate("/user/branches/add")}
+          className="w-full sm:w-auto"
         >
           Add Branch
         </Button>
       </div>
 
-      <Table
-        columns={columns}
-        dataSource={branches}
-        loading={loading}
-        rowKey="id"
-        pagination={{ pageSize: 10 }}
-      />
+      {!screens.md ? (
+        <List
+          grid={{ gutter: 16, column: 1 }}
+          dataSource={branches}
+          loading={loading}
+          pagination={{ pageSize: 10 }}
+          renderItem={(item) => (
+            <List.Item>
+              <Card
+                title={item.name}
+                bordered={false}
+                style={{ borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
+                extra={
+                  <Button
+                    type="text"
+                    icon={<EditOutlined />}
+                    onClick={() => navigate(`/user/branches/edit/${item.id}`)}
+                  />
+                }
+              >
+                <div className="flex flex-col gap-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Code:</span>
+                    <Tag color="blue">{item.code}</Tag>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Location:</span>
+                    <span className="font-medium">{item.location}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Contact:</span>
+                    <span className="font-medium">{item.contactNumber}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-500">Status:</span>
+                    <Tag color={item.isActive ? "green" : "red"}>
+                      {item.isActive ? "Active" : "Inactive"}
+                    </Tag>
+                  </div>
+
+                  {/*
+                  <div className="mt-2 text-right">
+                    <Popconfirm title="Delete branch?" onConfirm={() => handleDelete(item.id)}>
+                      <Button type="text" danger icon={<DeleteOutlined />}>Delete</Button>
+                    </Popconfirm>
+                  </div>
+                  */}
+                </div>
+              </Card>
+            </List.Item>
+          )}
+        />
+      ) : (
+        <Table
+          columns={columns}
+          dataSource={branches}
+          loading={loading}
+          rowKey="id"
+          pagination={{ pageSize: 10 }}
+          scroll={{ x: true }}
+        />
+      )}
     </div>
   );
 };

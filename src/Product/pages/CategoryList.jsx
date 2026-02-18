@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Table, Button, Space, Popconfirm, message, Input } from "antd";
+import { Table, Button, Space, Popconfirm, message, Input, Grid, List, Card } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import categoryService from "../services/categoryService.js";
 import debounce from "lodash.debounce";
@@ -9,11 +9,12 @@ const { Search } = Input;
 
 const CategoryList = () => {
   const navigate = useNavigate();
+  const screens = Grid.useBreakpoint();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
   const [searchText, setSearchText] = useState("");
-const [messageApi, contextHolder] = message.useMessage();
+  const [messageApi, contextHolder] = message.useMessage();
   const fetchCategories = useCallback(async (params = {}) => {
     setLoading(true);
     try {
@@ -22,11 +23,11 @@ const [messageApi, contextHolder] = message.useMessage();
         limit: params.pageSize || pagination.pageSize,
         search: params.search || searchText,
       });
-      
+
       // Backend returns: { total, page, limit, data: [...] }
       // Axios returns this in response.data
       const result = response.data;
-      
+
       setCategories(Array.isArray(result.data) ? result.data : []);
       setPagination((prev) => ({
         ...prev,
@@ -71,15 +72,15 @@ const [messageApi, contextHolder] = message.useMessage();
       key: "actions",
       render: (_, record) => (
         <>
-        {contextHolder}
-        <Space>
-          <Button type="primary" icon={<EditOutlined />} onClick={() => navigate(`/Product/categories/edit/${record.id}`)}>
-            Edit
-          </Button>
-          {/* <Popconfirm title="Are you sure?" onConfirm={() => handleDelete(record.id)}>
+          {contextHolder}
+          <Space>
+            <Button type="primary" icon={<EditOutlined />} onClick={() => navigate(`/Product/categories/edit/${record.id}`)}>
+              Edit
+            </Button>
+            {/* <Popconfirm title="Are you sure?" onConfirm={() => handleDelete(record.id)}>
             <Button danger icon={<DeleteOutlined />}>Delete</Button>
           </Popconfirm> */}
-        </Space>
+          </Space>
         </>
       ),
     },
@@ -87,29 +88,59 @@ const [messageApi, contextHolder] = message.useMessage();
 
   return (
     <div className="p-4">
-      <Space style={{ marginBottom: 16, width: "100%", justifyContent: "space-between" }}>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
         <Search
           placeholder="Search categories..."
           onSearch={handleSearch}
           onChange={(e) => handleSearch(e.target.value)}
           enterButton
           allowClear
-          style={{ width: 300 }}
+          className="w-full md:w-[300px]"
         />
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate("/Product/categories/add")}>
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate("/Product/categories/add")} className="w-full md:w-auto">
           Add Category
         </Button>
-      </Space>
+      </div>
 
-      <Table
-        columns={columns}
-        rowKey={(record) => record.id}
-        dataSource={categories}
-        pagination={pagination}
-        loading={loading}
-        onChange={(pag) => setPagination(pag)}
-        bordered
-      />
+      {!screens.md ? (
+        <List
+          grid={{ gutter: 16, column: 1 }}
+          dataSource={categories}
+          loading={loading}
+          pagination={{ ...pagination, onChange: (page) => setPagination({ ...pagination, current: page }) }}
+          renderItem={(item) => (
+            <List.Item key={item.id}>
+              <Card
+                title={item.category_name}
+                bordered={false}
+                style={{ borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
+                extra={
+                  <Button
+                    type="text"
+                    icon={<EditOutlined />}
+                    onClick={() => navigate(`/Product/categories/edit/${item.id}`)}
+                  />
+                }
+              >
+                <div style={{ color: "#666" }}>
+                  {item.description || "No description available"}
+                </div>
+              </Card>
+            </List.Item>
+          )}
+        />
+      ) : (
+        <Table
+          columns={columns}
+          rowKey={(record) => record.id}
+          dataSource={categories}
+          pagination={pagination}
+          loading={loading}
+          onChange={(pag) => setPagination(pag)}
+          bordered
+          scroll={{ x: true }}
+        />
+      )}
     </div>
   );
 };
