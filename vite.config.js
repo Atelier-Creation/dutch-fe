@@ -19,6 +19,6 @@ export default defineConfig({
       'billing-frontend-kdco.onrender.com' // your Render domain
     ],
     host: '0.0.0.0',
-    port: process.env.PORT || 4173
+    port: process.env.PORT || 4174
   }
 })
