@@ -455,7 +455,7 @@ function BillingList() {
             </Button>
 
             <div className="hidden md:block">
-              <Radio.Group value={viewMode} onChange={(e) => setViewMode(e.target.value)} optionType="button" buttonStyle="solid" style={{display:'flex !important',justifyContent:'center',alignItems:'center'}}>
+              <Radio.Group value={viewMode} onChange={(e) => setViewMode(e.target.value)} optionType="button" buttonStyle="solid" style={{display:'flex',justifyContent:'center',alignItems:'center'}}>
                 <Radio.Button value="table">Table</Radio.Button>
                 <Radio.Button value="card">Card</Radio.Button>
               </Radio.Group>
