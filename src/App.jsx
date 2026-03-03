@@ -12,7 +12,8 @@ import {
   Users,
   Percent,
   User,
-  BarChart
+  BarChart,
+  Megaphone
 } from "lucide-react";
 import CustomerBillCopy from "./billing/pages/CustomerBillCopy";
 import CustomerBillForm from "./billing/pages/CustomerBillingForm";
@@ -37,6 +38,7 @@ const moduleIcons = {
   customer: <Users size={20} />,
   coupon: <Percent size={20} />,
   user: <User size={20} />,
+  marketing: <Megaphone size={20} />,
 };
 const App = () => {
   const modules = Object.entries(routeModules).map(([path, mod]) => {
