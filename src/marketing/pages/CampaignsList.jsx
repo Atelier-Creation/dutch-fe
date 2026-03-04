@@ -1,146 +1,381 @@
-import React, { useState } from "react";
-import { Table, Tag, Typography, Button, Space, Input } from "antd";
-import { motion } from "framer-motion";
-import { useTheme } from "../../context/ThemeContext";
-import { Search, Filter, Facebook, Chrome } from "lucide-react";
+import { useState, useEffect } from 'react';
+import { 
+    Card, 
+    Table, 
+    Button, 
+    Tag, 
+    Space, 
+    Modal, 
+    Form, 
+    Input, 
+    Select, 
+    message,
+    Popconfirm,
+    Tooltip,
+    Statistic,
+    Row,
+    Col
+} from 'antd';
+import { 
+    PlusOutlined, 
+    PlayCircleOutlined, 
+    PauseCircleOutlined,
+    DeleteOutlined,
+    ReloadOutlined,
+    EyeOutlined
+} from '@ant-design/icons';
+import * as metaApi from '../service/metaApi';
 
-const { Title, Text } = Typography;
+const { Option } = Select;
 
 const CampaignsList = () => {
-    const { theme, primaryColor } = useTheme();
-    const [searchText, setSearchText] = useState("");
+    const [campaigns, setCampaigns] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [createModalVisible, setCreateModalVisible] = useState(false);
+    const [insightsModalVisible, setInsightsModalVisible] = useState(false);
+    const [selectedCampaign, setSelectedCampaign] = useState(null);
+    const [campaignInsights, setCampaignInsights] = useState(null);
+    const [form] = Form.useForm();
 
-    const data = [
-        // Mock Data
-        {
-            key: '1',
-            platform: 'Meta',
-            campaignName: 'Retargeting_Website_Visitors_Q3',
-            status: 'Active',
-            budget: '₹5,000 / day',
-            spend: '₹42,300',
-            roas: '3.4x',
-        },
-        {
-            key: '2',
-            platform: 'Google',
-            campaignName: 'Search_Brand_Keywords',
-            status: 'Active',
-            budget: '₹2,000 / day',
-            spend: '₹14,500',
-            roas: '5.1x',
-        },
-        {
-            key: '3',
-            platform: 'Meta',
-            campaignName: 'Lead_Gen_Form_Promo',
-            status: 'Paused',
-            budget: '₹1,500 / day',
-            spend: '₹4,500',
-            roas: '1.2x',
-        },
-    ];
+    useEffect(() => {
+        loadCampaigns();
+    }, []);
+
+    const loadCampaigns = async () => {
+        setLoading(true);
+        try {
+            const response = await metaApi.getCampaigns();
+            setCampaigns(response.data?.data || []);
+        } catch (error) {
+            message.error('Failed to load campaigns');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleCreateCampaign = async (values) => {
+        try {
+            await metaApi.createCampaign(values);
+            message.success('Campaign created successfully');
+            setCreateModalVisible(false);
+            form.resetFields();
+            loadCampaigns();
+        } catch (error) {
+            message.error(error.response?.data?.message || 'Failed to create campaign');
+        }
+    };
+
+    const handleUpdateStatus = async (campaignId, status) => {
+        try {
+            await metaApi.updateCampaignStatus(campaignId, status);
+            message.success(`Campaign ${status.toLowerCase()} successfully`);
+            loadCampaigns();
+        } catch (error) {
+            message.error('Failed to update campaign status');
+        }
+    };
+
+    const handleViewInsights = async (campaign) => {
+        setSelectedCampaign(campaign);
+        setInsightsModalVisible(true);
+        setCampaignInsights(null);
+
+        try {
+            const response = await metaApi.getCampaignInsights(campaign.id, 'last_30d');
+            setCampaignInsights(response.data?.data?.[0] || null);
+        } catch (error) {
+            message.error('Failed to load campaign insights');
+        }
+    };
 
     const columns = [
         {
-            title: 'Platform',
-            dataIndex: 'platform',
-            key: 'platform',
-            render: (platform) => {
-                const isMeta = platform === 'Meta';
-                return (
-                    <Space>
-                        {isMeta ? <Facebook size={18} color="#1877F2" /> : <Chrome size={18} color="#DB4437" />}
-                        <Text>{platform}</Text>
-                    </Space>
-                );
-            },
+            title: 'Campaign Name',
+            dataIndex: 'name',
+            key: 'name',
+            render: (text, record) => (
+                <div>
+                    <div style={{ fontWeight: 500 }}>{text}</div>
+                    <div style={{ fontSize: 12, color: '#666' }}>
+                        ID: {record.id}
+                    </div>
+                </div>
+            ),
         },
         {
-            title: 'Campaign Name',
-            dataIndex: 'campaignName',
-            key: 'campaignName',
-            render: (text) => <Text strong>{text}</Text>,
+            title: 'Objective',
+            dataIndex: 'objective',
+            key: 'objective',
+            render: (objective) => (
+                <Tag color="blue">
+                    {objective?.replace('OUTCOME_', '') || 'N/A'}
+                </Tag>
+            ),
         },
         {
             title: 'Status',
             dataIndex: 'status',
             key: 'status',
             render: (status) => {
-                let color = status === 'Active' ? 'green' : 'volcano';
-                return (
-                    <Tag color={color} key={status} style={{ borderRadius: '12px', padding: '2px 12px' }}>
-                        {status.toUpperCase()}
-                    </Tag>
-                );
+                const colors = {
+                    ACTIVE: 'green',
+                    PAUSED: 'orange',
+                    DELETED: 'red',
+                };
+                return <Tag color={colors[status] || 'default'}>{status}</Tag>;
             },
         },
         {
-            title: 'Budget',
-            dataIndex: 'budget',
-            key: 'budget',
+            title: 'Daily Budget',
+            dataIndex: 'daily_budget',
+            key: 'daily_budget',
+            render: (budget) => budget ? `₹${(budget / 100).toFixed(2)}` : 'N/A',
         },
         {
-            title: 'Spend',
-            dataIndex: 'spend',
-            key: 'spend',
-            render: (text) => <Text>{text}</Text>,
+            title: 'Created',
+            dataIndex: 'created_time',
+            key: 'created_time',
+            render: (time) => time ? new Date(time).toLocaleDateString() : 'N/A',
         },
         {
-            title: 'ROAS (Return on Ad Spend)',
-            dataIndex: 'roas',
-            key: 'roas',
-            render: (roas) => (
-                <Tag color="blue" style={{ fontWeight: 'bold' }}>
-                    {roas}
-                </Tag>
+            title: 'Actions',
+            key: 'actions',
+            render: (_, record) => (
+                <Space>
+                    <Tooltip title="View Insights">
+                        <Button
+                            type="text"
+                            icon={<EyeOutlined />}
+                            onClick={() => handleViewInsights(record)}
+                        />
+                    </Tooltip>
+                    
+                    {record.status === 'PAUSED' && (
+                        <Tooltip title="Activate">
+                            <Button
+                                type="text"
+                                icon={<PlayCircleOutlined />}
+                                onClick={() => handleUpdateStatus(record.id, 'ACTIVE')}
+                                style={{ color: '#52c41a' }}
+                            />
+                        </Tooltip>
+                    )}
+                    
+                    {record.status === 'ACTIVE' && (
+                        <Tooltip title="Pause">
+                            <Button
+                                type="text"
+                                icon={<PauseCircleOutlined />}
+                                onClick={() => handleUpdateStatus(record.id, 'PAUSED')}
+                                style={{ color: '#faad14' }}
+                            />
+                        </Tooltip>
+                    )}
+                    
+                    {record.status !== 'DELETED' && (
+                        <Popconfirm
+                            title="Are you sure you want to delete this campaign?"
+                            onConfirm={() => handleUpdateStatus(record.id, 'DELETED')}
+                            okText="Yes"
+                            cancelText="No"
+                        >
+                            <Tooltip title="Delete">
+                                <Button
+                                    type="text"
+                                    danger
+                                    icon={<DeleteOutlined />}
+                                />
+                            </Tooltip>
+                        </Popconfirm>
+                    )}
+                </Space>
             ),
         },
     ];
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            style={{ padding: "24px" }}
-        >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
-                <div>
-                    <Title level={2} style={{ margin: 0, color: theme === "dark" ? "#fff" : "#1f2937" }}>
-                        Ad Campaigns
-                    </Title>
-                    <Text type="secondary">Manage and monitor your active marketing campaigns.</Text>
-                </div>
-                <div style={{ display: "flex", gap: "12px" }}>
-                    <Input
-                        prefix={<Search size={16} color="#9CA3AF" />}
-                        placeholder="Search campaigns..."
-                        value={searchText}
-                        onChange={(e) => setSearchText(e.target.value)}
-                        style={{ borderRadius: "8px", width: "250px" }}
-                    />
-                    <Button icon={<Filter size={16} />} style={{ borderRadius: "8px" }}>
-                        Filters
-                    </Button>
-                </div>
-            </div>
-
-            <div style={{
-                backgroundColor: theme === "dark" ? "#1f2937" : "#fff",
-                padding: "20px",
-                borderRadius: "16px",
-                boxShadow: "0 4px 20px rgba(0,0,0,0.05)"
-            }}>
+        <div style={{ padding: 24 }}>
+            <Card
+                title="Meta Campaigns"
+                extra={
+                    <Space>
+                        <Button 
+                            icon={<ReloadOutlined />} 
+                            onClick={loadCampaigns}
+                        >
+                            Refresh
+                        </Button>
+                        <Button
+                            type="primary"
+                            icon={<PlusOutlined />}
+                            onClick={() => setCreateModalVisible(true)}
+                        >
+                            Create Campaign
+                        </Button>
+                    </Space>
+                }
+            >
                 <Table
                     columns={columns}
-                    dataSource={data}
-                    pagination={{ pageSize: 10 }}
-                    style={{ width: "100%" }}
-                    rowKey="key"
+                    dataSource={campaigns}
+                    rowKey="id"
+                    loading={loading}
+                    pagination={{
+                        pageSize: 10,
+                        showSizeChanger: true,
+                        showTotal: (total) => `Total ${total} campaigns`,
+                    }}
                 />
-            </div>
-        </motion.div>
+            </Card>
+
+            {/* Create Campaign Modal */}
+            <Modal
+                title="Create New Campaign"
+                open={createModalVisible}
+                onCancel={() => {
+                    setCreateModalVisible(false);
+                    form.resetFields();
+                }}
+                footer={null}
+            >
+                <Form
+                    form={form}
+                    layout="vertical"
+                    onFinish={handleCreateCampaign}
+                >
+                    <Form.Item
+                        name="name"
+                        label="Campaign Name"
+                        rules={[{ required: true, message: 'Please enter campaign name' }]}
+                    >
+                        <Input placeholder="e.g., Spring Sale 2026" />
+                    </Form.Item>
+
+                    <Form.Item
+                        name="objective"
+                        label="Campaign Objective"
+                        rules={[{ required: true, message: 'Please select objective' }]}
+                    >
+                        <Select placeholder="Select objective">
+                            <Option value="OUTCOME_AWARENESS">Brand Awareness</Option>
+                            <Option value="OUTCOME_ENGAGEMENT">Engagement</Option>
+                            <Option value="OUTCOME_TRAFFIC">Traffic</Option>
+                            <Option value="OUTCOME_LEADS">Lead Generation</Option>
+                            <Option value="OUTCOME_SALES">Sales/Conversions</Option>
+                        </Select>
+                    </Form.Item>
+
+                    <Form.Item
+                        name="status"
+                        label="Initial Status"
+                        initialValue="PAUSED"
+                    >
+                        <Select>
+                            <Option value="PAUSED">Paused (Recommended)</Option>
+                            <Option value="ACTIVE">Active</Option>
+                        </Select>
+                    </Form.Item>
+
+                    <Form.Item>
+                        <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
+                            <Button onClick={() => {
+                                setCreateModalVisible(false);
+                                form.resetFields();
+                            }}>
+                                Cancel
+                            </Button>
+                            <Button type="primary" htmlType="submit">
+                                Create Campaign
+                            </Button>
+                        </Space>
+                    </Form.Item>
+                </Form>
+            </Modal>
+
+            {/* Campaign Insights Modal */}
+            <Modal
+                title={`Campaign Insights: ${selectedCampaign?.name}`}
+                open={insightsModalVisible}
+                onCancel={() => {
+                    setInsightsModalVisible(false);
+                    setSelectedCampaign(null);
+                    setCampaignInsights(null);
+                }}
+                footer={[
+                    <Button key="close" onClick={() => setInsightsModalVisible(false)}>
+                        Close
+                    </Button>
+                ]}
+                width={800}
+            >
+                {campaignInsights ? (
+                    <div>
+                        <Row gutter={[16, 16]}>
+                            <Col span={8}>
+                                <Card>
+                                    <Statistic
+                                        title="Impressions"
+                                        value={campaignInsights.impressions || 0}
+                                    />
+                                </Card>
+                            </Col>
+                            <Col span={8}>
+                                <Card>
+                                    <Statistic
+                                        title="Clicks"
+                                        value={campaignInsights.clicks || 0}
+                                    />
+                                </Card>
+                            </Col>
+                            <Col span={8}>
+                                <Card>
+                                    <Statistic
+                                        title="Spend"
+                                        value={campaignInsights.spend || 0}
+                                        precision={2}
+                                        prefix="₹"
+                                    />
+                                </Card>
+                            </Col>
+                        </Row>
+                        <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+                            <Col span={8}>
+                                <Card>
+                                    <Statistic
+                                        title="Reach"
+                                        value={campaignInsights.reach || 0}
+                                    />
+                                </Card>
+                            </Col>
+                            <Col span={8}>
+                                <Card>
+                                    <Statistic
+                                        title="CTR"
+                                        value={campaignInsights.ctr || 0}
+                                        precision={2}
+                                        suffix="%"
+                                    />
+                                </Card>
+                            </Col>
+                            <Col span={8}>
+                                <Card>
+                                    <Statistic
+                                        title="CPC"
+                                        value={campaignInsights.cpc || 0}
+                                        precision={2}
+                                        prefix="₹"
+                                    />
+                                </Card>
+                            </Col>
+                        </Row>
+                    </div>
+                ) : (
+                    <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                        <p>Loading insights...</p>
+                    </div>
+                )}
+            </Modal>
+        </div>
     );
 };
 

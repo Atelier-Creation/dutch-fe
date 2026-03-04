@@ -114,7 +114,12 @@ const StockList = () => {
     const columns = [
         { title: "Product Name", dataIndex: ["product", "product_name"], key: "product_name" },
         { title: "Product Code", dataIndex: ["product", "product_code"], key: "product_code" },
-        { title: "Quantity", dataIndex: "quantity", key: "quantity" },
+        { 
+            title: "Quantity", 
+            dataIndex: "quantity", 
+            key: "quantity",
+            render: (val) => val < 0 ? 0 : val
+        },
         { title: "Unit", dataIndex: "unit", key: "unit" },
         { title: "Cost Price", dataIndex: "cost_price", key: "cost_price", render: (val) => `₹${val}` },
         { title: "Selling Price", dataIndex: "selling_price", key: "selling_price", render: (val) => `₹${val}` },

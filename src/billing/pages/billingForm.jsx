@@ -22,7 +22,7 @@ import {
   Space,
   Modal,
 } from "antd";
-import { CheckCircleOutlined, GiftOutlined, DeleteOutlined } from "@ant-design/icons";
+import { CheckCircleOutlined, GiftOutlined, DeleteOutlined, PlusOutlined, EditOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import productService from "../../Product/services/productService";
 import billingService from "../service/billingService";
@@ -49,6 +49,15 @@ function BillingForm() {
   const [allProducts, setAllProducts] = useState([]);
   const [productsLoading, setProductsLoading] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  
+  // Quick add product modal states
+  const [quickAddModalVisible, setQuickAddModalVisible] = useState(false);
+  const [quickAddForm] = Form.useForm();
+  const [quickAddLoading, setQuickAddLoading] = useState(false);
+  
+  // Inline new product states
+  const [creatingInlineProducts, setCreatingInlineProducts] = useState(new Set());
+  
 const [messageApi, contextHolder] = message.useMessage();
   // Fetch all products for dropdown
   const fetchAllProducts = async (searchTerm = "") => {
@@ -243,6 +252,23 @@ const [messageApi, contextHolder] = message.useMessage();
         <Tag color={v === "paid" ? "green" : "orange"}>
           {v?.toUpperCase()}
         </Tag>
+      ),
+    },
+    {
+      title: "Action",
+      key: "action",
+      render: (_, record) => (
+        <Button 
+          type="primary" 
+          icon={<EditOutlined />} 
+          size="small"
+          onClick={() => {
+            // Open in new tab
+            window.open(`/billing/edit/${record.id}`, '_blank');
+          }}
+        >
+          Edit
+        </Button>
       ),
     },
   ];
@@ -478,6 +504,99 @@ const [messageApi, contextHolder] = message.useMessage();
       addProductToItems(product);
       setSelectedProduct(null); // Clear selection
     }
+  };
+
+  // QUICK ADD NEW PRODUCT
+  const handleQuickAddProduct = async (values) => {
+    setQuickAddLoading(true);
+    try {
+      // Create minimal product with just name and price
+      const productData = {
+        product_name: values.product_name,
+        product_code: `QUICK-${Date.now()}`, // Auto-generate code
+        selling_price: values.unit_price,
+        cost_price: values.unit_price * 0.7, // Default 30% margin
+        mrp: values.unit_price,
+        unit: values.unit || 'piece',
+        category_id: null, // Optional
+        subcategory_id: null, // Optional
+        description: 'Quick add product',
+        is_active: true
+      };
+
+      console.log('Creating quick product:', productData);
+      const response = await productService.create(productData);
+      console.log('Product created response:', response);
+      
+      const newProduct = response.data?.data || response.data;
+      console.log('New product data:', newProduct);
+
+      // Ensure we have the product ID
+      const productId = newProduct.id || newProduct._id || newProduct.uuid;
+      if (!productId) {
+        throw new Error('Product created but no ID returned');
+      }
+
+      message.success({
+        content: `✅ "${values.product_name}" added to bill!`,
+        duration: 3
+      });
+
+      // Refresh products list
+      fetchAllProducts();
+
+      // Add the new product to the billing items immediately
+      const productToAdd = {
+        id: productId,
+        product_id: productId,
+        _id: productId,
+        product_name: values.product_name,
+        product_code: newProduct.product_code || productData.product_code,
+        selling_price: values.unit_price,
+        unit: values.unit || 'piece',
+        mrp: values.unit_price,
+        cost_price: values.unit_price * 0.7
+      };
+
+      console.log('Adding product to items:', productToAdd);
+      addProductToItems(productToAdd);
+
+      message.success({
+        content: `✅ "${values.product_name}" added to bill!`,
+        duration: 3
+      });
+
+      // Close modal and reset form
+      setQuickAddModalVisible(false);
+      quickAddForm.resetFields();
+    } catch (error) {
+      console.error('Quick add product error:', error);
+      message.error(error.response?.data?.message || error.message || 'Failed to add product');
+    } finally {
+      setQuickAddLoading(false);
+    }
+  };
+
+  // ADD EMPTY ROW FOR INLINE PRODUCT CREATION
+  const handleAddEmptyRow = () => {
+    let items = form.getFieldValue("items") || [];
+    const emptyRow = {
+      _isNew: true, // Flag to identify new product rows
+      _tempId: `temp-${Date.now()}`, // Temporary ID
+      product_id: null,
+      product_code: '',
+      product_name: '',
+      quantity: 1,
+      unit_price: 0,
+      discount_amount: 0,
+      tax_percentage: 0,
+      tax_amount: 0,
+      total_price: 0,
+    };
+    items = [...items, emptyRow];
+    form.setFieldsValue({ items });
+    setPreview((p) => ({ ...p, items }));
+    message.info('Enter product name and price in the table below');
   };
 
   // Common function to add product to items
@@ -757,12 +876,67 @@ const [messageApi, contextHolder] = message.useMessage();
 
     setLoading(true);
     try {
-      const itemsRaw = form.getFieldValue("items") || [];
+      let itemsRaw = form.getFieldValue("items") || [];
 
       if (!Array.isArray(itemsRaw) || itemsRaw.length === 0) {
         messageApi.error("Add at least one product/item before submitting the bill.");
         setLoading(false);
         return;
+      }
+
+      // Create products for new rows first
+      const newProductRows = itemsRaw.filter(item => item._isNew);
+      if (newProductRows.length > 0) {
+        messageApi.loading('Creating new products...', 0);
+        
+        for (let i = 0; i < itemsRaw.length; i++) {
+          const item = itemsRaw[i];
+          if (item._isNew) {
+            if (!item.product_name || !item.unit_price) {
+              messageApi.destroy();
+              messageApi.error(`Please enter product name and price for row ${i + 1}`);
+              setLoading(false);
+              return;
+            }
+
+            // Create the product
+            const productData = {
+              product_name: item.product_name,
+              product_code: `QUICK-${Date.now()}-${i}`,
+              selling_price: item.unit_price,
+              cost_price: item.unit_price * 0.7,
+              mrp: item.unit_price,
+              unit: 'piece',
+              description: 'Quick add product',
+              is_active: true
+            };
+
+            const response = await productService.create(productData);
+            const newProduct = response.data?.data || response.data;
+            const productId = newProduct.id || newProduct._id || newProduct.uuid;
+
+            if (!productId) {
+              messageApi.destroy();
+              messageApi.error(`Failed to create product: ${item.product_name}`);
+              setLoading(false);
+              return;
+            }
+
+            // Update the item with real product data
+            itemsRaw[i] = {
+              ...itemsRaw[i],
+              _isNew: false,
+              product_id: String(productId),
+              product_code: newProduct.product_code || productData.product_code,
+            };
+          }
+        }
+
+        messageApi.destroy();
+        messageApi.success(`${newProductRows.length} new product(s) created!`);
+        
+        // Update form with new product IDs
+        form.setFieldsValue({ items: itemsRaw });
       }
 
       for (const it of itemsRaw) {
@@ -812,6 +986,7 @@ const [messageApi, contextHolder] = message.useMessage();
       const payload = {
         // server will create billing_no; sending bill_no is harmless if you want to keep client id
         bill_no,
+        branch_id: selectedBranch?.id, // Add branch_id
         status: "paid",
         customer_name: values.customer_name || "",
         customer_phone: values.customer_phone || "",
@@ -830,6 +1005,13 @@ const [messageApi, contextHolder] = message.useMessage();
         is_active: true,
         billing_items: items, // Changed from 'items' to 'billing_items' to match backend schema
       };
+
+      // Validate branch_id
+      if (!payload.branch_id) {
+        messageApi.error("Please select a branch");
+        setLoading(false);
+        return;
+      }
 
       console.log("Billing payload ->", payload);
 
@@ -863,11 +1045,31 @@ const [messageApi, contextHolder] = message.useMessage();
       }
     } catch (err) {
       console.error("create billing error:", err);
-      const serverMsg =
-        err &&
-        err.response &&
-        (err.response.data?.error || err.response.data?.message || JSON.stringify(err.response.data));
-      messageApi.error(serverMsg || "Failed to create billing");
+      console.error("error response:", err.response?.data);
+      
+      let errorMessage = "Failed to create billing";
+      
+      if (err.response?.data) {
+        const errorData = err.response.data;
+        
+        // Handle different error formats
+        if (typeof errorData === 'string') {
+          errorMessage = errorData;
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        } else if (errorData.error) {
+          errorMessage = errorData.error;
+        } else if (errorData.errors && Array.isArray(errorData.errors)) {
+          // Validation errors
+          errorMessage = errorData.errors.map(e => e.message || e).join(', ');
+        } else {
+          errorMessage = JSON.stringify(errorData);
+        }
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      messageApi.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -911,8 +1113,25 @@ const [messageApi, contextHolder] = message.useMessage();
 
   // table columns (editable)
   const columns = [
-    { title: "Product Code", dataIndex: "product_code", key: "code" },
-    { title: "Product Name", dataIndex: "product_name", key: "name" },
+    { 
+      title: "Product Code", 
+      dataIndex: "product_code", 
+      key: "code",
+      render: (text, record) => record._isNew ? <Tag color="blue">NEW</Tag> : text
+    },
+    { 
+      title: "Product Name", 
+      dataIndex: "product_name", 
+      key: "name",
+      render: (text, record, idx) => record._isNew ? (
+        <Input
+          placeholder="Enter product name"
+          value={text}
+          onChange={(e) => handleItemChange(idx, "product_name", e.target.value)}
+          style={{ width: '100%' }}
+        />
+      ) : text
+    },
     {
       title: "Qty",
       key: "qty",
@@ -920,7 +1139,21 @@ const [messageApi, contextHolder] = message.useMessage();
         <InputNumber min={1} value={record.quantity} onChange={(v) => handleItemChange(idx, "quantity", v || 0)} />
       ),
     },
-    { title: "Unit Price", dataIndex: "unit_price", key: "price", render: (v) => `₹${(Number(v) || 0).toFixed(2)}` },
+    { 
+      title: "Unit Price", 
+      dataIndex: "unit_price", 
+      key: "price", 
+      render: (v, record, idx) => record._isNew ? (
+        <InputNumber
+          placeholder="Price"
+          min={0}
+          value={v}
+          onChange={(val) => handleItemChange(idx, "unit_price", val || 0)}
+          style={{ width: '100%' }}
+          prefix="₹"
+        />
+      ) : `₹${(Number(v) || 0).toFixed(2)}`
+    },
     {
       title: "Discount",
       key: "disc",
@@ -961,33 +1194,45 @@ const [messageApi, contextHolder] = message.useMessage();
   };
 
   const renderHistoryExpandedRow = (record) => {
-    if (!customerData) return null;
+    // Show products for this specific billing
+    if (!record.items || record.items.length === 0) {
+      return <div style={{ padding: 16, color: "#999" }}>No items found</div>;
+    }
 
     return (
       <div style={{ background: "#fafafa", padding: 16, borderRadius: 6 }}>
-        {/* Top Products */}
-        {customerData.top_products?.length > 0 && (
-          <>
-            <Title level={5}>Top Products</Title>
-            <Table
-              size="small"
-              pagination={false}
-              dataSource={customerData.top_products}
-              rowKey={(r) => r.product_id}
-              columns={[
-                { title: "Product", dataIndex: "product_name" },
-                { title: "Code", dataIndex: "product_code" },
-                { title: "Qty", dataIndex: "total_quantity" },
-                {
-                  title: "Total Amount",
-                  dataIndex: "total_amount",
-                  render: (v) => `₹${Number(v).toFixed(2)}`,
-                },
-              ]}
-            />
-            <Divider />
-          </>
-        )}
+        <Title level={5} style={{ marginBottom: 12 }}>Products in this Bill</Title>
+        <Table
+          size="small"
+          pagination={false}
+          dataSource={record.items}
+          rowKey={(r) => r.id}
+          columns={[
+            { title: "Product Name", dataIndex: "product_name" },
+            { title: "Product Code", dataIndex: "product_code" },
+            { title: "Quantity", dataIndex: "quantity" },
+            {
+              title: "Unit Price",
+              dataIndex: "unit_price",
+              render: (v) => `₹${Number(v).toFixed(2)}`,
+            },
+            {
+              title: "Discount",
+              dataIndex: "discount_amount",
+              render: (v) => v ? `₹${Number(v).toFixed(2)}` : '-',
+            },
+            {
+              title: "Tax",
+              dataIndex: "tax_amount",
+              render: (v) => v ? `₹${Number(v).toFixed(2)}` : '-',
+            },
+            {
+              title: "Total",
+              dataIndex: "total_price",
+              render: (v) => `₹${Number(v).toFixed(2)}`,
+            },
+          ]}
+        />
       </div>
     );
   };
@@ -1367,36 +1612,46 @@ const [messageApi, contextHolder] = message.useMessage();
                   <Row gutter={16}>
                     <Col span={12}>
                       <Form.Item label="Select Product">
-                        <Select
-                          showSearch
-                          placeholder="Search and select product"
-                          value={selectedProduct}
-                          onChange={handleProductSelect}
-                          onSearch={(value) => {
-                            if (value.length >= 2) {
-                              fetchAllProducts(value);
-                            } else if (value.length === 0) {
-                              fetchAllProducts();
-                            }
-                          }}
-                          loading={productsLoading}
-                          filterOption={false}
-                          notFoundContent={productsLoading ? <Spin size="small" /> : "No products found"}
-                          style={{ width: "100%" }}
-                        >
-                          {allProducts.map((product) => (
-                            <Option key={product.id} value={product.id}>
-                              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                                <span>
-                                  {product.product_name} ({product.product_code})
-                                </span>
-                                <span style={{ color: "#52c41a", fontWeight: 600 }}>
-                                  ₹{product.selling_price}
-                                </span>
-                              </div>
-                            </Option>
-                          ))}
-                        </Select>
+                        <Space.Compact style={{ width: '100%' }}>
+                          <Select
+                            showSearch
+                            placeholder="Search and select product"
+                            value={selectedProduct}
+                            onChange={handleProductSelect}
+                            onSearch={(value) => {
+                              if (value.length >= 2) {
+                                fetchAllProducts(value);
+                              } else if (value.length === 0) {
+                                fetchAllProducts();
+                              }
+                            }}
+                            loading={productsLoading}
+                            filterOption={false}
+                            notFoundContent={productsLoading ? <Spin size="small" /> : "No products found"}
+                            style={{ width: "100%" }}
+                          >
+                            {allProducts.map((product) => (
+                              <Option key={product.id} value={product.id}>
+                                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                                  <span>
+                                    {product.product_name} ({product.product_code})
+                                  </span>
+                                  <span style={{ color: "#52c41a", fontWeight: 600 }}>
+                                    ₹{product.selling_price}
+                                  </span>
+                                </div>
+                              </Option>
+                            ))}
+                          </Select>
+                          <Button 
+                            type="primary" 
+                            icon={<PlusOutlined />}
+                            onClick={() => setQuickAddModalVisible(true)}
+                            title="Quick Add New Product"
+                          >
+                            New
+                          </Button>
+                        </Space.Compact>
                       </Form.Item>
                     </Col>
 
@@ -1495,11 +1750,24 @@ const [messageApi, contextHolder] = message.useMessage();
                               const items = form.getFieldValue("items") || [];
                               return (
                                 <>
+                                  <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div style={{ fontSize: 14, fontWeight: 600, color: '#374151' }}>
+                                      Bill Items ({items.length})
+                                    </div>
+                                    <Button
+                                      type="dashed"
+                                      icon={<PlusOutlined />}
+                                      onClick={handleAddEmptyRow}
+                                      size="small"
+                                    >
+                                      Add New Product
+                                    </Button>
+                                  </div>
                                   <Table
                                     dataSource={items}
                                     columns={columns}
                                     pagination={false}
-                                    rowKey={(r, idx) => idx}
+                                    rowKey={(r, idx) => r._tempId || idx}
                                     size="small"
                                     scroll={{ x: 600 }}
                                     className="billingItemsTable"
@@ -1754,6 +2022,93 @@ const [messageApi, contextHolder] = message.useMessage();
           />
         </div>
       </Modal >
+
+      {/* Quick Add Product Modal */}
+      <Modal
+        title="Quick Add New Product"
+        open={quickAddModalVisible}
+        onCancel={() => {
+          setQuickAddModalVisible(false);
+          quickAddForm.resetFields();
+        }}
+        footer={null}
+        width={500}
+      >
+        <Form
+          form={quickAddForm}
+          layout="vertical"
+          onFinish={handleQuickAddProduct}
+        >
+          <Form.Item
+            name="product_name"
+            label="Product Name"
+            rules={[{ required: true, message: 'Please enter product name' }]}
+          >
+            <Input 
+              placeholder="e.g., Blue Cotton Dress" 
+              autoFocus
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="unit_price"
+            label="Unit Price (₹)"
+            rules={[
+              { required: true, message: 'Please enter unit price' },
+              { type: 'number', min: 0, message: 'Price must be positive' }
+            ]}
+          >
+            <InputNumber
+              placeholder="e.g., 500"
+              style={{ width: '100%' }}
+              min={0}
+              precision={2}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="unit"
+            label="Unit"
+            initialValue="piece"
+          >
+            <Select>
+              <Option value="piece">Piece</Option>
+              <Option value="kg">Kilogram (kg)</Option>
+              <Option value="gram">Gram (g)</Option>
+              <Option value="liter">Liter (L)</Option>
+              <Option value="meter">Meter (m)</Option>
+              <Option value="box">Box</Option>
+              <Option value="pack">Pack</Option>
+            </Select>
+          </Form.Item>
+
+          <Alert
+            message="Quick Add"
+            description="This will create a basic product with auto-generated code. You can edit full details later in Products section."
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
+
+          <Form.Item style={{ marginBottom: 0 }}>
+            <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
+              <Button onClick={() => {
+                setQuickAddModalVisible(false);
+                quickAddForm.resetFields();
+              }}>
+                Cancel
+              </Button>
+              <Button 
+                type="primary" 
+                htmlType="submit"
+                loading={quickAddLoading}
+              >
+                Add & Use in Bill
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
     </div >
     </>
   );
