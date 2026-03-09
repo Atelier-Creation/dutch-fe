@@ -266,34 +266,25 @@ const MarketingDashboard = () => {
 
             {/* Quick Actions */}
             <Card title="Quick Actions" style={{ marginTop: 24 }}>
-                <Row gutter={16}>
-                    <Col span={8}>
-                        <Button 
-                            type="primary" 
-                            block 
-                            href="/marketing/campaigns"
-                        >
-                            Manage Campaigns
-                        </Button>
-                    </Col>
-                    <Col span={8}>
-                        <Button 
-                            block 
-                            href="/marketing/whatsapp"
-                        >
-                            WhatsApp Campaign
-                        </Button>
-                    </Col>
-                    <Col span={8}>
-                        <Button 
-                            block
-                            icon={<LinkOutlined />}
-                            onClick={handleConnectMeta}
-                        >
-                            Reconnect Account
-                        </Button>
-                    </Col>
-                </Row>
+                <Row gutter={[16,16]}>
+  <Col xs={24} sm={12} md={8}>
+    <Button type="primary" block href="/marketing/campaigns">
+      Manage Campaigns
+    </Button>
+  </Col>
+
+  <Col xs={24} sm={12} md={8}>
+    <Button block href="/marketing/whatsapp">
+      WhatsApp Campaign
+    </Button>
+  </Col>
+
+  <Col xs={24} sm={12} md={8}>
+    <Button block icon={<LinkOutlined />} onClick={handleConnectMeta}>
+      Reconnect Account
+    </Button>
+  </Col>
+</Row>
             </Card>
         </div>
     );

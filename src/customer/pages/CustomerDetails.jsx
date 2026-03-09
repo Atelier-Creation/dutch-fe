@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Card, Descriptions, Table, Tabs, message, Button, Tag, Spin } from "antd";
+import { Card, Descriptions, Table, Tabs, message, Button, Tag, Spin, Grid, List } from "antd";
 import { ArrowLeftOutlined } from "@ant-design/icons";
 import customerService from "../service/customerService";
 import moment from "moment";
@@ -8,6 +8,8 @@ import moment from "moment";
 const CustomerDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { useBreakpoint } = Grid;
+const screens = useBreakpoint();
   const [customer, setCustomer] = useState(null);
   const [history, setHistory] = useState([]);
   const [analytics, setAnalytics] = useState(null);
@@ -150,7 +152,7 @@ const CustomerDetails = () => {
       </Button>
 
       <Card title="Customer Details" className="mb-4">
-        <Descriptions bordered column={2}>
+        <Descriptions bordered column={screens.md ? 2 : 1}>
           <Descriptions.Item label="Name">{customer?.customer_name}</Descriptions.Item>
           <Descriptions.Item label="Phone">{customer?.customer_phone}</Descriptions.Item>
           <Descriptions.Item label="Email">{customer?.customer_email || "N/A"}</Descriptions.Item>
@@ -165,7 +167,7 @@ const CustomerDetails = () => {
 
       {analytics && (
         <Card title="Analytics" className="mb-4">
-          <Descriptions bordered column={3}>
+          <Descriptions bordered column={screens.md ? 3 : 1}>
             <Descriptions.Item label="Total Purchases">
               {analytics.total_purchases || 0}
             </Descriptions.Item>
@@ -185,24 +187,77 @@ const CustomerDetails = () => {
             key: "history",
             label: "Purchase History",
             children: (
-              <Table
-                columns={historyColumns}
-                dataSource={history}
-                rowKey={(record) => record.billing_no || record.id}
-                pagination={{ pageSize: 10 }}
-              />
+              !screens.md ? (
+  <List
+    dataSource={history}
+    pagination={{ pageSize: 10 }}
+    renderItem={(item) => (
+      <List.Item>
+        <Card style={{ width: "100%" }}>
+          <p><b>Date:</b> {moment(item.billing_date).format("DD/MM/YYYY HH:mm")}</p>
+          <p><b>Bill No:</b> {item.billing_no}</p>
+          <p><b>Amount:</b> ₹{parseFloat(item.total_amount).toFixed(2)}</p>
+          <p><b>Items:</b> {item.items_count}</p>
+          <p><b>Payment:</b> <Tag>{item.payment_method}</Tag></p>
+          <p>
+            <b>Status:</b>{" "}
+            <Tag color={item.status === "paid" ? "green" : item.status === "pending" ? "orange" : "red"}>
+              {item.status?.toUpperCase()}
+            </Tag>
+          </p>
+        </Card>
+      </List.Item>
+    )}
+  />
+) : (
+  <Table
+    columns={historyColumns}
+    dataSource={history}
+    scroll={{ x: 700 }}
+    rowKey={(record) => record.billing_no || record.id}
+    pagination={{ pageSize: 10 }}
+  />
+)
             ),
           },
           {
             key: "points",
             label: "Points History",
             children: (
-              <Table
-                columns={pointsColumns}
-                dataSource={pointsHistory}
-                rowKey="id"
-                pagination={{ pageSize: 10 }}
-              />
+             !screens.md ? (
+  <List
+    dataSource={pointsHistory}
+    pagination={{ pageSize: 10 }}
+    renderItem={(item) => (
+      <List.Item>
+        <Card style={{ width: "100%" }}>
+          <p><b>Date:</b> {moment(item.createdAt).format("DD/MM/YYYY HH:mm")}</p>
+          <p>
+            <b>Type:</b>{" "}
+            <Tag color={item.type === "earned" ? "green" : "red"}>
+              {item.type?.toUpperCase()}
+            </Tag>
+          </p>
+          <p>
+            <b>Points:</b>{" "}
+            <span style={{ color: item.type === "earned" ? "green" : "red" }}>
+              {item.points}
+            </span>
+          </p>
+          <p><b>Description:</b> {item.description}</p>
+        </Card>
+      </List.Item>
+    )}
+  />
+) : (
+  <Table
+    columns={pointsColumns}
+    dataSource={pointsHistory}
+    scroll={{ x: 700 }}
+    rowKey="id"
+    pagination={{ pageSize: 10 }}
+  />
+)
             ),
           },
         ]}

@@ -198,34 +198,42 @@ const CampaignsList = () => {
             <Card
                 title="Meta Campaigns"
                 extra={
-                    <Space>
-                        <Button 
-                            icon={<ReloadOutlined />} 
-                            onClick={loadCampaigns}
-                        >
-                            Refresh
-                        </Button>
-                        <Button
-                            type="primary"
-                            icon={<PlusOutlined />}
-                            onClick={() => setCreateModalVisible(true)}
-                        >
-                            Create Campaign
-                        </Button>
-                    </Space>
-                }
+    <Row gutter={[8,8]}>
+        <Col xs={24} sm={12}>
+            <Button 
+                block
+                icon={<ReloadOutlined />} 
+                onClick={loadCampaigns}
+            >
+                Refresh
+            </Button>
+        </Col>
+
+        <Col xs={24} sm={12}>
+            <Button
+                block
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => setCreateModalVisible(true)}
+            >
+                Create Campaign
+            </Button>
+        </Col>
+    </Row>
+}
             >
                 <Table
-                    columns={columns}
-                    dataSource={campaigns}
-                    rowKey="id"
-                    loading={loading}
-                    pagination={{
-                        pageSize: 10,
-                        showSizeChanger: true,
-                        showTotal: (total) => `Total ${total} campaigns`,
-                    }}
-                />
+    columns={columns}
+    dataSource={campaigns}
+    rowKey="id"
+    loading={loading}
+    scroll={{ x: 900 }}
+    pagination={{
+        pageSize: 10,
+        showSizeChanger: true,
+        showTotal: (total) => `Total ${total} campaigns`,
+    }}
+/>
             </Card>
 
             {/* Create Campaign Modal */}
@@ -311,7 +319,7 @@ const CampaignsList = () => {
                 {campaignInsights ? (
                     <div>
                         <Row gutter={[16, 16]}>
-                            <Col span={8}>
+                            <Col xs={24} sm={12} md={8}>
                                 <Card>
                                     <Statistic
                                         title="Impressions"
@@ -319,7 +327,7 @@ const CampaignsList = () => {
                                     />
                                 </Card>
                             </Col>
-                            <Col span={8}>
+                            <Col xs={24} sm={12} md={8}>
                                 <Card>
                                     <Statistic
                                         title="Clicks"
@@ -327,7 +335,7 @@ const CampaignsList = () => {
                                     />
                                 </Card>
                             </Col>
-                            <Col span={8}>
+                            <Col xs={24} sm={12} md={8}>
                                 <Card>
                                     <Statistic
                                         title="Spend"
@@ -339,7 +347,7 @@ const CampaignsList = () => {
                             </Col>
                         </Row>
                         <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-                            <Col span={8}>
+                            <Col xs={24} sm={12} md={8}>
                                 <Card>
                                     <Statistic
                                         title="Reach"
@@ -347,7 +355,7 @@ const CampaignsList = () => {
                                     />
                                 </Card>
                             </Col>
-                            <Col span={8}>
+                            <Col xs={24} sm={12} md={8}>
                                 <Card>
                                     <Statistic
                                         title="CTR"
@@ -357,7 +365,7 @@ const CampaignsList = () => {
                                     />
                                 </Card>
                             </Col>
-                            <Col span={8}>
+                            <Col xs={24} sm={12} md={8}>
                                 <Card>
                                     <Statistic
                                         title="CPC"
