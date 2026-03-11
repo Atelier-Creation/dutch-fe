@@ -5,7 +5,8 @@ import RoleList from "./pages/RoleList";
 import RoleForm from "./pages/RoleForm";
 import BranchList from "./pages/BranchList";
 import BranchForm from "./pages/BranchForm";
-import { Users, Shield, GitBranch } from "lucide-react";
+import PermissionList from "./pages/PermissionList";
+import { Users, Shield, GitBranch, Lock } from "lucide-react";
 
 export const userMenuItems = [
   {
@@ -17,6 +18,11 @@ export const userMenuItems = [
     key: "/user/roles",
     label: "Roles",
     icon: <Shield size={18} />,
+  },
+  {
+    key: "/user/permissions",
+    label: "Permissions",
+    icon: <Lock size={18} />,
   },
   {
     key: "/user/branches",
@@ -35,6 +41,8 @@ const UserRoutes = () => {
       <Route path="roles" element={<RoleList />} />
       <Route path="roles/add" element={<RoleForm />} />
       <Route path="roles/edit/:id" element={<RoleForm />} />
+
+      <Route path="permissions" element={<PermissionList />} />
 
       <Route path="branches" element={<BranchList />} />
       <Route path="branches/add" element={<BranchForm />} />
