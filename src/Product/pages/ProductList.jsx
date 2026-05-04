@@ -1,11 +1,13 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Table, Input, Button, Space, Popconfirm, Tag, message, Dropdown, Grid, List, Card } from "antd";
-import { PlusOutlined, EditOutlined, DeleteOutlined, DownloadOutlined, MoreOutlined } from "@ant-design/icons";
+import { Table, Input, Button, Space, message, Grid, List, Card } from "antd";
+import { PlusOutlined, EditOutlined, DownloadOutlined } from "@ant-design/icons";
 import productService from "../services/productService.js";
 import debounce from "lodash.debounce";
 import { QRCodeCanvas } from "qrcode.react";
 import { jsPDF } from "jspdf";
+import Barcode from "react-barcode";
+import JsBarcode from "jsbarcode";
 
 const { Search } = Input;
 
@@ -25,6 +27,9 @@ const ProductList = () => {
   const [sorter, setSorter] = useState({ field: null, order: null });
 
   const qrRefs = useRef({});
+  const barcodeRefs = useRef({});
+  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+  const [selectedRows, setSelectedRows] = useState([]);
 
   // Sync state with URL only
   useEffect(() => {
@@ -134,6 +139,28 @@ const ProductList = () => {
     }
   };
 
+  const downloadBarcode = (id, code) => {
+    const svg = barcodeRefs.current[id]?.querySelector("svg");
+    if (svg) {
+      const svgData = new XMLSerializer().serializeToString(svg);
+      const canvas = document.createElement("canvas");
+      const img = new Image();
+      const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+      const url = URL.createObjectURL(svgBlob);
+      img.onload = () => {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        canvas.getContext("2d").drawImage(img, 0, 0);
+        URL.revokeObjectURL(url);
+        const link = document.createElement("a");
+        link.href = canvas.toDataURL("image/png");
+        link.download = `barcode_${code}.png`;
+        link.click();
+      };
+      img.src = url;
+    }
+  };
+
   const downloadAllQRPDF = () => {
     const pdf = new jsPDF();
     let x = 10;
@@ -158,6 +185,78 @@ const ProductList = () => {
     pdf.save("product_qrcodes.pdf");
   };
 
+  // Generate label sticker PDF for selected products
+  const downloadLabelsPDF = () => {
+    if (selectedRows.length === 0) {
+      message.warning("Please select at least one product");
+      return;
+    }
+
+    const pdf = new jsPDF({ unit: "mm", format: "a4" });
+    const labelW = 60;
+    const labelH = 38;
+    const cols = 3;
+    const marginX = 10;
+    const marginY = 10;
+    const gapX = 5;
+    const gapY = 5;
+
+    selectedRows.forEach((product, index) => {
+      const col = index % cols;
+      const row = Math.floor(index / cols);
+
+      if (index > 0 && col === 0 && row * (labelH + gapY) + marginY > 260) {
+        pdf.addPage();
+      }
+
+      const x = marginX + col * (labelW + gapX);
+      const y = marginY + (row % Math.floor((297 - marginY * 2) / (labelH + gapY))) * (labelH + gapY);
+
+      // Border
+      pdf.setDrawColor(180);
+      pdf.roundedRect(x, y, labelW, labelH, 2, 2);
+
+      // Header: Duch Clothing
+      pdf.setFontSize(9);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(30, 30, 30);
+      pdf.text("Duch Clothing", x + labelW / 2, y + 5, { align: "center" });
+
+      // Divider line
+      pdf.setDrawColor(200);
+      pdf.line(x + 2, y + 7, x + labelW - 2, y + 7);
+
+      // Barcode SVG → canvas → image (high resolution to avoid blur)
+      const barcodeCanvas = document.createElement("canvas");
+      const scale = 4; // render 4x for sharpness
+      JsBarcode(barcodeCanvas, product.product_code || "000000", {
+        format: "CODE128",
+        width: 2 * scale,
+        height: 40 * scale,
+        displayValue: false,
+        margin: 2 * scale,
+      });
+      const barcodeImg = barcodeCanvas.toDataURL("image/png");
+      pdf.addImage(barcodeImg, "PNG", x + 4, y + 8, labelW - 8, 14);
+
+      // product_code text — clear gap below barcode
+      pdf.setFontSize(6);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(80);
+      pdf.text(product.product_code || "", x + labelW / 2, y + 24, { align: "center" });
+
+      // Info lines
+      pdf.setFontSize(7);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(30);
+      pdf.text(`Price : Rs.${product.selling_price ?? ""}`, x + 3, y + 28);
+      pdf.text(`Size  : ${product.size ?? ""}`, x + 3, y + 32);
+      pdf.text(`Name : ${product.product_name ?? ""}`, x + 3, y + 36, { maxWidth: labelW - 4 });
+    });
+
+    pdf.save("label_stickers.pdf");
+  };
+
   const columns = [
     { title: "Name", dataIndex: "product_name", key: "product_name", sorter: true, responsive: ["xs", "sm", "md"] },
     { title: "Code", dataIndex: "product_code", key: "product_code", responsive: ["md"] },
@@ -174,9 +273,20 @@ const ProductList = () => {
         </div>
       ),
     },
-    { title: "Brand", dataIndex: "brand", key: "brand", responsive: ["lg"] },
+    {
+      title: "Barcode",
+      key: "barcode",
+      responsive: ["lg"],
+      render: (_, record) => (
+        <div ref={(el) => (barcodeRefs.current[record.id] = el)} style={{ display: "flex", alignItems: "center" }}>
+          <Barcode value={record.product_code || "000000"} width={1.2} height={40} fontSize={10} />
+          <Button size="small" icon={<DownloadOutlined />} onClick={() => downloadBarcode(record.id, record.product_code)} style={{ marginLeft: 8 }}>
+            Download
+          </Button>
+        </div>
+      ),
+    },
     { title: "Category", dataIndex: "category_name", key: "category", responsive: ["lg"] },
-    { title: "Price", dataIndex: "purchase_price", key: "price", sorter: true, responsive: ["xl"], render: (price) => `₹${price}` },
     { title: "Selling Price", dataIndex: "selling_price", key: "selling_price", sorter: true, responsive: ["xl"], render: (price) => `₹${price}` },
     {
       title: "Actions",
@@ -184,10 +294,7 @@ const ProductList = () => {
       fixed: "right",
       render: (_, record) => {
         const menuItems = [
-          { key: "brand", label: `Brand: ${record.brand}` },
           { key: "category", label: `Category: ${record.category_name}` },
-          { key: "price", label: `Price: ₹${record.purchase_price}` },
-          { key: "selling_price", label: `Selling Price: ₹${record.selling_price}` },
         ];
 
         return (
@@ -231,6 +338,15 @@ const ProductList = () => {
           </Button>
           <Button type="default" icon={<DownloadOutlined />} onClick={downloadAllQRPDF} className="flex-1 md:flex-none">
             Download All QR PDF
+          </Button>
+          <Button
+            type="default"
+            icon={<DownloadOutlined />}
+            onClick={downloadLabelsPDF}
+            disabled={selectedRowKeys.length === 0}
+            className="flex-1 md:flex-none"
+          >
+            Download Labels {selectedRowKeys.length > 0 ? `(${selectedRowKeys.length})` : ""}
           </Button>
         </div>
       </div>
@@ -284,6 +400,18 @@ const ProductList = () => {
                     Download QR
                   </Button>
                 </div>
+                <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-100">
+                  <div ref={(el) => (barcodeRefs.current[item.id] = el)}>
+                    <Barcode value={item.product_code || "000000"} width={1.2} height={40} fontSize={10} />
+                  </div>
+                  <Button
+                    size="small"
+                    icon={<DownloadOutlined />}
+                    onClick={() => downloadBarcode(item.id, item.product_code)}
+                  >
+                    Download Barcode
+                  </Button>
+                </div>
               </Card>
             </List.Item>
           )}
@@ -298,6 +426,23 @@ const ProductList = () => {
           onChange={handleTableChange}
           bordered
           scroll={{ x: true }}
+          rowSelection={{
+            selectedRowKeys,
+            onChange: (keys, rows) => {
+              // Merge with existing selections from other pages
+              setSelectedRowKeys((prevKeys) => {
+                const currentPageIds = products.map((p) => p.id);
+                // Remove current page keys, then add newly selected ones
+                const otherPageKeys = prevKeys.filter((k) => !currentPageIds.includes(k));
+                return [...otherPageKeys, ...keys];
+              });
+              setSelectedRows((prevRows) => {
+                const currentPageIds = products.map((p) => p.id);
+                const otherPageRows = prevRows.filter((r) => !currentPageIds.includes(r.id));
+                return [...otherPageRows, ...rows];
+              });
+            },
+          }}
         />
       )}
     </div>
