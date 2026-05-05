@@ -18,12 +18,14 @@ import {
 import CustomerBillCopy from "./billing/pages/CustomerBillCopy";
 import CustomerBillForm from "./billing/pages/CustomerBillingForm";
 import Login from "./login/Login";
+import EmployeeLogin from "./login/EmployeeLogin";
 import ProtectedRoute from "./context/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
 import { BranchProvider } from "./context/BranchContext";
 import Loading from "./utils/Loading";
 import Settings from "./components/pages/Settings";
 import ComingSoon from "./billing/pages/ComingSoon";
+import EmployeeDashboard from "./employee/EmployeeDashboard";
 
 const routeModules = import.meta.glob("./*/AppRoutes.jsx", { eager: true });
 
@@ -131,6 +133,8 @@ const App = () => {
             <Routes>
               {/* Public/Login routes */}
               <Route path="/" element={<Login />} />
+              <Route path="/employee-login" element={<EmployeeLogin />} />
+              {/* <Route path="/employee-dashboard" element={<EmployeeDashboard />} /> */}
 
               {/* Routes WITHOUT sidebar/header */}
               <Route
@@ -172,7 +176,14 @@ const App = () => {
                     }
                   />
                 ))}
-
+<Route
+    path="/employee-dashboard"
+    element={
+      <ProtectedRoute>
+        <EmployeeDashboard />
+      </ProtectedRoute>
+    }
+  />
                 <Route
                   path="/settings"
                   element={
