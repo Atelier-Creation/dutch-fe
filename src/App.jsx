@@ -176,14 +176,14 @@ const App = () => {
                     }
                   />
                 ))}
-<Route
-    path="/employee-dashboard"
-    element={
-      <ProtectedRoute>
-        <EmployeeDashboard />
-      </ProtectedRoute>
-    }
-  />
+                <Route
+                  path="/employee-dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <EmployeeDashboard />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route
                   path="/settings"
                   element={
