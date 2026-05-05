@@ -14,6 +14,7 @@ import BillDetailsModal from "./BillDetailsModal";
 const { Title, Text } = Typography;
 const { Option } = Select;
 import { useNavigate } from "react-router-dom";
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 
 const styles = {
   page: { padding: 6, minHeight: "100vh", width: "100%" },
@@ -381,20 +382,39 @@ const DashboardFull = () => {
                 }
                 style={styles.roundedCard}
               >
-                {dashboardData.paymentMethods.map((pm, idx) => (
-                  <div key={idx} style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    padding: "8px 0",
-                    borderBottom: idx < dashboardData.paymentMethods.length - 1 ? "1px solid #f0f0f0" : "none"
-                  }}>
-                    <div>
-                      <Tag>{pm.method}</Tag>
-                      <Text type="secondary" style={{ fontSize: 12 }}>{pm.count} bills</Text>
-                    </div>
-                    <Text strong>₹{pm.total_amount}</Text>
+                {dashboardData.paymentMethods && dashboardData.paymentMethods.length > 0 ? (
+                  <div style={{ width: '100%', height: 300 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RadarChart 
+                        cx="50%" 
+                        cy="50%" 
+                        outerRadius="75%" 
+                        data={dashboardData.paymentMethods.map(pm => ({
+                          ...pm, 
+                          amount: parseFloat(pm.total_amount)
+                        }))}
+                      >
+                        <PolarGrid stroke="#e2e8f0" />
+                        <PolarAngleAxis dataKey="method" tick={{ fill: '#475569', fontSize: 13, fontWeight: 500 }} />
+                        <PolarRadiusAxis angle={30} domain={[0, 'dataMax']} tick={false} axisLine={false} />
+                        <Radar 
+                          name="Revenue" 
+                          dataKey="amount" 
+                          stroke="#ef4444" 
+                          strokeWidth={2}
+                          fill="#ef4444" 
+                          fillOpacity={0.35} 
+                        />
+                        <RechartsTooltip 
+                          formatter={(value) => `₹${Number(value).toLocaleString('en-IN')}`}
+                          contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                        />
+                      </RadarChart>
+                    </ResponsiveContainer>
                   </div>
-                ))}
+                ) : (
+                  <Empty description="No payment methods data" />
+                )}
               </Card>
 
               {/* Recent Inwards */}
@@ -407,25 +427,29 @@ const DashboardFull = () => {
                 }
                 style={{ ...styles.roundedCard, marginTop: 12 }}
               >
-                {dashboardData.recentInwards.slice(0, 5).map((inward, idx) => (
-                  <div key={idx} style={{
-                    padding: "8px 0",
-                    borderBottom: idx < 4 ? "1px solid #f0f0f0" : "none"
-                  }}>
-                    <div style={{ display: "flex", justifyContent: "space-between" }}>
-                      <div>
-                        <Text strong>{inward.inward_no}</Text>
-                        <div><Text type="secondary" style={{ fontSize: 12 }}>{inward.supplier_name}</Text></div>
-                      </div>
-                      <div style={{ textAlign: "right" }}>
-                        <div><Text strong>₹{inward.total_amount}</Text></div>
-                        <Tag color={inward.status === 'completed' ? 'green' : 'orange'} style={{ fontSize: 10 }}>
-                          {inward.status}
-                        </Tag>
+                {dashboardData.recentInwards && dashboardData.recentInwards.length > 0 ? (
+                  dashboardData.recentInwards.slice(0, 5).map((inward, idx) => (
+                    <div key={idx} style={{
+                      padding: "8px 0",
+                      borderBottom: idx < 4 ? "1px solid #f0f0f0" : "none"
+                    }}>
+                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                        <div>
+                          <Text strong>{inward.inward_no}</Text>
+                          <div><Text type="secondary" style={{ fontSize: 12 }}>{inward.supplier_name}</Text></div>
+                        </div>
+                        <div style={{ textAlign: "right" }}>
+                          <div><Text strong>₹{inward.total_amount}</Text></div>
+                          <Tag color={inward.status === 'completed' ? 'green' : 'orange'} style={{ fontSize: 10 }}>
+                            {inward.status}
+                          </Tag>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <Empty description="No recent inwards available" />
+                )}
               </Card>
             </Col>
           </Row>
