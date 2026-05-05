@@ -18,7 +18,7 @@
     "file-saver": "^2.0.5",
     "framer-motion": "^12.23.12",
     "idb": "^8.0.3",
-    "jspdf": "^3.0.3",
+    "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.2",
     "lodash.debounce": "^4.0.8",
     "lucide-react": "^0.544.0",

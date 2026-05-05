@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Form, Input, Button, message, Card, Space } from "antd";
+import { Form, Input, Button, message, Card, Space, Select } from "antd";
 import customerService from "../service/customerService";
 
 const CustomerForm = () => {
@@ -34,6 +34,7 @@ const [messageApi, contextHolder] = message.useMessage();
         date_of_birth: customerData.date_of_birth,
         anniversary_date: customerData.anniversary_date,
         notes: customerData.notes,
+        source: customerData.source,
       });
     } catch (error) {
       message.error("Failed to fetch customer");
@@ -58,6 +59,7 @@ const [messageApi, contextHolder] = message.useMessage();
         date_of_birth: values.date_of_birth || null,
         anniversary_date: values.anniversary_date || null,
         notes: values.notes || null,
+        source: values.source || null,
       };
       
       if (id) {
@@ -115,6 +117,15 @@ const [messageApi, contextHolder] = message.useMessage();
 
           <Form.Item label="Address" name="address">
             <Input.TextArea rows={3} placeholder="Customer address" />
+          </Form.Item>
+
+          <Form.Item label="Source" name="source">
+            <Select placeholder="Select how they found us">
+              <Select.Option value="Walk-in">Walk-in</Select.Option>
+              <Select.Option value="Instagram">Instagram</Select.Option>
+              <Select.Option value="Ads">Ads</Select.Option>
+              <Select.Option value="Other">Other</Select.Option>
+            </Select>
           </Form.Item>
 
           <Form.Item>

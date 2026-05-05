@@ -307,7 +307,7 @@ const [messageApi, contextHolder] = message.useMessage();
     return {
       key: key || Date.now().toString(),
       label: `Bill ${key || 1}`,
-      formValues: { bill_no: "", billing_date: dayjs(), status: "pending", items: [], counter_no: "Counter 1" },
+      formValues: { bill_no: "", billing_date: dayjs(), status: "pending", items: [], counter_no: "Counter 1", source: "" },
       customerData: null,
       isNewCustomer: false,
       couponCode: "",
@@ -799,7 +799,8 @@ const [messageApi, contextHolder] = message.useMessage();
 
         // Auto-fill customer name if found
         form.setFieldsValue({
-          customer_name: customer.customer_name
+          customer_name: customer.customer_name,
+          source: customer.source || null
         });
 
         message.success(`Customer found: ${customer.customer_name}`);
@@ -990,6 +991,7 @@ const [messageApi, contextHolder] = message.useMessage();
         status: "paid",
         customer_name: values.customer_name || "",
         customer_phone: values.customer_phone || "",
+        source: values.source || null,
         billing_date: values.billing_date ? dayjs(values.billing_date).toISOString() : new Date().toISOString(),
         counter_no: values.counter_no || null,
         discount_amount,
@@ -1323,6 +1325,19 @@ const [messageApi, contextHolder] = message.useMessage();
                           placeholder={isNewCustomer ? "Enter new customer name" : "Enter customer name"}
                           disabled={customerLoading}
                         />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item label="Source" name="source">
+                        <Select placeholder="Select source">
+                          <Option value="Walk-in">Walk-in</Option>
+                          <Option value="Instagram">Instagram</Option>
+                          <Option value="Ads">Ads</Option>
+                          <Option value="Other">Other</Option>
+                        </Select>
                       </Form.Item>
                     </Col>
                   </Row>

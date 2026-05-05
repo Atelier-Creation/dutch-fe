@@ -159,6 +159,7 @@ const screens = useBreakpoint();
           <Descriptions.Item label="City">{customer?.city || "N/A"}</Descriptions.Item>
           <Descriptions.Item label="State">{customer?.state || "N/A"}</Descriptions.Item>
           <Descriptions.Item label="Gender">{customer?.gender || "N/A"}</Descriptions.Item>
+          <Descriptions.Item label="Source">{customer?.source || "N/A"}</Descriptions.Item>
           <Descriptions.Item label="Address" span={2}>
             {customer?.address || "N/A"}
           </Descriptions.Item>

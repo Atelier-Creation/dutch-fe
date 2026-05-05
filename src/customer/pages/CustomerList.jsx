@@ -65,6 +65,12 @@ const CustomerList = () => {
       render: (city) => city || "-",
     },
     {
+      title: "Source",
+      dataIndex: "source",
+      key: "source",
+      render: (source) => source || "-",
+    },
+    {
       title: "Created Date",
       dataIndex: "createdAt",
       key: "createdAt",
@@ -164,6 +170,10 @@ const CustomerList = () => {
                   <div className="flex justify-between">
                     <span className="text-gray-500">City:</span>
                     <span className="font-medium">{item.city || "-"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Source:</span>
+                    <span className="font-medium">{item.source || "-"}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500">Date:</span>
