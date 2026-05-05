@@ -13,7 +13,8 @@ import {
   Percent,
   User,
   BarChart,
-  Megaphone
+  Megaphone,
+  UserCheck
 } from "lucide-react";
 import CustomerBillCopy from "./billing/pages/CustomerBillCopy";
 import CustomerBillForm from "./billing/pages/CustomerBillingForm";
@@ -22,10 +23,19 @@ import EmployeeLogin from "./login/EmployeeLogin";
 import ProtectedRoute from "./context/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
 import { BranchProvider } from "./context/BranchContext";
+import { EmployeeAuthProvider } from "./context/EmployeeAuthContext";
+import ProtectedEmployeeRoute from "./context/ProtectedEmployeeRoute";
+import EmployeeLayout from "./components/layout/EmployeeLayout";
+import EmployeeOverview from "./employee/pages/EmployeeOverview";
+import EmployeeAttendance from "./employee/pages/EmployeeAttendance";
+import EmployeeLeaves from "./employee/pages/EmployeeLeaves";
+import EmployeeLeaveBalance from "./employee/pages/EmployeeLeaveBalance";
+import EmployeeDocuments from "./employee/pages/EmployeeDocuments";
+import EmployeePayslip from "./employee/pages/EmployeePayslip";
+import EmployeeAdvance from "./employee/pages/EmployeeAdvance";
 import Loading from "./utils/Loading";
 import Settings from "./components/pages/Settings";
 import ComingSoon from "./billing/pages/ComingSoon";
-import EmployeeDashboard from "./employee/EmployeeDashboard";
 
 const routeModules = import.meta.glob("./*/AppRoutes.jsx", { eager: true });
 
@@ -41,6 +51,7 @@ const moduleIcons = {
   coupon: <Percent size={20} />,
   user: <User size={20} />,
   marketing: <Megaphone size={20} />,
+  employee: <UserCheck size={20} />,
 };
 const App = () => {
   const modules = Object.entries(routeModules).map(([path, mod]) => {
@@ -127,6 +138,7 @@ const App = () => {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <EmployeeAuthProvider>
         <BranchProvider>
           <Loading duration={3000} />
           <Suspense fallback={<div className="p-4"><Loading /></div>}>
@@ -134,8 +146,24 @@ const App = () => {
               {/* Public/Login routes */}
               <Route path="/" element={<Login />} />
               <Route path="/employee-login" element={<EmployeeLogin />} />
-              {/* <Route path="/employee-dashboard" element={<EmployeeDashboard />} /> */}
 
+              {/* Employee portal — outside admin layout, uses its own layout */}
+              <Route
+                path="/employee-dashboard"
+                element={
+                  <ProtectedEmployeeRoute>
+                    <EmployeeLayout />
+                  </ProtectedEmployeeRoute>
+                }
+              >
+                <Route index element={<EmployeeOverview />} />
+                <Route path="attendance" element={<EmployeeAttendance />} />
+                <Route path="leaves" element={<EmployeeLeaves />} />
+                <Route path="balance" element={<EmployeeLeaveBalance />} />
+                <Route path="documents" element={<EmployeeDocuments />} />
+                <Route path="payslips" element={<EmployeePayslip />} />
+                <Route path="advance" element={<EmployeeAdvance />} />
+              </Route>
               {/* Routes WITHOUT sidebar/header */}
               <Route
                 path="/billing/customer-copy"
@@ -176,14 +204,7 @@ const App = () => {
                     }
                   />
                 ))}
-<Route
-    path="/employee-dashboard"
-    element={
-      <ProtectedRoute>
-        <EmployeeDashboard />
-      </ProtectedRoute>
-    }
-  />
+
                 <Route
                   path="/settings"
                   element={
@@ -201,6 +222,7 @@ const App = () => {
             </Routes>
           </Suspense>
         </BranchProvider>
+        </EmployeeAuthProvider>
       </AuthProvider>
     </BrowserRouter>
 

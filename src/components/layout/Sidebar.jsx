@@ -121,7 +121,7 @@ const Sidebar = ({ collapsed = true, setCollapsed = () => { }, selectedParent, s
   // ===================
 
   // determine active state (parents active when any child matches)
-  const isActive = (key) => {
+  const isActive = (key, exact = false) => {
     if (!key) return false;
 
     // If this key matches a parent item that has children, check children's routes
@@ -130,6 +130,11 @@ const Sidebar = ({ collapsed = true, setCollapsed = () => { }, selectedParent, s
       return parentItem.children.some((c) => {
         return pathname === c.key || pathname.startsWith(c.key + "/");
       });
+    }
+
+    // Exact match only (used for items like Overview where the key is a prefix of siblings)
+    if (exact || (parentItem && parentItem.exact)) {
+      return pathname === key;
     }
 
     // Otherwise normal match for direct routes
@@ -216,7 +221,7 @@ const Sidebar = ({ collapsed = true, setCollapsed = () => { }, selectedParent, s
 
   // render parent button: when collapsed + desktop + has children => show popover, else inline expand or navigate
   const renderParentButton = (item) => {
-    const active = isActive(item.key);
+    const active = isActive(item.key, item.exact);
 
     // Collapsed & Desktop & has children => use Popover (modern flyout)
     if (collapsed && !isMobile && item.children && item.children.length > 0) {
