@@ -203,8 +203,6 @@ const App = () => {
         </BranchProvider>
       </AuthProvider>
     </BrowserRouter>
-
-
   );
 };
 
