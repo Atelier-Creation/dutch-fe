@@ -52,9 +52,9 @@ export default function EmployeeOverview() {
   return (
     <div className="p-2">
       {/* Employee Info */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+          <div className="w-12 h-12 min-w-12 rounded-full bg-blue-100 flex items-center justify-center">
             <User size={22} className="text-blue-600" />
           </div>
           <div>
@@ -62,7 +62,7 @@ export default function EmployeeOverview() {
             <p className="text-[13px] text-[#64748b]">{employee?.designation || "Employee"} · {employee?.employee_code}</p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={handleSignIn}
             disabled={actionLoading || !!todayRecord?.sign_in}
@@ -90,7 +90,7 @@ export default function EmployeeOverview() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
           <p className="text-[11px] text-gray-400">TODAY</p>
           <h2 className="text-[14px] font-semibold mt-2">{dayjs().format("DD MMM YYYY")}</h2>
@@ -113,7 +113,7 @@ export default function EmployeeOverview() {
       </div>
 
       {/* Quick links */}
-      <div className="grid grid-cols-2 gap-4 mt-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
         <div onClick={() => navigate("/employee-dashboard/attendance")} className="bg-blue-50 border border-blue-100 rounded-xl p-5 cursor-pointer hover:shadow-md transition-all">
           <p className="font-semibold text-blue-700">View Attendance</p>
           <p className="text-sm text-blue-500 mt-1">Check your monthly attendance records</p>

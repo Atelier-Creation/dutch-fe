@@ -186,9 +186,9 @@ export default function EmployeeDashboard() {
     <div className="p-4 bg-[#f8fafc] min-h-screen">
 
       {/* Header */}
-      <div className="flex justify-between items-center mb-5">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-5">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+          <div className="w-10 h-10 min-w-10 rounded-full bg-blue-100 flex items-center justify-center">
             <User size={18} className="text-blue-600" />
           </div>
           <div>
@@ -197,7 +197,7 @@ export default function EmployeeDashboard() {
           </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={handleSignIn}
             disabled={actionLoading || !!todayRecord?.sign_in}
@@ -235,7 +235,7 @@ export default function EmployeeDashboard() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-4 gap-3 mb-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
         <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
           <p className="text-[11px] text-gray-400">TODAY</p>
           <h2 className="text-[14px] font-semibold mt-2">{dayjs().format("DD MMM YYYY")}</h2>
@@ -261,7 +261,7 @@ export default function EmployeeDashboard() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-6 border-b border-gray-200 pb-3 mb-4">
+      <div className="flex flex-row overflow-x-auto whitespace-nowrap gap-4 md:gap-6 border-b border-gray-200 pb-3 mb-4">
         {tabs.map(({ key, label, icon: Icon }) => (
           <button
             key={key}
@@ -276,8 +276,8 @@ export default function EmployeeDashboard() {
 
       {/* Tab Content */}
       {tab === "attendance" && (
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-          <table className="w-full">
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-x-auto">
+          <table className="w-full min-w-[600px]">
             <thead className="bg-gray-50">
               <tr className="text-left text-gray-500 text-[13px]">
                 <th className="p-4">Date</th>
@@ -309,8 +309,8 @@ export default function EmployeeDashboard() {
       )}
 
       {tab === "leaves" && (
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-          <table className="w-full">
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-x-auto">
+          <table className="w-full min-w-[600px]">
             <thead className="bg-gray-50">
               <tr className="text-left text-gray-500 text-[13px]">
                 <th className="p-4">Type</th>
@@ -344,7 +344,7 @@ export default function EmployeeDashboard() {
       )}
 
       {tab === "balance" && (
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {Object.entries(leaveBalance).map(([type, bal]) => (
             <div key={type} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
               <h2 className="font-semibold text-[16px] mb-3 capitalize">{type} Leave</h2>
@@ -378,7 +378,7 @@ export default function EmployeeDashboard() {
               Add Document
             </button>
           </div>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {documents.length === 0 ? (
               <p className="text-gray-400 col-span-3 text-center py-8">No documents uploaded</p>
             ) : documents.map(doc => (

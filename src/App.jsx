@@ -26,6 +26,7 @@ import { BranchProvider } from "./context/BranchContext";
 import { EmployeeAuthProvider } from "./context/EmployeeAuthContext";
 import ProtectedEmployeeRoute from "./context/ProtectedEmployeeRoute";
 import EmployeeLayout from "./components/layout/EmployeeLayout";
+import EmployeeDashboard from "./employee/EmployeeDashboard";
 import EmployeeOverview from "./employee/pages/EmployeeOverview";
 import EmployeeAttendance from "./employee/pages/EmployeeAttendance";
 import EmployeeLeaves from "./employee/pages/EmployeeLeaves";

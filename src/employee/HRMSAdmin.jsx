@@ -558,7 +558,7 @@ export default function HRMSAdmin() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard label="Total Employees" value={summary.total_employees} icon={Users} color="bg-blue-500" />
         <StatCard label="Present Today" value={summary.present_today} icon={UserCheck} color="bg-green-500" />
         <StatCard label="On Leave Today" value={summary.on_leave_today} icon={Clock} color="bg-orange-400" />
@@ -566,19 +566,19 @@ export default function HRMSAdmin() {
       </div>
 
       {/* Tabs */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden w-full">
         <Tabs
           defaultActiveKey="employees"
-          className="px-4 pt-2"
+          className="px-2 sm:px-4 pt-2"
           tabBarStyle={{ marginBottom: 0, paddingBottom: 0 }}
           style={{ '--ant-tabs-tab-padding': '12px 16px' }}
         >
 
           {/* ── Employees Tab ── */}
           <TabPane tab={<span className="flex items-center gap-2"><Users size={14} />Employees</span>} key="employees">
-            <div className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="relative w-64">
+            <div className="p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3">
+              <div className="relative w-full sm:w-64">
                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   value={search}
@@ -593,6 +593,7 @@ export default function HRMSAdmin() {
               </Button>
             </div>
             <Table
+              scroll={{ x: 800 }}
               columns={empColumns} dataSource={employees} rowKey="id" loading={loading} size="small"
               pagination={{
                 current: pagination.current, pageSize: pagination.pageSize, total: pagination.total,
@@ -604,8 +605,8 @@ export default function HRMSAdmin() {
 
           {/* ── Attendance Tab ── */}
           <TabPane tab={<span className="flex items-center gap-2"><CalendarDays size={14} />Attendance</span>} key="attendance">
-            <div className="p-4">
-            <div className="flex items-center gap-3 mb-4 flex-wrap">
+            <div className="p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4 flex-wrap">
               <DatePicker.MonthPicker
                 value={attMonth}
                 onChange={m => { setAttMonth(m); setAttGrid({}); fetchAttendanceGrid(m); }}
@@ -633,8 +634,8 @@ export default function HRMSAdmin() {
 
           {/* ── Leave Requests Tab ── */}
           <TabPane tab={<span className="flex items-center gap-2"><FileText size={14} />Leave Requests</span>} key="leaves">
-            <div className="p-4">
-            <div className="flex items-center gap-3 mb-3">
+            <div className="p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-3">
               <Select
                 placeholder="Filter by status"
                 allowClear
@@ -647,14 +648,14 @@ export default function HRMSAdmin() {
                 <Option value="cancelled">Cancelled</Option>
               </Select>
             </div>
-            <Table columns={leaveColumns} dataSource={leaves} rowKey="id" loading={leaveLoading} size="small" />
+            <Table scroll={{ x: 800 }} columns={leaveColumns} dataSource={leaves} rowKey="id" loading={leaveLoading} size="small" />
             </div>
           </TabPane>
 
           {/* ── Payslips Tab ── */}
           <TabPane tab={<span className="flex items-center gap-2"><IndianRupee size={14} />Payslips</span>} key="payslips">
-            <div className="p-4">
-            <div className="flex items-center gap-3 mb-3 flex-wrap">
+            <div className="p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-3 flex-wrap">
               <Select value={psMonth} onChange={v => { setPsMonth(v); fetchPayslips(v, psYear); }} style={{ width: 120 }}>
                 {MONTHS.map((m, i) => <Option key={i+1} value={i+1}>{m}</Option>)}
               </Select>
@@ -682,6 +683,7 @@ export default function HRMSAdmin() {
               </Popconfirm>            </div>
             <Table
               size="small"
+              scroll={{ x: 800 }}
               loading={payslipLoading}
               dataSource={payslips}
               rowKey="id"
@@ -710,8 +712,8 @@ export default function HRMSAdmin() {
 
           {/* ── Shift Rules Tab ── */}
           <TabPane tab={<span className="flex items-center gap-2"><Settings size={14} />Shift Rules</span>} key="shifts">
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-4">
+            <div className="p-3 sm:p-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
                 <div>
                   <p className="text-[13px] text-gray-500">Define shift timings, grace periods, and leave rules. These are applied automatically when attendance is marked.</p>
                 </div>
@@ -749,7 +751,7 @@ export default function HRMSAdmin() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-4 gap-3">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       {[
                         { label: 'Grace Period',      value: `${rule.grace_minutes} min`,          color: 'bg-green-50 border-green-100 text-green-700' },
                         { label: 'Late After',        value: `${rule.late_mark_after_minutes} min`, color: 'bg-yellow-50 border-yellow-100 text-yellow-700' },
@@ -774,16 +776,16 @@ export default function HRMSAdmin() {
 
           {/* ── Leave Policies Tab ── */}
           <TabPane tab={<span className="flex items-center gap-2"><FileText size={14} />Leave Policies</span>} key="leave-policies">
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-4">
+            <div className="p-3 sm:p-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
                 <p className="text-[13px] text-gray-500">Configure leave entitlements. These values are used to calculate each employee's leave balance dynamically.</p>
                 <Button type="primary" icon={<Plus size={14} />} onClick={() => { setEditingPolicy(null); policyForm.resetFields(); setPolicyModal(true); }}>
                   Add Policy
                 </Button>
               </div>
 
-              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                <table className="w-full">
+              <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+                <table className="w-full min-w-[800px]">
                   <thead className="bg-gray-50">
                     <tr className="text-left text-[12px] text-gray-500 font-semibold uppercase tracking-wide">
                       <th className="px-4 py-3">Leave Type</th>
@@ -829,8 +831,8 @@ export default function HRMSAdmin() {
 
           {/* ── Advance Payments Tab ── */}
           <TabPane tab={<span className="flex items-center gap-2"><IndianRupee size={14} />Advances</span>} key="advances">
-            <div className="p-4">
-              <div className="flex items-center gap-3 mb-4 flex-wrap">
+            <div className="p-3 sm:p-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4 flex-wrap">
                 <Select placeholder="Filter by status" allowClear style={{ width: 180 }}
                   onChange={v => { setAdvFilter(v || ''); fetchAdvances(v || ''); }}>
                   <Option value="pending">Pending</Option>
@@ -958,7 +960,7 @@ export default function HRMSAdmin() {
       >
         <Form form={empForm} layout="vertical" onFinish={handleSaveEmployee}>
           <Divider orientation="left" orientationMargin={0} className="!text-sm !text-gray-500">Basic Info</Divider>
-          <div className="grid grid-cols-2 gap-x-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
             <Form.Item name="name" label="Full Name" rules={[{ required: true, message: "Required" }]}>
               <Input placeholder="John Doe" />
             </Form.Item>
@@ -976,7 +978,7 @@ export default function HRMSAdmin() {
           </div>
 
           <Divider orientation="left" orientationMargin={0} className="!text-sm !text-gray-500">Job Details</Divider>
-          <div className="grid grid-cols-2 gap-x-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
             <Form.Item name="department" label="Department">
               <Input placeholder="e.g. Sales" />
             </Form.Item>
@@ -1000,7 +1002,7 @@ export default function HRMSAdmin() {
           </div>
 
           <Divider orientation="left" orientationMargin={0} className="!text-sm !text-gray-500">Personal Details</Divider>
-          <div className="grid grid-cols-2 gap-x-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
             <Form.Item name="gender" label="Gender">
               <Select placeholder="Select">
                 <Option value="male">Male</Option>
@@ -1039,7 +1041,7 @@ export default function HRMSAdmin() {
           <Form.Item name="date" label="Date" rules={[{ required: true }]}>
             <DatePicker className="w-full" />
           </Form.Item>
-          <div className="grid grid-cols-2 gap-x-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
             <Form.Item name="sign_in" label="Sign In Time">
               <TimePicker className="w-full" format="HH:mm" />
             </Form.Item>
@@ -1228,7 +1230,7 @@ export default function HRMSAdmin() {
                 </Select>
               </Form.Item>
 
-              <div className="grid grid-cols-2 gap-x-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
                 <Form.Item name="sign_in" label="Sign In Time">
                   <TimePicker className="w-full" format="HH:mm" placeholder="e.g. 09:15" />
                 </Form.Item>
@@ -1286,7 +1288,7 @@ export default function HRMSAdmin() {
                   <Option value="rejected">Rejected</Option>
                 </Select>
               </Form.Item>
-              <div className="grid grid-cols-2 gap-x-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
                 <Form.Item name="deduct_month" label="Deduct in Month">
                   <Select placeholder="Month">
                     {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((m,i) => (
@@ -1326,7 +1328,7 @@ export default function HRMSAdmin() {
         footer={null} width={500} destroyOnClose
       >
         <Form form={policyForm} layout="vertical" onFinish={handleSavePolicy}>
-          <div className="grid grid-cols-2 gap-x-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
             <Form.Item name="label" label="Display Name" rules={[{ required: true }]}>
               <Input placeholder="e.g. Paid Leave" />
             </Form.Item>
@@ -1388,7 +1390,7 @@ export default function HRMSAdmin() {
           shift_hours: 8, working_days: [1,2,3,4,5],
         }}>
           <Divider orientation="left" orientationMargin={0} className="!text-sm !text-gray-400">Shift Info</Divider>
-          <div className="grid grid-cols-2 gap-x-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
             <Form.Item name="name" label="Shift Name" rules={[{ required: true }]}>
               <Input placeholder="e.g. General Shift" />
             </Form.Item>
@@ -1413,7 +1415,7 @@ export default function HRMSAdmin() {
           </div>
 
           <Divider orientation="left" orientationMargin={0} className="!text-sm !text-gray-400">Late / Absent Rules (minutes late from shift start)</Divider>
-          <div className="grid grid-cols-2 gap-x-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
             <Form.Item name="grace_minutes" label="Grace Period (min)" tooltip="No penalty within this time">
               <InputNumber className="w-full" min={0} addonAfter="min" />
             </Form.Item>
@@ -1429,7 +1431,7 @@ export default function HRMSAdmin() {
           </div>
 
           <Divider orientation="left" orientationMargin={0} className="!text-sm !text-gray-400">Hours-Based Rules</Divider>
-          <div className="grid grid-cols-2 gap-x-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
             <Form.Item name="min_hours_full_day" label="Min Hours for Full Day">
               <InputNumber className="w-full" min={0} max={24} step={0.5} addonAfter="hrs" />
             </Form.Item>
@@ -1439,7 +1441,7 @@ export default function HRMSAdmin() {
           </div>
 
           <Divider orientation="left" orientationMargin={0} className="!text-sm !text-gray-400">Permission Leave Rules</Divider>
-          <div className="grid grid-cols-3 gap-x-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4">
             <Form.Item name="permission_allowed" label="Allow Permission Leave">
               <Select>
                 <Option value={true}>Yes</Option>
@@ -1474,7 +1476,7 @@ export default function HRMSAdmin() {
             <DatePicker.MonthPicker className="w-full" />
           </Form.Item>
           <Divider orientation="left" orientationMargin={0} className="!text-sm !text-gray-400">Optional Overrides</Divider>
-          <div className="grid grid-cols-2 gap-x-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
             <Form.Item name="bonus" label="Bonus (₹)">
               <InputNumber className="w-full" min={0} placeholder="0" />
             </Form.Item>
