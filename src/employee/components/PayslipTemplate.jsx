@@ -41,7 +41,8 @@ export default function PayslipTemplate({ data, printId = "payslip-print" }) {
   const month  = MONTHS[(data.month || 1) - 1];
   const net    = num(data.net_salary);
   const gross  = num(data.gross_salary);
-  const ded    = num(data.total_deductions);
+  const advDed = num(data.advance_deduction);
+  const ded    = num(data.total_deductions) + advDed;  // include advance in total shown
   const netPct = gross > 0 ? Math.round((net / gross) * 100) : 0;
   const isPaid = data.status === 'paid';
   const attPct = num(data.working_days) > 0
@@ -238,17 +239,16 @@ export default function PayslipTemplate({ data, printId = "payslip-print" }) {
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#b91c1c" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
                 <span style={{ fontSize:11, fontWeight:800, color:'#b91c1c', textTransform:'uppercase', letterSpacing:'0.1em' }}>Deductions</span>
               </div>
-              <span style={{ fontSize:13, fontWeight:800, color:'#b91c1c' }}>₹{fmt(ded)}</span>
-            </div>
-            {num(data.pf_deduction)    > 0 && <SRow label="Provident Fund (PF)"  sub="12% of Basic"   value={data.pf_deduction} />}
-            {num(data.esi_deduction)   > 0 && <SRow label="ESI"                  sub="0.75% of Gross" value={data.esi_deduction} />}
-            {num(data.tax_deduction)   > 0 && <SRow label="TDS / Income Tax"                          value={data.tax_deduction} />}
-            {num(data.other_deduction) > 0 && <SRow label="Other Deductions"                          value={data.other_deduction} />}
-            {num(data.advance_deduction) > 0 && <SRow label="Advance Recovery"   sub="Previously paid advance" value={data.advance_deduction} />}
-            {[data.pf_deduction, data.esi_deduction, data.tax_deduction, data.other_deduction].every(v => num(v) === 0) && (
+              <span style={{ fontSize:13, fontWeight:800, color:'#b91c1c' }}>₹{fmt(ded)}</span>            </div>
+            {num(data.pf_deduction)      > 0 && <SRow label="Provident Fund (PF)"  sub="12% of Basic"            value={data.pf_deduction} />}
+            {num(data.esi_deduction)     > 0 && <SRow label="ESI"                  sub="0.75% of Gross"          value={data.esi_deduction} />}
+            {num(data.tax_deduction)     > 0 && <SRow label="TDS / Income Tax"                                   value={data.tax_deduction} />}
+            {num(data.other_deduction)   > 0 && <SRow label="Other Deductions"                                   value={data.other_deduction} />}
+            {num(data.advance_deduction) > 0 && <SRow label="Advance Recovery"     sub="Previously paid advance" value={data.advance_deduction} />}
+            {[data.pf_deduction, data.esi_deduction, data.tax_deduction, data.other_deduction, data.advance_deduction].every(v => num(v) === 0) && (
               <div style={{ padding:'20px 16px', textAlign:'center', fontSize:12, color:'#94a3b8' }}>No deductions applied</div>
             )}
-            <SRow label="Total Deductions" value={data.total_deductions} total accent="red" />
+            <SRow label="Total Deductions" value={ded} total accent="red" />
           </div>
         </div>
 
@@ -297,6 +297,16 @@ export default function PayslipTemplate({ data, printId = "payslip-print" }) {
           <div style={{ padding:'10px 14px', background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:10, fontSize:12, color:'#475569', marginBottom:16, display:'flex', alignItems:'flex-start', gap:8 }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink:0, marginTop:1 }}><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
             <span>{data.notes}</span>
+          </div>
+        )}
+
+        {advDed > 0 && (
+          <div style={{ padding:'12px 16px', background:'#fff7ed', border:'1px solid #fed7aa', borderRadius:10, fontSize:12, color:'#c2410c', marginBottom:16, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <span><strong>Advance Recovery:</strong> An advance of ₹{fmt(advDed)} paid earlier has been deducted from this month's salary.</span>
+            </div>
+            <span style={{ fontWeight:800, fontSize:14, whiteSpace:'nowrap', marginLeft:16 }}>- ₹{fmt(advDed)}</span>
           </div>
         )}
 
