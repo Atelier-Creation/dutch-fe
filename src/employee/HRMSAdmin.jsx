@@ -566,7 +566,7 @@ export default function HRMSAdmin() {
       </div>
 
       {/* Tabs */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden w-full">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden w-full px-5 py-3">
         <Tabs
           defaultActiveKey="employees"
           className="px-6 sm:px-4 pt-2"
