@@ -10,11 +10,13 @@ import {
 import { Dropdown, message, Menu, Popover, Badge, List, Avatar } from "antd";
 import { useTheme } from "../../context/ThemeContext";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 import companyLogo from "../assets/Company_logo.png";
 import BranchSelector from "../BranchSelector";
 
 const HeaderBar = ({ collapsed, setCollapsed }) => {
   const { theme, headerBgColor, headerGradient } = useTheme();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
@@ -166,9 +168,16 @@ const HeaderBar = ({ collapsed, setCollapsed }) => {
             >
               <UserOutlined style={{ fontSize: 18 }} />
             </div>
-            <span className="text-sm font-medium hidden sm:block" style={{ color: textColor }}>
-              Admin
-            </span>
+            <div className="hidden sm:block">
+              <div className="text-sm font-medium" style={{ color: textColor }}>
+                {user?.username || "Admin"}
+              </div>
+              {user?.role?.role_name && (
+                <div className="text-xs" style={{ color: theme === "dark" ? "#9CA3AF" : "#6B7280" }}>
+                  {user.role.role_name}
+                </div>
+              )}
+            </div>
             <DownOutlined style={{ fontSize: 10, color: theme === "dark" ? "#9CA3AF" : "#9CA3AF" }} />
           </div>
         </Dropdown>

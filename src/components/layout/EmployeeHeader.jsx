@@ -89,9 +89,16 @@ const EmployeeHeader = ({ collapsed, setCollapsed }) => {
             >
               <UserOutlined style={{ fontSize: 18 }} />
             </div>
-            <span className="text-sm font-medium hidden sm:block" style={{ color: textColor }}>
-              {employee?.name || "Employee"}
-            </span>
+            <div className="hidden sm:block">
+              <div className="text-sm font-medium" style={{ color: textColor }}>
+                {employee?.name || "Employee"}
+              </div>
+              {employee?.designation && (
+                <div className="text-xs" style={{ color: theme === "dark" ? "#9CA3AF" : "#6B7280" }}>
+                  {employee.designation}
+                </div>
+              )}
+            </div>
             <DownOutlined style={{ fontSize: 10, color: "#9CA3AF" }} />
           </div>
         </Dropdown>

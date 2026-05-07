@@ -628,7 +628,7 @@ function BillingList() {
           </Space>,
         ]}
         width={980}
-        bodyStyle={{ maxHeight: "80vh", overflowY: "auto", padding: 0, scrollbarWidth: "none", scrollbarWidth: "none", }}
+        bodyStyle={{ maxHeight: "80vh", overflowY: "auto", padding: 0, scrollbarWidth: "none" }}
       >
 
 

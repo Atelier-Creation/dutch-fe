@@ -14,7 +14,8 @@ import {
   User,
   BarChart,
   Megaphone,
-  UserCheck
+  UserCheck,
+  TrendingUp
 } from "lucide-react";
 import CustomerBillCopy from "./billing/pages/CustomerBillCopy";
 import CustomerBillForm from "./billing/pages/CustomerBillingForm";
@@ -116,6 +117,14 @@ const App = () => {
       key: "/billing/reports",
       label: "Sales Report",
       icon: <BarChart size={20} />,
+      children: null
+    });
+
+    // Add Source-wise Report manually
+    items.push({
+      key: "/billing/source-wise-report",
+      label: "Source-wise Report",
+      icon: <TrendingUp size={20} />,
       children: null
     });
 

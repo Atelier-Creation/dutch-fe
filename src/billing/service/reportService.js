@@ -25,6 +25,24 @@ const reportService = {
     
     const res = await api.get("/billing/reports/sales", { params: queryParams });
     return res.data;
+  },
+
+  /**
+   * Get source-wise billing report
+   * @param {Object} params - { period, startDate, endDate }
+   * @returns {Promise} Source-wise report data
+   */
+  async getSourceWiseReport(params = {}) {
+    const branchId = getBranchId();
+    const queryParams = { ...params };
+    
+    // Only add branch_id if it's not "all"
+    if (branchId) {
+      queryParams.branch_id = branchId;
+    }
+    
+    const res = await api.get("/billing/reports/source-wise", { params: queryParams });
+    return res.data;
   }
 };
 

@@ -569,9 +569,9 @@ export default function HRMSAdmin() {
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden w-full">
         <Tabs
           defaultActiveKey="employees"
-          className="px-2 sm:px-4 pt-2"
+          className="px-6 sm:px-4 pt-2"
           tabBarStyle={{ marginBottom: 0, paddingBottom: 0 }}
-          style={{ '--ant-tabs-tab-padding': '12px 16px' }}
+          style={{ '--ant-tabs-tab-padding': '20px 16px' }}
         >
 
           {/* ── Employees Tab ── */}

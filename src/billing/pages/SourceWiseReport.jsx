@@ -13,7 +13,7 @@ import {
   Tag,
   Space,
   Typography,
-  Divider,
+  Progress,
   Dropdown,
   Menu,
 } from "antd";
@@ -22,11 +22,13 @@ import {
   BarChartOutlined,
   ReloadOutlined,
   ShopOutlined,
+  UserOutlined,
+  TeamOutlined,
   DownloadOutlined,
   FilePdfOutlined,
   FileExcelOutlined,
 } from "@ant-design/icons";
-import { IndianRupee } from "lucide-react";
+import { IndianRupee, TrendingUp, Users, Download } from "lucide-react";
 import dayjs from "dayjs";
 import reportService from "../service/reportService";
 import { useBranch } from "../../context/BranchContext";
@@ -38,18 +40,19 @@ const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 
-function SalesReport() {
+function SourceWiseReport() {
   const [loading, setLoading] = useState(false);
   const [period, setPeriod] = useState("today");
   const [dateRange, setDateRange] = useState(null);
   const [reportData, setReportData] = useState(null);
   const [exporting, setExporting] = useState(false);
   const { selectedBranch } = useBranch();
+  const reportRef = useRef(null);
 
   useEffect(() => {
     fetchReport();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedBranch]); // Re-fetch when branch changes
+  }, [selectedBranch]);
 
   useEffect(() => {
     if (period === "custom" && dateRange) {
@@ -67,9 +70,9 @@ function SalesReport() {
         params.endDate = dateRange[1].toISOString();
       }
 
-      const response = await reportService.getSalesReport(params);
+      const response = await reportService.getSourceWiseReport(params);
       setReportData(response.data);
-      message.success("Report generated successfully");
+      message.success("Source-wise report generated successfully");
     } catch (error) {
       console.error("Error fetching report:", error);
       message.error(error.response?.data?.message || "Failed to fetch report");
@@ -83,59 +86,80 @@ function SalesReport() {
 
     if (value !== "custom") {
       setDateRange(null);
-
       setTimeout(() => {
         fetchReport();
       }, 0);
     }
   };
 
-  const handleGenerateReport = () => {
-    if (period === "custom" && !dateRange) {
-      message.warning("Please select a date range");
-      return;
-    }
-    fetchReport();
-  };
-
-  // Payment method columns
-  const paymentColumns = [
+  // Source columns
+  const sourceColumns = [
     {
-      title: "Payment Method",
-      dataIndex: "method",
-      key: "method",
-      render: (method) => {
+      title: "Source",
+      dataIndex: "source",
+      key: "source",
+      render: (source) => {
         const colors = {
-          cash: "green",
-          credit_card: "blue",
-          debit_card: "cyan",
-          "UPI Current Account": "purple",
-          "UPI Normal Account": "magenta",
-          net_banking: "orange",
-          split: "gold",
+          "Walk-in": "blue",
+          "Online": "green",
+          "Referral": "purple",
+          "Social Media": "magenta",
+          "Advertisement": "orange",
+          "WhatsApp": "cyan",
+          "Instagram": "pink",
+          "Facebook": "geekblue",
         };
-        return <Tag color={colors[method] || "default"}>{method.toUpperCase()}</Tag>;
+        return (
+          <Tag color={colors[source] || "default"} style={{ fontSize: 13, padding: "4px 12px" }}>
+            {source}
+          </Tag>
+        );
       },
     },
     {
       title: "Bills Count",
-      dataIndex: "count",
-      key: "count",
+      dataIndex: "bills_count",
+      key: "bills_count",
       align: "center",
+      sorter: (a, b) => a.bills_count - b.bills_count,
+    },
+    {
+      title: "Unique Customers",
+      dataIndex: "unique_customers",
+      key: "unique_customers",
+      align: "center",
+      render: (count) => (
+        <Space>
+          <TeamOutlined />
+          {count}
+        </Space>
+      ),
+      sorter: (a, b) => a.unique_customers - b.unique_customers,
     },
     {
       title: "Total Amount",
       dataIndex: "total_amount",
       key: "total_amount",
       align: "right",
-      render: (amount) => `₹${parseFloat(amount).toFixed(2)}`,
+      render: (amount) => `₹${parseFloat(amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
+      sorter: (a, b) => a.total_amount - b.total_amount,
+    },
+    {
+      title: "Avg Bill Value",
+      dataIndex: "avg_bill_value",
+      key: "avg_bill_value",
+      align: "right",
+      render: (amount) => `₹${parseFloat(amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`,
+      sorter: (a, b) => a.avg_bill_value - b.avg_bill_value,
     },
     {
       title: "Paid Amount",
       dataIndex: "paid_amount",
       key: "paid_amount",
       align: "right",
-      render: (amount) => `₹${parseFloat(amount).toFixed(2)}`,
+      render: (amount) => (
+        <Text type="success">₹{parseFloat(amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</Text>
+      ),
     },
     {
       title: "Due Amount",
@@ -143,61 +167,84 @@ function SalesReport() {
       key: "due_amount",
       align: "right",
       render: (amount) => (
-        <Text type={amount > 0 ? "danger" : "success"}>
-          ₹{parseFloat(amount).toFixed(2)}
+        <Text type={amount > 0 ? "danger" : "secondary"}>
+          ₹{parseFloat(amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
         </Text>
       ),
     },
     {
-      title: "Percentage",
+      title: "Contribution %",
       dataIndex: "percentage",
       key: "percentage",
       align: "right",
-      render: (pct) => `${pct}%`,
+      render: (pct) => (
+        <div style={{ width: 120 }}>
+          <Progress
+            percent={parseFloat(pct)}
+            size="small"
+            format={(percent) => `${percent}%`}
+            strokeColor={{
+              "0%": "#108ee9",
+              "100%": "#87d068",
+            }}
+          />
+        </div>
+      ),
+      sorter: (a, b) => a.percentage - b.percentage,
     },
   ];
 
-  // Branch columns
-  const branchColumns = [
+  // Top customers columns
+  const topCustomersColumns = [
     {
-      title: "Branch Code",
-      dataIndex: "branch_code",
-      key: "branch_code",
-    },
-    {
-      title: "Branch Name",
-      dataIndex: "branch_name",
-      key: "branch_name",
-    },
-    {
-      title: "Bills Count",
-      dataIndex: "count",
-      key: "count",
+      title: "Rank",
+      key: "rank",
       align: "center",
+      width: 60,
+      render: (_, __, index) => (
+        <div
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: "50%",
+            background: index < 3 ? ["#FFD700", "#C0C0C0", "#CD7F32"][index] : "#f0f0f0",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontWeight: "bold",
+            color: index < 3 ? "#fff" : "#666",
+          }}
+        >
+          {index + 1}
+        </div>
+      ),
     },
     {
-      title: "Total Amount",
-      dataIndex: "total_amount",
-      key: "total_amount",
-      align: "right",
-      render: (amount) => `₹${parseFloat(amount).toFixed(2)}`,
+      title: "Customer Name",
+      dataIndex: "customer_name",
+      key: "customer_name",
+      render: (name, record) => (
+        <div>
+          <div style={{ fontWeight: 500 }}>{name}</div>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {record.customer_phone}
+          </Text>
+        </div>
+      ),
     },
     {
-      title: "Percentage",
-      dataIndex: "percentage",
-      key: "percentage",
-      align: "right",
-      render: (pct) => `${pct}%`,
-    },
-  ];
-
-  // Top days columns
-  const topDaysColumns = [
-    {
-      title: "Date",
-      dataIndex: "date",
-      key: "date",
-      render: (date) => dayjs(date).format("DD MMM YYYY"),
+      title: "Source",
+      dataIndex: "source",
+      key: "source",
+      render: (source) => {
+        const colors = {
+          "Walk-in": "blue",
+          "Online": "green",
+          "Referral": "purple",
+          "Social Media": "magenta",
+        };
+        return <Tag color={colors[source] || "default"}>{source}</Tag>;
+      },
     },
     {
       title: "Bills Count",
@@ -206,11 +253,15 @@ function SalesReport() {
       align: "center",
     },
     {
-      title: "Total Sales",
-      dataIndex: "total_amount",
-      key: "total_amount",
+      title: "Total Spent",
+      dataIndex: "total_spent",
+      key: "total_spent",
       align: "right",
-      render: (amount) => `₹${parseFloat(amount).toFixed(2)}`,
+      render: (amount) => (
+        <Text strong style={{ color: "#52c41a", fontSize: 14 }}>
+          ₹{parseFloat(amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+        </Text>
+      ),
     },
   ];
 
@@ -245,7 +296,7 @@ function SalesReport() {
 
       // Summary Sheet
       const summaryData = [
-        ["SALES REPORT"],
+        ["SOURCE-WISE BILLING REPORT"],
         [""],
         ["Report Period:", getPeriodLabel()],
         ["Branch:", selectedBranch?.name || "All Branches"],
@@ -254,6 +305,7 @@ function SalesReport() {
         ["SUMMARY"],
         ["Total Sales", `₹${parseFloat(reportData.summary.total_sales).toLocaleString("en-IN")}`],
         ["Total Bills", reportData.summary.total_bills],
+        ["Total Sources", reportData.summary.total_sources],
         ["Average Bill Value", `₹${parseFloat(reportData.summary.average_bill_value).toLocaleString("en-IN")}`],
         [""],
       ];
@@ -261,73 +313,87 @@ function SalesReport() {
       const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
       XLSX.utils.book_append_sheet(workbook, summarySheet, "Summary");
 
-      // Payment Methods Sheet
-      const paymentData = [
-        ["PAYMENT METHOD BREAKDOWN"],
+      // Source Breakdown Sheet
+      const sourceData = [
+        ["SOURCE-WISE BREAKDOWN"],
         [""],
-        ["Payment Method", "Bills Count", "Total Amount (₹)", "Paid Amount (₹)", "Due Amount (₹)", "Percentage %"],
+        [
+          "Source",
+          "Bills Count",
+          "Unique Customers",
+          "Total Amount (₹)",
+          "Paid Amount (₹)",
+          "Due Amount (₹)",
+          "Avg Bill Value (₹)",
+          "Contribution %",
+        ],
       ];
 
-      reportData.payment_methods.forEach((pm) => {
-        paymentData.push([
-          pm.method.toUpperCase(),
-          pm.count,
-          parseFloat(pm.total_amount).toFixed(2),
-          parseFloat(pm.paid_amount).toFixed(2),
-          parseFloat(pm.due_amount).toFixed(2),
-          `${pm.percentage}%`,
+      reportData.sources.forEach((source) => {
+        sourceData.push([
+          source.source,
+          source.bills_count,
+          source.unique_customers,
+          parseFloat(source.total_amount).toFixed(2),
+          parseFloat(source.paid_amount).toFixed(2),
+          parseFloat(source.due_amount).toFixed(2),
+          parseFloat(source.avg_bill_value).toFixed(2),
+          `${source.percentage}%`,
         ]);
       });
 
-      const paymentSheet = XLSX.utils.aoa_to_sheet(paymentData);
-      paymentSheet["!cols"] = [{ wch: 25 }, { wch: 12 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 15 }];
-      XLSX.utils.book_append_sheet(workbook, paymentSheet, "Payment Methods");
+      const sourceSheet = XLSX.utils.aoa_to_sheet(sourceData);
+      
+      // Set column widths
+      sourceSheet["!cols"] = [
+        { wch: 20 },
+        { wch: 12 },
+        { wch: 18 },
+        { wch: 18 },
+        { wch: 18 },
+        { wch: 18 },
+        { wch: 18 },
+        { wch: 15 },
+      ];
 
-      // Branch Breakdown Sheet (if available)
-      if (reportData.branches && reportData.branches.length > 0) {
-        const branchData = [
-          ["BRANCH-WISE SALES"],
+      XLSX.utils.book_append_sheet(workbook, sourceSheet, "Source Breakdown");
+
+      // Top Customers Sheet
+      if (reportData.top_customers && reportData.top_customers.length > 0) {
+        const customerData = [
+          ["TOP 10 CUSTOMERS BY SPENDING"],
           [""],
-          ["Branch Code", "Branch Name", "Bills Count", "Total Amount (₹)", "Percentage %"],
+          ["Rank", "Customer Name", "Phone", "Source", "Bills Count", "Total Spent (₹)"],
         ];
 
-        reportData.branches.forEach((branch) => {
-          branchData.push([
-            branch.branch_code,
-            branch.branch_name,
-            branch.count,
-            parseFloat(branch.total_amount).toFixed(2),
-            `${branch.percentage}%`,
+        reportData.top_customers.forEach((customer, index) => {
+          customerData.push([
+            index + 1,
+            customer.customer_name,
+            customer.customer_phone,
+            customer.source,
+            customer.bills_count,
+            parseFloat(customer.total_spent).toFixed(2),
           ]);
         });
 
-        const branchSheet = XLSX.utils.aoa_to_sheet(branchData);
-        branchSheet["!cols"] = [{ wch: 15 }, { wch: 25 }, { wch: 12 }, { wch: 18 }, { wch: 15 }];
-        XLSX.utils.book_append_sheet(workbook, branchSheet, "Branch Breakdown");
-      }
-
-      // Top Days Sheet (if available)
-      if (reportData.top_days && reportData.top_days.length > 0) {
-        const topDaysData = [
-          ["TOP 5 SELLING DAYS"],
-          [""],
-          ["Date", "Bills Count", "Total Sales (₹)"],
+        const customerSheet = XLSX.utils.aoa_to_sheet(customerData);
+        customerSheet["!cols"] = [
+          { wch: 8 },
+          { wch: 25 },
+          { wch: 15 },
+          { wch: 20 },
+          { wch: 12 },
+          { wch: 18 },
         ];
 
-        reportData.top_days.forEach((day) => {
-          topDaysData.push([
-            dayjs(day.date).format("DD MMM YYYY"),
-            day.bills_count,
-            parseFloat(day.total_amount).toFixed(2),
-          ]);
-        });
-
-        const topDaysSheet = XLSX.utils.aoa_to_sheet(topDaysData);
-        topDaysSheet["!cols"] = [{ wch: 18 }, { wch: 12 }, { wch: 18 }];
-        XLSX.utils.book_append_sheet(workbook, topDaysSheet, "Top Days");
+        XLSX.utils.book_append_sheet(workbook, customerSheet, "Top Customers");
       }
 
-      const filename = `Sales_Report_${getPeriodLabel().replace(/\s+/g, "_")}_${dayjs().format("YYYYMMDD_HHmmss")}.xlsx`;
+      // Generate filename
+      const filename = `Source_Wise_Report_${getPeriodLabel().replace(/\s+/g, "_")}_${dayjs().format("YYYYMMDD_HHmmss")}.xlsx`;
+
+      // Write file
       XLSX.writeFile(workbook, filename);
       message.success("Report exported to Excel successfully!");
     } catch (error) {
@@ -348,15 +414,17 @@ function SalesReport() {
     setExporting(true);
 
     try {
+      // Create a temporary container for PDF content
       const pdfContent = document.createElement("div");
-      pdfContent.style.width = "210mm";
+      pdfContent.style.width = "210mm"; // A4 width
       pdfContent.style.padding = "20mm";
       pdfContent.style.backgroundColor = "#ffffff";
       pdfContent.style.fontFamily = "Arial, sans-serif";
 
+      // Header
       pdfContent.innerHTML = `
         <div style="text-align: center; margin-bottom: 30px; border-bottom: 3px solid #1890ff; padding-bottom: 20px;">
-          <h1 style="color: #1890ff; margin: 0; font-size: 28px; font-weight: bold;">SALES REPORT</h1>
+          <h1 style="color: #1890ff; margin: 0; font-size: 28px; font-weight: bold;">SOURCE-WISE BILLING REPORT</h1>
           <p style="color: #666; margin: 10px 0 0 0; font-size: 14px;">
             ${getPeriodLabel()} | ${selectedBranch?.name || "All Branches"}
           </p>
@@ -365,6 +433,7 @@ function SalesReport() {
           </p>
         </div>
 
+        <!-- Summary Section -->
         <div style="margin-bottom: 30px;">
           <h2 style="color: #333; font-size: 18px; margin-bottom: 15px; border-left: 4px solid #52c41a; padding-left: 10px;">
             Summary
@@ -381,6 +450,10 @@ function SalesReport() {
               <td style="padding: 12px; border: 1px solid #d9d9d9; text-align: right;">${reportData.summary.total_bills}</td>
             </tr>
             <tr style="background: #f0f9ff;">
+              <td style="padding: 12px; border: 1px solid #d9d9d9; font-weight: bold;">Total Sources</td>
+              <td style="padding: 12px; border: 1px solid #d9d9d9; text-align: right;">${reportData.summary.total_sources}</td>
+            </tr>
+            <tr>
               <td style="padding: 12px; border: 1px solid #d9d9d9; font-weight: bold;">Average Bill Value</td>
               <td style="padding: 12px; border: 1px solid #d9d9d9; text-align: right;">
                 ₹${parseFloat(reportData.summary.average_bill_value).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
@@ -389,39 +462,38 @@ function SalesReport() {
           </table>
         </div>
 
+        <!-- Source Breakdown -->
         <div style="margin-bottom: 30px;">
           <h2 style="color: #333; font-size: 18px; margin-bottom: 15px; border-left: 4px solid #1890ff; padding-left: 10px;">
-            Payment Method Breakdown
+            Source-wise Breakdown
           </h2>
           <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
             <thead>
               <tr style="background: #1890ff; color: white;">
-                <th style="padding: 10px; border: 1px solid #d9d9d9; text-align: left;">Payment Method</th>
+                <th style="padding: 10px; border: 1px solid #d9d9d9; text-align: left;">Source</th>
                 <th style="padding: 10px; border: 1px solid #d9d9d9; text-align: center;">Bills</th>
+                <th style="padding: 10px; border: 1px solid #d9d9d9; text-align: center;">Customers</th>
                 <th style="padding: 10px; border: 1px solid #d9d9d9; text-align: right;">Total (₹)</th>
-                <th style="padding: 10px; border: 1px solid #d9d9d9; text-align: right;">Paid (₹)</th>
-                <th style="padding: 10px; border: 1px solid #d9d9d9; text-align: right;">Due (₹)</th>
+                <th style="padding: 10px; border: 1px solid #d9d9d9; text-align: right;">Avg Bill (₹)</th>
                 <th style="padding: 10px; border: 1px solid #d9d9d9; text-align: right;">%</th>
               </tr>
             </thead>
             <tbody>
-              ${reportData.payment_methods
+              ${reportData.sources
                 .map(
-                  (pm, index) => `
+                  (source, index) => `
                 <tr style="background: ${index % 2 === 0 ? "#fafafa" : "white"};">
-                  <td style="padding: 10px; border: 1px solid #d9d9d9; font-weight: bold;">${pm.method.toUpperCase()}</td>
-                  <td style="padding: 10px; border: 1px solid #d9d9d9; text-align: center;">${pm.count}</td>
+                  <td style="padding: 10px; border: 1px solid #d9d9d9; font-weight: bold;">${source.source}</td>
+                  <td style="padding: 10px; border: 1px solid #d9d9d9; text-align: center;">${source.bills_count}</td>
+                  <td style="padding: 10px; border: 1px solid #d9d9d9; text-align: center;">${source.unique_customers}</td>
                   <td style="padding: 10px; border: 1px solid #d9d9d9; text-align: right;">
-                    ₹${parseFloat(pm.total_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                    ₹${parseFloat(source.total_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                   </td>
                   <td style="padding: 10px; border: 1px solid #d9d9d9; text-align: right;">
-                    ₹${parseFloat(pm.paid_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                  </td>
-                  <td style="padding: 10px; border: 1px solid #d9d9d9; text-align: right; color: ${pm.due_amount > 0 ? "#ff4d4f" : "#52c41a"};">
-                    ₹${parseFloat(pm.due_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                    ₹${parseFloat(source.avg_bill_value).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                   </td>
                   <td style="padding: 10px; border: 1px solid #d9d9d9; text-align: right; font-weight: bold; color: #1890ff;">
-                    ${pm.percentage}%
+                    ${source.percentage}%
                   </td>
                 </tr>
               `
@@ -431,6 +503,52 @@ function SalesReport() {
           </table>
         </div>
 
+        ${
+          reportData.top_customers && reportData.top_customers.length > 0
+            ? `
+        <!-- Top Customers -->
+        <div style="page-break-before: always; margin-top: 30px;">
+          <h2 style="color: #333; font-size: 18px; margin-bottom: 15px; border-left: 4px solid #faad14; padding-left: 10px;">
+            Top 10 Customers by Spending
+          </h2>
+          <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+            <thead>
+              <tr style="background: #faad14; color: white;">
+                <th style="padding: 10px; border: 1px solid #d9d9d9; text-align: center; width: 50px;">Rank</th>
+                <th style="padding: 10px; border: 1px solid #d9d9d9; text-align: left;">Customer Name</th>
+                <th style="padding: 10px; border: 1px solid #d9d9d9; text-align: left;">Phone</th>
+                <th style="padding: 10px; border: 1px solid #d9d9d9; text-align: left;">Source</th>
+                <th style="padding: 10px; border: 1px solid #d9d9d9; text-align: center;">Bills</th>
+                <th style="padding: 10px; border: 1px solid #d9d9d9; text-align: right;">Total Spent (₹)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${reportData.top_customers
+                .map(
+                  (customer, index) => `
+                <tr style="background: ${index % 2 === 0 ? "#fffbe6" : "white"};">
+                  <td style="padding: 10px; border: 1px solid #d9d9d9; text-align: center; font-weight: bold;">
+                    ${index + 1}
+                  </td>
+                  <td style="padding: 10px; border: 1px solid #d9d9d9;">${customer.customer_name}</td>
+                  <td style="padding: 10px; border: 1px solid #d9d9d9;">${customer.customer_phone}</td>
+                  <td style="padding: 10px; border: 1px solid #d9d9d9;">${customer.source}</td>
+                  <td style="padding: 10px; border: 1px solid #d9d9d9; text-align: center;">${customer.bills_count}</td>
+                  <td style="padding: 10px; border: 1px solid #d9d9d9; text-align: right; font-weight: bold; color: #52c41a;">
+                    ₹${parseFloat(customer.total_spent).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                  </td>
+                </tr>
+              `
+                )
+                .join("")}
+            </tbody>
+          </table>
+        </div>
+        `
+            : ""
+        }
+
+        <!-- Footer -->
         <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #d9d9d9; text-align: center; color: #999; font-size: 11px;">
           <p style="margin: 0;">This is a system-generated report</p>
           <p style="margin: 5px 0 0 0;">© ${dayjs().year()} - All Rights Reserved</p>
@@ -439,6 +557,7 @@ function SalesReport() {
 
       document.body.appendChild(pdfContent);
 
+      // Convert to canvas
       const canvas = await html2canvas(pdfContent, {
         scale: 2,
         useCORS: true,
@@ -448,6 +567,7 @@ function SalesReport() {
 
       document.body.removeChild(pdfContent);
 
+      // Create PDF
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF("p", "mm", "a4");
       const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -460,7 +580,9 @@ function SalesReport() {
 
       pdf.addImage(imgData, "PNG", imgX, imgY, imgWidth * ratio, imgHeight * ratio);
 
-      const filename = `Sales_Report_${getPeriodLabel().replace(/\s+/g, "_")}_${dayjs().format("YYYYMMDD_HHmmss")}.pdf`;
+      // Generate filename
+      const filename = `Source_Wise_Report_${getPeriodLabel().replace(/\s+/g, "_")}_${dayjs().format("YYYYMMDD_HHmmss")}.pdf`;
+
       pdf.save(filename);
       message.success("Report exported to PDF successfully!");
     } catch (error) {
@@ -471,6 +593,7 @@ function SalesReport() {
     }
   };
 
+  // Export menu
   const exportMenu = (
     <Menu>
       <Menu.Item key="excel" icon={<FileExcelOutlined />} onClick={exportToExcel}>
@@ -490,10 +613,11 @@ function SalesReport() {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
             <div>
               <Title level={2}>
-                <BarChartOutlined /> Sales Report
+                <TrendingUp size={28} style={{ marginRight: 8, verticalAlign: "middle" }} />
+                Source-Wise Billing Report
               </Title>
               <Text type="secondary">
-                View sales analytics and payment method breakdown
+                Analyze sales performance by customer acquisition source
               </Text>
             </div>
             <Space>
@@ -550,19 +674,6 @@ function SalesReport() {
                 </Space>
               </Col>
             )}
-
-            {/* <Col xs={24} sm={24} md={6}>
-              <Button
-                type="primary"
-                icon={<ReloadOutlined />}
-                onClick={handleGenerateReport}
-                loading={loading}
-                block
-                style={{ marginTop: period === "custom" ? 24 : 0 }}
-              >
-                Generate Report
-              </Button>
-            </Col> */}
           </Row>
         </Card>
 
@@ -574,7 +685,7 @@ function SalesReport() {
           <>
             {/* Summary Cards */}
             <Row gutter={16} style={{ marginBottom: 24 }}>
-              <Col xs={24} sm={8}>
+              <Col xs={24} sm={6}>
                 <Card>
                   <Statistic
                     title={`Total Sales - ${getPeriodLabel()}`}
@@ -585,7 +696,7 @@ function SalesReport() {
                   />
                 </Card>
               </Col>
-              <Col xs={24} sm={8}>
+              <Col xs={24} sm={6}>
                 <Card>
                   <Statistic
                     title="Total Bills"
@@ -595,7 +706,17 @@ function SalesReport() {
                   />
                 </Card>
               </Col>
-              <Col xs={24} sm={8}>
+              <Col xs={24} sm={6}>
+                <Card>
+                  <Statistic
+                    title="Total Sources"
+                    value={reportData.summary.total_sources}
+                    prefix={<Users size={20} />}
+                    valueStyle={{ color: "#722ed1" }}
+                  />
+                </Card>
+              </Col>
+              <Col xs={24} sm={6}>
                 <Card>
                   <Statistic
                     title="Average Bill Value"
@@ -608,62 +729,41 @@ function SalesReport() {
               </Col>
             </Row>
 
+            {/* Source Breakdown */}
             <Card
               title={
                 <Space>
-                  <IndianRupee size={20} />
-                  <span>Payment Method Breakdown</span>
+                  <BarChartOutlined />
+                  <span>Source-wise Breakdown</span>
                 </Space>
               }
               style={{ marginBottom: 24 }}
             >
               <Table
-                dataSource={reportData.payment_methods}
-                columns={paymentColumns}
+                dataSource={reportData.sources}
+                columns={sourceColumns}
                 pagination={false}
-                rowKey="method"
+                rowKey="source"
                 size="small"
                 scroll={{ x: true }}
               />
             </Card>
 
-            {/* Branch Breakdown */}
-            {reportData.branches && reportData.branches.length > 0 && (
+            {/* Top Customers */}
+            {reportData.top_customers && reportData.top_customers.length > 0 && (
               <Card
                 title={
                   <Space>
-                    <ShopOutlined />
-                    <span>Branch-wise Sales</span>
-                  </Space>
-                }
-                style={{ marginBottom: 24 }}
-              >
-                <Table
-                  dataSource={reportData.branches}
-                  columns={branchColumns}
-                  pagination={false}
-                  rowKey="branch_id"
-                  size="small"
-                  scroll={{ x: true }}
-                />
-              </Card>
-            )}
-
-            {/* Top Selling Days */}
-            {reportData.top_days && reportData.top_days.length > 0 && (
-              <Card
-                title={
-                  <Space>
-                    <BarChartOutlined />
-                    <span>Top 5 Selling Days</span>
+                    <UserOutlined />
+                    <span>Top 10 Customers by Spending</span>
                   </Space>
                 }
               >
                 <Table
-                  dataSource={reportData.top_days}
-                  columns={topDaysColumns}
+                  dataSource={reportData.top_customers}
+                  columns={topCustomersColumns}
                   pagination={false}
-                  rowKey="date"
+                  rowKey={(record) => record.customer_phone}
                   size="small"
                   scroll={{ x: true }}
                 />
@@ -676,7 +776,7 @@ function SalesReport() {
               <BarChartOutlined style={{ fontSize: 48, color: "#ccc" }} />
               <div style={{ marginTop: 16 }}>
                 <Text type="secondary">
-                  Select a period and click "Generate Report" to view sales data
+                  Select a period to view source-wise sales data
                 </Text>
               </div>
             </div>
@@ -687,4 +787,4 @@ function SalesReport() {
   );
 }
 
-export default SalesReport;
+export default SourceWiseReport;

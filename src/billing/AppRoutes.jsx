@@ -5,6 +5,7 @@ import BillingForm from "./pages/billingForm";
 import CustomerBillingForm from "./pages/CustomerBillingForm";
 import CustomerBillCopy from "./pages/CustomerBillCopy";
 import SalesReport from "./pages/SalesReport";
+import SourceWiseReport from "./pages/SourceWiseReport";
 import { List, PlusCircle, UserPlus, BarChart, ShoppingCart } from "lucide-react";
 import ComingSoon from "./pages/ComingSoon";
 import { Tooltip } from "antd";
@@ -47,6 +48,7 @@ const BillingRoutes = () => {
       <Route path="self-checkout" element={<ComingSoon />} />
       <Route path="customer-copy" element={<CustomerBillCopy />} />
       <Route path="reports" element={<SalesReport />} />
+      <Route path="source-wise-report" element={<SourceWiseReport />} />
     </Routes>
   );
 };
