@@ -72,26 +72,44 @@ export default function PayslipTemplate({ data, printId = "payslip-print" }) {
         <div style={{ position:'relative', zIndex:1, padding:'28px 36px 24px' }}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
 
-            {/* Left */}
+            {/* Left - Company Info with Logo */}
             <div>
-              <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:14 }}>
-                {/* Company icon — simple building shape via CSS */}
+              <div style={{ display:'flex', alignItems:'center', gap:16, marginBottom:14 }}>
+                {/* Company Logo */}
                 <div style={{
-                  width:44, height:44, borderRadius:12,
-                  background:'rgba(255,255,255,0.15)',
-                  border:'1px solid rgba(255,255,255,0.2)',
+                  width:56, height:56, borderRadius:12,
+                  background:'rgba(255,255,255,0.95)',
+                  border:'2px solid rgba(255,255,255,0.3)',
                   display:'flex', alignItems:'center', justifyContent:'center',
+                  overflow:'hidden',
+                  boxShadow:'0 4px 12px rgba(0,0,0,0.15)',
                 }}>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/>
-                  </svg>
+                  <img 
+                    src="/payslip/company_logo.jpeg" 
+                    alt="DUCH CLOTHING" 
+                    style={{ width:'100%', height:'100%', objectFit:'cover' }}
+                    onError={(e) => {
+                      // Fallback if image doesn't load
+                      e.target.style.display = 'none';
+                      e.target.parentElement.innerHTML = '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1e3a8a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>';
+                    }}
+                  />
                 </div>
                 <div>
-                  <div style={{ fontSize:13, fontWeight:700, color:'rgba(255,255,255,0.9)' }}>Atelier Technology Solutions</div>
-                  <div style={{ fontSize:10, color:'rgba(255,255,255,0.45)', marginTop:1 }}>Human Resource Department</div>
+                  <div style={{ fontSize:18, fontWeight:900, color:'#fff', letterSpacing:'0.5px' }}>DUCH CLOTHING</div>
+                  <div style={{ fontSize:11, color:'rgba(255,255,255,0.75)', marginTop:3, lineHeight:1.4 }}>
+                    Saibaba Colony Branch, Raja Annamalai Road<br/>
+                    Saibaba Colony, Coimbatore, Tamil Nadu – 641011
+                  </div>
+                  <div style={{ fontSize:11, color:'rgba(255,255,255,0.65)', marginTop:4, display:'flex', alignItems:'center', gap:6 }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/>
+                    </svg>
+                    <span>Phone: 9629998446</span>
+                  </div>
                 </div>
               </div>
-              <div style={{ fontSize:28, fontWeight:900, color:'#fff', letterSpacing:'-0.5px', lineHeight:1 }}>Salary Payslip</div>
+              <div style={{ fontSize:28, fontWeight:900, color:'#fff', letterSpacing:'-0.5px', lineHeight:1, marginTop:12 }}>Salary Payslip</div>
               <div style={{ fontSize:13, color:'rgba(255,255,255,0.55)', marginTop:6 }}>{month} {data.year} &nbsp;·&nbsp; Pay Period</div>
             </div>
 
@@ -313,7 +331,7 @@ export default function PayslipTemplate({ data, printId = "payslip-print" }) {
         {/* ══ FOOTER ══════════════════════════════════════════════════════════ */}
         <div style={{ paddingTop:16, borderTop:'1px dashed #e2e8f0', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
           <div style={{ fontSize:10, color:'#cbd5e1' }}>This is a system-generated payslip and does not require a signature.</div>
-          <div style={{ fontSize:10, color:'#cbd5e1' }}>Atelier Technology Solutions · Confidential</div>
+          <div style={{ fontSize:10, color:'#cbd5e1' }}>DUCH CLOTHING · Confidential</div>
         </div>
       </div>
     </div>
