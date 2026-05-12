@@ -1,6 +1,6 @@
 // Sidebar.jsx
 import React, { useState, useEffect, useRef } from "react";
-import companyLogo from "../assets/Company_logo.png";
+import companyLogo from "/duch-logo.png";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "../../context/ThemeContext";
@@ -402,7 +402,7 @@ const Sidebar = ({ collapsed = true, setCollapsed = () => { }, selectedParent, s
                 }}
               >
                 <img
-                  src={collapsed && !isMobile ? "/colapslogo.png" : companyLogo}
+                  src={collapsed && !isMobile ? "/duch-logo-collaps.png" : companyLogo}
                   alt="Logo"
                   className="transition-all duration-300 hover:scale-105"
                   style={{

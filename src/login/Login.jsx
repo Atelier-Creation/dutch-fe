@@ -185,7 +185,7 @@ const Login = () => {
         {/* Logo */}
         <div className="text-center mb-4">
           <div className="w-16 h-16 bg-white rounded-xl flex items-center justify-center mx-auto mb-2 shadow-lg shadow-blue-100">
-            <img src="/colapslogo.png" alt="logo" className="w-10 h-10 object-contain" />
+            <img src="/duch-logo-collaps.png" alt="logo" className="w-10 h-10 object-contain" />
           </div>
           <h1 className="text-2xl font-bold text-gray-800 mb-0">
             Welcome Back

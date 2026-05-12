@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
-import DarkLogo from "../components/assets/Dark Logo.png";
+import DarkLogo from "/duch-logo.png";
 
 const Loading = ({ children, duration = 1000 }) => {
   const [isLoading, setIsLoading] = useState(true);
@@ -29,7 +29,7 @@ const Loading = ({ children, duration = 1000 }) => {
         <img
           src={DarkLogo}
           alt="Logo"
-          className="w-[120px] h-[120px] mb-5 object-contain animate-fadeIn-float md:w-[100px] md:h-[100px] sm:w-[80px] sm:h-[80px]"
+          className="w-auto h-[120px] mb-5 object-contain animate-fadeIn-float md:w-auto md:h-[100px] sm:w-[80px] sm:h-[80px]"
         />
 
         {/* Modern Dotted Loader */}
