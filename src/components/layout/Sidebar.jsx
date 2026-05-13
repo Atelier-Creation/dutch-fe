@@ -395,22 +395,26 @@ const Sidebar = ({ collapsed = true, setCollapsed = () => { }, selectedParent, s
                   display: "flex",
                   alignItems: "center",
                   justifyContent: collapsed && !isMobile ? "center" : "center",
-                  padding: collapsed && !isMobile ? "20px 0" : "20px 24px",
-                  height: 80,
+                  padding: collapsed && !isMobile ? "20px 0" : "16px 24px",
+                  height: collapsed && !isMobile ? 80 : 88,
                   borderBottom: theme === "dark" ? "1px solid #374151" : "1px solid #f3f4f6",
                   marginBottom: 8,
                 }}
               >
                 <img
-                  src={collapsed && !isMobile ? "/colapslogo.png" : companyLogo}
-                  alt="Logo"
+                  src={collapsed && !isMobile ? "/duch_small_logo.png" : "/duch_full_logo.jpeg"}
+                  alt="DUCH CLOTHING"
                   className="transition-all duration-300 hover:scale-105"
                   style={{
-                    height: collapsed && !isMobile ? 40 : 40,
+                    height: collapsed && !isMobile ? 36 : 56,
                     width: "auto",
+                    maxWidth: collapsed && !isMobile ? 48 : 200,
                     cursor: "pointer",
-                    // When collapsed, center it
                     margin: collapsed && !isMobile ? "0 auto" : "0",
+                    background: "#000",
+                    borderRadius: 8,
+                    padding: collapsed && !isMobile ? 4 : "6px 12px",
+                    objectFit: "contain",
                   }}
                   onClick={() => navigate("/dashboard")}
                 />

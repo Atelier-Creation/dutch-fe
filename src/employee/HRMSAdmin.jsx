@@ -8,6 +8,8 @@ import {
   UserCheck, Clock, AlertCircle, IndianRupee, Eye, Download, Settings
 } from "lucide-react";
 import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+dayjs.extend(relativeTime);
 import api from "../api/api";
 import PayslipTemplate from "./components/PayslipTemplate";
 
@@ -62,6 +64,7 @@ export default function HRMSAdmin() {
 
   // Attendance grid (new)
   const [attGrid, setAttGrid] = useState({}); // { "empId-day": status }
+  const [attRecords, setAttRecords] = useState({}); // { "empId-day": full record }
   const originalGridRef = useRef({}); // snapshot of what was loaded from DB
 
   // Payslip
@@ -102,6 +105,9 @@ export default function HRMSAdmin() {
   const [advModal, setAdvModal] = useState(false);
   const [selectedAdv, setSelectedAdv] = useState(null);
   const [advForm] = Form.useForm();
+
+  // Sign-in proof viewer
+  const [proofRecord, setProofRecord] = useState(null);
 
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
 
@@ -191,7 +197,8 @@ export default function HRMSAdmin() {
     const date = `${y}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     const key = `${emp.id}-${day}`;
     const existingStatus = attGrid[key] || null;
-    setAttEditData({ emp, day, date, existingStatus });
+    const existingRecord = attRecords[key] || null;
+    setAttEditData({ emp, day, date, existingStatus, existingRecord });
     attEditForm.setFieldsValue({
       status: existingStatus || 'present',
       sign_in: null,
@@ -318,12 +325,15 @@ export default function HRMSAdmin() {
       const res = await api.get(`/hrms/attendance?month=${m}&year=${y}&limit=500`);
       const rows = res.data.data || [];
       const grid = {};
+      const recordMap = {};
       rows.forEach(r => {
         const day = parseInt(r.date.split('-')[2]);
         grid[`${r.employee_id}-${day}`] = r.status;
+        recordMap[`${r.employee_id}-${day}`] = r; // store full record
       });
       setAttGrid(grid);
-      originalGridRef.current = { ...grid }; // snapshot for change detection
+      setAttRecords(recordMap);
+      originalGridRef.current = { ...grid };
     } catch { /* silent */ } finally { setAttLoading(false); }
   }, [attMonth]);
 
@@ -546,6 +556,11 @@ export default function HRMSAdmin() {
     { title: "Sign Out", dataIndex: "sign_out", key: "sign_out", render: v => v || "--" },
     { title: "Hours", dataIndex: "hours_worked", key: "hours_worked", render: v => v ? `${v}h` : "--" },
     { title: "Status", dataIndex: "status", key: "status", render: v => <Tag color={{ present: "green", absent: "red", half_day: "orange", holiday: "blue", leave: "purple" }[v]}>{v?.replace("_", " ")}</Tag> },
+    {
+      title: "Proof", key: "proof", render: (_, r) => r.selfie_url ? (
+        <Button size="small" icon={<Eye size={12} />} onClick={() => setProofRecord(r)}>View</Button>
+      ) : <span className="text-gray-300 text-[11px]">—</span>,
+    },
   ];
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -629,6 +644,76 @@ export default function HRMSAdmin() {
               onCellEdit={openAttEdit}
               loading={attLoading}
             />
+
+            {/* ── Sign-In Proofs Panel ── */}
+            {(() => {
+              const proofs = Object.values(attRecords).filter(r => r.selfie_url);
+              if (proofs.length === 0) return null;
+              return (
+                <div className="mt-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                    <span className="text-[12px] font-bold text-gray-600 uppercase tracking-wide">Sign-In Proofs — {attMonth.format("MMM YYYY")}</span>
+                    <span className="text-[11px] bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full font-semibold">{proofs.length}</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {proofs.map(r => {
+                      const emp = employees.find(e => e.id === r.employee_id);
+                      const selfieUrl = r.selfie_url; // served from frontend/public/selfies/
+                      const mapsUrl = r.latitude ? `https://www.google.com/maps?q=${r.latitude},${r.longitude}` : null;
+                      const expiresIn = r.selfie_expires_at
+                        ? Math.max(0, Math.ceil((new Date(r.selfie_expires_at) - Date.now()) / (1000 * 60 * 60)))
+                        : null;
+                      return (
+                        <div key={r.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                          {/* Selfie */}
+                          <div className="relative cursor-pointer" style={{ height: 140 }}
+                            onClick={() => setProofRecord({ ...r, employee: emp })}>
+                            <img src={selfieUrl} alt="selfie" className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                            <div className="absolute bottom-2 left-3 right-3 flex items-end justify-between">
+                              <div>
+                                <p className="text-white text-[12px] font-bold leading-tight">{emp?.name || "—"}</p>
+                                <p className="text-white/70 text-[10px]">{emp?.employee_code} · {dayjs(r.date).format("DD MMM")}</p>
+                              </div>
+                              <span className="text-[10px] bg-green-500 text-white px-2 py-0.5 rounded-full font-semibold">{r.sign_in}</span>
+                            </div>
+                            {/* Expand icon */}
+                            <div className="absolute top-2 right-2 w-6 h-6 bg-white/20 backdrop-blur rounded-full flex items-center justify-center">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+                            </div>
+                          </div>
+                          {/* Location */}
+                          <div className="p-3">
+                            {r.location_address ? (
+                              <div className="flex items-start gap-2">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 flex-shrink-0"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-[11px] text-gray-600 line-clamp-2 leading-snug">{r.location_address}</p>
+                                  {mapsUrl && (
+                                    <a href={mapsUrl} target="_blank" rel="noreferrer"
+                                      className="text-[10px] text-blue-500 underline mt-0.5 inline-block">
+                                      Open Map →
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="text-[11px] text-gray-400">No location data</p>
+                            )}
+                            {expiresIn !== null && (
+                              <div className={`mt-2 text-[10px] px-2 py-0.5 rounded-full inline-block font-medium ${expiresIn < 12 ? "bg-red-50 text-red-500" : "bg-amber-50 text-amber-600"}`}>
+                                Expires in {expiresIn}h
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
             </div>
           </TabPane>
 
@@ -914,6 +999,9 @@ export default function HRMSAdmin() {
                   { title: "Sign Out", dataIndex: "sign_out", render: v => v || "--" },
                   { title: "Hours", dataIndex: "hours_worked", render: v => v ? `${v}h` : "--" },
                   { title: "Status", dataIndex: "status", render: v => <Tag color={{ present: "green", absent: "red", half_day: "orange", holiday: "blue", leave: "purple" }[v]}>{v?.replace("_", " ")}</Tag> },
+                  { title: "Proof", key: "proof", render: (_, r) => r.selfie_url ? (
+                    <Button size="small" icon={<Eye size={12} />} onClick={() => setProofRecord(r)}>View</Button>
+                  ) : "—" },
                 ]}
               />
             </TabPane>
@@ -1210,6 +1298,64 @@ export default function HRMSAdmin() {
                 <div className="text-[13px] font-semibold text-gray-700">{dayjs(attEditData.date).format('DD MMM YYYY')}</div>
               </div>
             </div>
+
+            {/* ── Sign-In Proof (selfie + location) ── */}
+            {attEditData.existingRecord?.selfie_url && (
+              <div className="mb-4 rounded-xl border border-indigo-100 overflow-hidden">
+                <div className="bg-indigo-50 px-3 py-2 flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-indigo-600 uppercase tracking-wide flex items-center gap-1.5">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                    Sign-In Proof
+                  </span>
+                  {attEditData.existingRecord.selfie_expires_at && (
+                    <span className="text-[10px] text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                      Expires {dayjs(attEditData.existingRecord.selfie_expires_at).fromNow()}
+                    </span>
+                  )}
+                </div>
+                <div className="flex gap-0">
+                  {/* Selfie thumbnail */}
+                  <div className="w-28 flex-shrink-0 bg-black">
+                    <img
+                      src={attEditData.existingRecord.selfie_url}
+                      alt="Sign-in selfie"
+                      className="w-full h-full object-cover"
+                      style={{ maxHeight: 112 }}
+                    />
+                  </div>
+                  {/* Location */}
+                  <div className="flex-1 p-3 bg-white">
+                    {attEditData.existingRecord.location_address ? (
+                      <>
+                        <div className="text-[10px] font-semibold text-gray-400 uppercase mb-1 flex items-center gap-1">
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                          Location
+                        </div>
+                        <p className="text-[11px] text-gray-600 leading-snug line-clamp-3">{attEditData.existingRecord.location_address}</p>
+                        {attEditData.existingRecord.latitude && (
+                          <a
+                            href={`https://www.google.com/maps?q=${attEditData.existingRecord.latitude},${attEditData.existingRecord.longitude}`}
+                            target="_blank" rel="noreferrer"
+                            className="text-[10px] text-blue-500 underline mt-1 inline-block"
+                          >
+                            Open in Google Maps →
+                          </a>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-[11px] text-gray-400">No location data</p>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setProofRecord({ ...attEditData.existingRecord, employee: attEditData.emp })}
+                      className="mt-2 text-[10px] text-indigo-500 underline"
+                    >
+                      View full size →
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <Form form={attEditForm} layout="vertical" onFinish={handleSaveAttEdit}>
               <Form.Item name="status" label="Attendance Status" rules={[{ required: true }]}>
@@ -1515,7 +1661,90 @@ export default function HRMSAdmin() {
         {viewPayslip && <AdminPayslipPrint data={viewPayslip} />}
       </Modal>
 
+      {/* ── Sign-In Proof Modal ── */}
+      <ProofModal
+        record={proofRecord}
+        onClose={() => setProofRecord(null)}
+      />
+
     </div>
+  );
+}
+
+// ── Sign-In Proof Viewer Modal (Admin) ────────────────────────────────────────
+function ProofModal({ record, onClose }) {
+  if (!record) return null;
+  const selfieUrl = record.selfie_url ?? null; // served from frontend/public/selfies/
+  const mapsUrl = record.latitude && record.longitude
+    ? `https://www.google.com/maps?q=${record.latitude},${record.longitude}`
+    : null;
+  const expiresIn = record.selfie_expires_at
+    ? Math.max(0, Math.ceil((new Date(record.selfie_expires_at) - Date.now()) / (1000 * 60 * 60)))
+    : null;
+
+  return (
+    <Modal
+      open={!!record}
+      onCancel={onClose}
+      footer={null}
+      width={460}
+      centered
+      title={
+        <div className="flex items-center gap-2 text-[14px] font-bold text-gray-800">
+          <span>Sign-In Proof</span>
+          {record.employee && (
+            <span className="text-gray-400 font-normal text-[12px]">
+              — {record.employee?.name || ""} · {dayjs(record.date).format("DD MMM YYYY")}
+            </span>
+          )}
+        </div>
+      }
+    >
+      <div className="flex flex-col gap-4 pt-1">
+        {/* Selfie */}
+        {selfieUrl ? (
+          <div className="rounded-2xl overflow-hidden border border-gray-200 shadow-sm" style={{ aspectRatio: "4/3" }}>
+            <img src={selfieUrl} alt="Sign-in selfie" className="w-full h-full object-cover" />
+          </div>
+        ) : (
+          <div className="rounded-2xl bg-gray-50 border border-dashed border-gray-200 flex items-center justify-center text-gray-400 text-sm" style={{ aspectRatio: "4/3" }}>
+            No selfie available
+          </div>
+        )}
+
+        {/* Location */}
+        {record.location_address ? (
+          <div className="flex items-start gap-3 p-3 bg-green-50 border border-green-200 rounded-xl text-[12px] text-green-700">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 flex-shrink-0"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <div className="flex-1">
+              <p className="font-semibold mb-0.5">Location at Sign-In</p>
+              <p className="text-green-600 leading-snug">{record.location_address}</p>
+              {record.latitude && (
+                <p className="text-green-500 text-[11px] mt-1">{parseFloat(record.latitude).toFixed(6)}, {parseFloat(record.longitude).toFixed(6)}</p>
+              )}
+            </div>
+            {mapsUrl && (
+              <a href={mapsUrl} target="_blank" rel="noreferrer"
+                className="text-[11px] text-blue-600 underline whitespace-nowrap">Open Map</a>
+            )}
+          </div>
+        ) : (
+          <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-[12px] text-gray-400 text-center">
+            No location data
+          </div>
+        )}
+
+        {/* Sign-in time + expiry */}
+        <div className="flex items-center justify-between text-[12px] text-gray-500 px-1">
+          <span>Sign-in time: <strong className="text-gray-700">{record.sign_in || "--"}</strong></span>
+          {expiresIn !== null && (
+            <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${expiresIn < 12 ? "bg-red-50 text-red-500" : "bg-amber-50 text-amber-600"}`}>
+              Proof expires in {expiresIn}h
+            </span>
+          )}
+        </div>
+      </div>
+    </Modal>
   );
 }
 

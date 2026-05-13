@@ -78,20 +78,20 @@ export default function PayslipTemplate({ data, printId = "payslip-print" }) {
                 {/* Company Logo */}
                 <div style={{
                   width:56, height:56, borderRadius:12,
-                  background:'rgba(255,255,255,0.95)',
-                  border:'2px solid rgba(255,255,255,0.3)',
+                  background:'#000',
+                  border:'2px solid rgba(255,255,255,0.15)',
                   display:'flex', alignItems:'center', justifyContent:'center',
                   overflow:'hidden',
-                  boxShadow:'0 4px 12px rgba(0,0,0,0.15)',
+                  boxShadow:'0 4px 12px rgba(0,0,0,0.3)',
+                  padding: 4,
                 }}>
                   <img 
-                    src="/payslip/company_logo.jpeg" 
+                    src="/duch_small_logo.png" 
                     alt="DUCH CLOTHING" 
-                    style={{ width:'100%', height:'100%', objectFit:'cover' }}
+                    style={{ width:'100%', height:'100%', objectFit:'contain' }}
                     onError={(e) => {
-                      // Fallback if image doesn't load
                       e.target.style.display = 'none';
-                      e.target.parentElement.innerHTML = '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1e3a8a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>';
+                      e.target.parentElement.innerHTML = '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>';
                     }}
                   />
                 </div>

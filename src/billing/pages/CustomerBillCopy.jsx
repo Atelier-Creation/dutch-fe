@@ -64,7 +64,7 @@ const CustomerBillCopy = () => {
       img.onerror = reject;
     });
 
-  const logoBase64 = await getBase64Image(companyLogo);
+  const logoBase64 = await getBase64Image("/duch_full_logo.jpeg");
 
   const docDefinition = {
     pageSize: 'A4',
@@ -75,10 +75,10 @@ const CustomerBillCopy = () => {
         columns: [
           { image: logoBase64, width: 80 },
           [
-            { text: "Atelier Creations Pvt Ltd", style: "companyName" },
-            { text: "123 Main Street, City, State - 600001", style: "companyInfo" },
-            { text: "Phone: +91 98765 43210 | Email: info@atelier.com", style: "companyInfo" },
-            { text: "GSTIN: 33ABCDE1234F1Z5", style: "companyInfo" },
+            { text: "DUCH CLOTHING", style: "companyName" },
+            { text: "Saibaba Colony Branch, Raja Annamalai Road, Saibaba Colony", style: "companyInfo" },
+            { text: "Coimbatore, Tamil Nadu – 641011", style: "companyInfo" },
+            { text: "Phone: 9629998446", style: "companyInfo" },
           ],
         ],
       },
