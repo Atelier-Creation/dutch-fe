@@ -106,6 +106,11 @@ export default function HRMSAdmin() {
   const [selectedAdv, setSelectedAdv] = useState(null);
   const [advForm] = Form.useForm();
 
+  // Add Advance by Admin
+  const [addAdvModal, setAddAdvModal] = useState(false);
+  const [addAdvForm] = Form.useForm();
+  const [addAdvLoading, setAddAdvLoading] = useState(false);
+
   // Sign-in proof viewer
   const [proofRecord, setProofRecord] = useState(null);
 
@@ -316,7 +321,31 @@ export default function HRMSAdmin() {
       fetchAdvances(advFilter);
     } catch (err) { message.error(err.response?.data?.message || 'Failed'); }
   };
-  // Load existing attendance into grid format
+
+  const handleAddAdvance = async (values) => {
+    setAddAdvLoading(true);
+    try {
+      await api.post('/hrms/advances', {
+        employee_id: values.employee_id,
+        amount: values.amount,
+        reason: values.reason,
+        requested_date: values.requested_date?.format('YYYY-MM-DD') || dayjs().format('YYYY-MM-DD'),
+        status: values.status || 'approved',
+        admin_notes: values.admin_notes,
+        paid_date: values.paid_date?.format('YYYY-MM-DD'),
+        deduct_month: values.deduct_month,
+        deduct_year: values.deduct_year,
+      });
+      message.success('Advance created successfully');
+      setAddAdvModal(false);
+      addAdvForm.resetFields();
+      fetchAdvances(advFilter);
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to create advance');
+    } finally {
+      setAddAdvLoading(false);
+    }
+  };  // Load existing attendance into grid format
   const fetchAttendanceGrid = useCallback(async (month = attMonth) => {
     setAttLoading(true);
     try {
@@ -926,6 +955,10 @@ export default function HRMSAdmin() {
                   <Option value="rejected">Rejected</Option>
                   <Option value="deducted">Deducted</Option>
                 </Select>
+                <Button type="primary" icon={<Plus size={14} />}
+                  onClick={() => { addAdvForm.resetFields(); setAddAdvModal(true); }}>
+                  Add Advance
+                </Button>
               </div>
               <Table
                 size="small"
@@ -1464,6 +1497,76 @@ export default function HRMSAdmin() {
             </Form>
           </div>
         )}
+      </Modal>
+
+      {/* ── Add Advance by Admin Modal ── */}
+      <Modal
+        title="Add Advance Payment"
+        open={addAdvModal}
+        onCancel={() => { setAddAdvModal(false); addAdvForm.resetFields(); }}
+        footer={null} width={520} destroyOnClose
+      >
+        <Form form={addAdvForm} layout="vertical" onFinish={handleAddAdvance}
+          initialValues={{ status: 'approved', requested_date: dayjs(), deduct_year: dayjs().year() }}>
+
+          <Form.Item name="employee_id" label="Employee" rules={[{ required: true, message: 'Select employee' }]}>
+            <Select placeholder="Select employee" showSearch optionFilterProp="children">
+              {employees.map(e => (
+                <Option key={e.id} value={e.id}>{e.name} ({e.employee_code})</Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <div className="grid grid-cols-2 gap-x-4">
+            <Form.Item name="amount" label="Amount (₹)" rules={[{ required: true, message: 'Enter amount' }]}>
+              <InputNumber className="w-full" min={1} placeholder="0" prefix="₹" />
+            </Form.Item>
+            <Form.Item name="requested_date" label="Date">
+              <DatePicker className="w-full" />
+            </Form.Item>
+          </div>
+
+          <Form.Item name="reason" label="Reason">
+            <Input.TextArea rows={2} placeholder="Reason for advance" />
+          </Form.Item>
+
+          <Form.Item name="status" label="Status">
+            <Select>
+              <Option value="approved">Approved</Option>
+              <Option value="paid">Paid (Disbursed)</Option>
+              <Option value="pending">Pending</Option>
+            </Select>
+          </Form.Item>
+
+          <Divider orientation="left" orientationMargin={0} className="!text-sm !text-gray-400">Deduction Schedule</Divider>
+          <div className="grid grid-cols-2 gap-x-4">
+            <Form.Item name="deduct_month" label="Deduct in Month">
+              <Select placeholder="Month" allowClear>
+                {['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((m, i) => (
+                  <Option key={i+1} value={i+1}>{m}</Option>
+                ))}
+              </Select>
+            </Form.Item>
+            <Form.Item name="deduct_year" label="Deduct Year">
+              <Select placeholder="Year">
+                {[2024,2025,2026,2027].map(y => <Option key={y} value={y}>{y}</Option>)}
+              </Select>
+            </Form.Item>
+          </div>
+
+          <Form.Item name="paid_date" label="Paid Date (if already disbursed)">
+            <DatePicker className="w-full" />
+          </Form.Item>
+
+          <Form.Item name="admin_notes" label="Admin Notes">
+            <Input.TextArea rows={2} placeholder="Optional notes" />
+          </Form.Item>
+
+          <div className="flex justify-end gap-2 pt-1">
+            <Button onClick={() => { setAddAdvModal(false); addAdvForm.resetFields(); }}>Cancel</Button>
+            <Button type="primary" htmlType="submit" loading={addAdvLoading}>Create Advance</Button>
+          </div>
+        </Form>
       </Modal>
 
       {/* ── Leave Policy Modal ── */}

@@ -130,7 +130,7 @@ const ProductForm = () => {
   // Validation groups for steps
   const stepFieldMap = [
     ["category_id", "product_name"],
-    ["size", "color", "material", "style", "pattern", "sleeve_type", "length", "occasion", "season", "gender"],
+    ["size", "color"],
     ["purchase_price", "selling_price", "mrp", "discount_percentage", "tax_percentage"],
     ["description", "care_instructions", "status"],
   ];
@@ -351,11 +351,11 @@ const ProductForm = () => {
       case 1:
         // Step 2: Dress Shop Attributes
         return (
-          <Card title="Dress Attributes" bordered={false}>
+          <Card title="Attributes" bordered={false}>
             <Row gutter={16}>
-              <Col xs={24} sm={12} md={8}>
+              <Col xs={24} sm={12}>
                 <Form.Item label="Size" name="size">
-                  <Select placeholder="Select size" allowClear>
+                  <Select placeholder="Select size" allowClear size="large">
                     <Option value="XS">XS</Option>
                     <Option value="S">S</Option>
                     <Option value="M">M</Option>
@@ -368,114 +368,12 @@ const ProductForm = () => {
                 </Form.Item>
               </Col>
 
-              <Col xs={24} sm={12} md={8}>
+              <Col xs={24} sm={12}>
                 <Form.Item label="Color" name="color">
-                  <Input placeholder="e.g., Red, Blue, Black" />
-                </Form.Item>
-              </Col>
-
-              <Col xs={24} sm={12} md={8}>
-                <Form.Item label="Gender" name="gender">
-                  <Select placeholder="Select gender" allowClear>
-                    <Option value="Women">Women</Option>
-                    <Option value="Men">Men</Option>
-                    <Option value="Girls">Girls</Option>
-                    <Option value="Boys">Boys</Option>
-                    <Option value="Unisex">Unisex</Option>
-                  </Select>
+                  <Input placeholder="e.g., Red, Blue, Black" size="large" />
                 </Form.Item>
               </Col>
             </Row>
-
-            <Row gutter={16}>
-              <Col xs={24} sm={12} md={8}>
-                <Form.Item label="Material" name="material">
-                  <Select placeholder="Select material" allowClear>
-                    <Option value="Cotton">Cotton</Option>
-                    <Option value="Silk">Silk</Option>
-                    <Option value="Polyester">Polyester</Option>
-                    <Option value="Chiffon">Chiffon</Option>
-                    <Option value="Georgette">Georgette</Option>
-                    <Option value="Linen">Linen</Option>
-                    <Option value="Denim">Denim</Option>
-                    <Option value="Wool">Wool</Option>
-                  </Select>
-                </Form.Item>
-              </Col>
-
-              <Col xs={24} sm={12} md={8}>
-                <Form.Item label="Style" name="style">
-                  <Select placeholder="Select style" allowClear>
-                    <Option value="Casual">Casual</Option>
-                    <Option value="Formal">Formal</Option>
-                    <Option value="Party Wear">Party Wear</Option>
-                    <Option value="Traditional">Traditional</Option>
-                    <Option value="Western">Western</Option>
-                    <Option value="Ethnic">Ethnic</Option>
-                  </Select>
-                </Form.Item>
-              </Col>
-
-              <Col xs={24} sm={12} md={8}>
-                <Form.Item label="Pattern" name="pattern">
-                  <Select placeholder="Select pattern" allowClear>
-                    <Option value="Solid">Solid</Option>
-                    <Option value="Printed">Printed</Option>
-                    <Option value="Embroidered">Embroidered</Option>
-                    <Option value="Striped">Striped</Option>
-                    <Option value="Checked">Checked</Option>
-                    <Option value="Floral">Floral</Option>
-                  </Select>
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <Row gutter={16}>
-              <Col xs={24} sm={12} md={8}>
-                <Form.Item label="Sleeve Type" name="sleeve_type">
-                  <Select placeholder="Select sleeve type" allowClear>
-                    <Option value="Full Sleeve">Full Sleeve</Option>
-                    <Option value="Half Sleeve">Half Sleeve</Option>
-                    <Option value="Sleeveless">Sleeveless</Option>
-                    <Option value="3/4 Sleeve">3/4 Sleeve</Option>
-                  </Select>
-                </Form.Item>
-              </Col>
-
-              <Col xs={24} sm={12} md={8}>
-                <Form.Item label="Length" name="length">
-                  <Select placeholder="Select length" allowClear>
-                    <Option value="Mini">Mini</Option>
-                    <Option value="Midi">Midi</Option>
-                    <Option value="Maxi">Maxi</Option>
-                    <Option value="Knee Length">Knee Length</Option>
-                    <Option value="Ankle Length">Ankle Length</Option>
-                  </Select>
-                </Form.Item>
-              </Col>
-
-              <Col xs={24} sm={12} md={8}>
-                <Form.Item label="Season" name="season">
-                  <Select placeholder="Select season" allowClear>
-                    <Option value="Summer">Summer</Option>
-                    <Option value="Winter">Winter</Option>
-                    <Option value="Monsoon">Monsoon</Option>
-                    <Option value="All Season">All Season</Option>
-                  </Select>
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <Form.Item label="Occasion" name="occasion">
-              <Select placeholder="Select occasion" allowClear>
-                <Option value="Wedding">Wedding</Option>
-                <Option value="Party">Party</Option>
-                <Option value="Casual">Casual</Option>
-                <Option value="Office Wear">Office Wear</Option>
-                <Option value="Festival">Festival</Option>
-                <Option value="Daily Wear">Daily Wear</Option>
-              </Select>
-            </Form.Item>
           </Card>
         );
 
