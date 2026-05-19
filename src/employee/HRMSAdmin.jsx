@@ -618,7 +618,7 @@ export default function HRMSAdmin() {
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden w-full px-5 py-3">
         <Tabs
           defaultActiveKey="employees"
-          className="px-6 sm:px-4 pt-2"
+  className="responsive-tabs"
           tabBarStyle={{ marginBottom: 0, paddingBottom: 0 }}
           style={{ '--ant-tabs-tab-padding': '20px 16px' }}
         >
@@ -641,14 +641,96 @@ export default function HRMSAdmin() {
                 Add Employee
               </Button>
             </div>
-            <Table
-              scroll={{ x: 800 }}
-              columns={empColumns} dataSource={employees} rowKey="id" loading={loading} size="small"
-              pagination={{
-                current: pagination.current, pageSize: pagination.pageSize, total: pagination.total,
-                onChange: (page, size) => { setPagination(p => ({ ...p, current: page, pageSize: size })); fetchEmployees(page, size, search); },
-              }}
-            />
+            {/* MOBILE VIEW */}
+<div className="mobile-view">
+
+  {employees.map((emp) => (
+
+    <div key={emp.id} className="mobile-card">
+
+      <div className="flex justify-between items-start mb-3">
+
+        <div>
+          <h3 className="font-bold text-[15px]">
+            {emp.name}
+          </h3>
+
+          <p className="text-[11px] text-gray-400">
+            {emp.employee_code}
+          </p>
+        </div>
+
+        <Tag color={emp.is_active ? "green" : "red"}>
+          {emp.is_active ? "Active" : "Inactive"}
+        </Tag>
+
+      </div>
+
+      <div className="space-y-2">
+
+        <div>
+          <p className="mobile-label">Email</p>
+          <p className="mobile-value">{emp.email}</p>
+        </div>
+
+        <div>
+          <p className="mobile-label">Department</p>
+          <p className="mobile-value">{emp.department}</p>
+        </div>
+
+      </div>
+
+      <div className="flex gap-2 mt-4">
+
+        <Button
+          size="small"
+          onClick={() => openEdit(emp)}
+        >
+          Edit
+        </Button>
+
+        <Button
+          size="small"
+          type="primary"
+          onClick={() => openDrawer(emp)}
+        >
+          View
+        </Button>
+
+      </div>
+
+    </div>
+
+  ))}
+
+</div>
+
+{/* DESKTOP TABLE */}
+<div className="desktop-table overflow-x-auto">
+
+<Table
+  scroll={{ x: 800 }}
+  columns={empColumns}
+  dataSource={employees}
+  rowKey="id"
+  loading={loading}
+  size="small"
+  pagination={{
+    current: pagination.current,
+    pageSize: pagination.pageSize,
+    total: pagination.total,
+    onChange: (page, size) => {
+      setPagination(p => ({
+        ...p,
+        current: page,
+        pageSize: size
+      }));
+      fetchEmployees(page, size, search);
+    },
+  }}
+/>
+
+</div>
             </div>
           </TabPane>
 
@@ -661,7 +743,7 @@ export default function HRMSAdmin() {
                 onChange={m => { setAttMonth(m); setAttGrid({}); fetchAttendanceGrid(m); }}
                 allowClear={false}
               />
-              <span className="text-[12px] text-gray-400 ml-2 flex items-center gap-2">
+              <span className="text-[11px] text-gray-400 flex flex-wrap items-center gap-2">
                 Click to cycle:
                 {[['P','#dcfce7','#16a34a'],['A','#fee2e2','#dc2626'],['L','#ffedd5','#ea580c'],['H','#dbeafe','#2563eb']].map(([l,bg,c]) => (
                   <span key={l} className="inline-flex items-center justify-center rounded-lg text-[11px] font-bold w-6 h-6"
@@ -669,15 +751,92 @@ export default function HRMSAdmin() {
                 ))}
                 <span className="text-gray-300 text-[11px]">· = empty</span>
               </span>            </div>
-            <AttendanceGrid
-              employees={employees}
-              month={attMonth}
-              grid={attGrid}
-              originalGrid={originalGridRef.current}
-              onCellClick={handleAttCellClick}
-              onCellEdit={openAttEdit}
-              loading={attLoading}
-            />
+            <div className="overflow-x-auto">
+
+{/* MOBILE VIEW */}
+<div className="mobile-view">
+
+  {employees.map((emp) => (
+
+    <div key={emp.id} className="mobile-card">
+
+      <div className="flex items-center justify-between mb-3">
+
+        <div>
+          <h3 className="font-bold text-[14px]">
+            {emp.name}
+          </h3>
+
+          <p className="text-[11px] text-gray-400">
+            {emp.employee_code}
+          </p>
+        </div>
+
+        <div
+          className={`px-3 py-1 rounded-full text-[11px] font-bold
+          ${
+            Object.values(attGrid).includes("present")
+              ? "bg-green-100 text-green-700"
+              : "bg-red-100 text-red-700"
+          }`}
+        >
+          {Object.values(attGrid).includes("present")
+            ? "Present"
+            : "Absent"}
+        </div>
+
+      </div>
+
+      <div className="grid grid-cols-3 gap-2 mt-3">
+
+        {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => {
+
+          const key = `${emp.id}-${day}`;
+          const status = attGrid[key];
+
+          const colors = {
+            present: "bg-green-100 text-green-700",
+            absent: "bg-red-100 text-red-700",
+            leave: "bg-orange-100 text-orange-700",
+            holiday: "bg-blue-100 text-blue-700",
+          };
+
+          return (
+            <div
+              key={day}
+              onClick={() => handleAttCellClick(emp.id, day)}
+              className={`h-9 rounded-lg flex items-center justify-center text-[11px] font-bold cursor-pointer
+              ${colors[status] || "bg-gray-100 text-gray-400"}`}
+            >
+              {status?.charAt(0)?.toUpperCase() || "-"}
+            </div>
+          );
+
+        })}
+
+      </div>
+
+    </div>
+
+  ))}
+
+</div>
+
+{/* DESKTOP VIEW */}
+<div className="desktop-table overflow-x-auto">
+
+  <AttendanceGrid
+    employees={employees}
+    month={attMonth}
+    grid={attGrid}
+    originalGrid={originalGridRef.current}
+    onCellClick={handleAttCellClick}
+    onCellEdit={openAttEdit}
+    loading={attLoading}
+  />
+
+</div>
+</div>
 
             {/* ── Sign-In Proofs Panel ── */}
             {(() => {
@@ -767,7 +926,50 @@ export default function HRMSAdmin() {
                 <Option value="cancelled">Cancelled</Option>
               </Select>
             </div>
-            <Table scroll={{ x: 800 }} columns={leaveColumns} dataSource={leaves} rowKey="id" loading={leaveLoading} size="small" />
+{/* MOBILE */}
+<div className="mobile-view">
+
+  {leaves.map((leave) => (
+
+    <div key={leave.id} className="mobile-card">
+
+      <h3 className="font-bold text-[14px] mb-2">
+        {leave.employee?.name}
+      </h3>
+
+      <div className="space-y-2">
+
+        <div>
+          <p className="mobile-label">Leave Type</p>
+          <p className="mobile-value">{leave.leave_type}</p>
+        </div>
+
+        <div>
+          <p className="mobile-label">Status</p>
+          <Tag>{leave.status}</Tag>
+        </div>
+
+      </div>
+
+    </div>
+
+  ))}
+
+</div>
+
+{/* DESKTOP */}
+<div className="desktop-table overflow-x-auto">
+
+<Table
+  scroll={{ x: 800 }}
+  columns={leaveColumns}
+  dataSource={leaves}
+  rowKey="id"
+  loading={leaveLoading}
+  size="small"
+/>
+
+</div>
             </div>
           </TabPane>
 
@@ -800,32 +1002,205 @@ export default function HRMSAdmin() {
                 Auto Generate All
               </Button>
               </Popconfirm>            </div>
-            <Table
+            {/* MOBILE VIEW */}
+<div className="mobile-view">
+
+  {payslips.map((pay) => (
+
+    <div key={pay.id} className="mobile-card">
+
+      <div className="flex justify-between items-start mb-3">
+
+        <div>
+          <h3 className="font-bold text-[14px]">
+            {pay.employee?.name}
+          </h3>
+
+          <p className="text-[11px] text-gray-400">
+            {pay.employee?.employee_code}
+          </p>
+        </div>
+
+        <Tag
+          color={{
+            draft: "default",
+            generated: "blue",
+            paid: "green"
+          }[pay.status]}
+        >
+          {pay.status}
+        </Tag>
+
+      </div>
+
+      <div className="space-y-2">
+
+        <div className="flex justify-between">
+          <span className="mobile-label">Month</span>
+
+          <span className="mobile-value">
+            {MONTHS[pay.month - 1]} {pay.year}
+          </span>
+        </div>
+
+        <div className="flex justify-between">
+          <span className="mobile-label">Gross</span>
+
+          <span className="font-semibold">
+            ₹{parseFloat(pay.gross_salary).toLocaleString("en-IN")}
+          </span>
+        </div>
+
+        <div className="flex justify-between">
+          <span className="mobile-label">Deduction</span>
+
+          <span className="text-red-500 font-semibold">
+            ₹{parseFloat(pay.total_deductions).toLocaleString("en-IN")}
+          </span>
+        </div>
+
+        <div className="flex justify-between">
+          <span className="mobile-label">Net Salary</span>
+
+          <span className="text-green-600 font-bold">
+            ₹{parseFloat(pay.net_salary).toLocaleString("en-IN")}
+          </span>
+        </div>
+
+      </div>
+
+      <div className="flex gap-2 mt-4 flex-wrap">
+
+        <Button
+          size="small"
+          icon={<Eye size={12} />}
+          onClick={() => handleViewPayslip(pay.id)}
+        >
+          View
+        </Button>
+
+        {pay.status !== "paid" && (
+          <Button
+            size="small"
+            type="primary"
+            onClick={() =>
+              handlePayslipStatus(pay.id, "paid")
+            }
+          >
+            Mark Paid
+          </Button>
+        )}
+
+      </div>
+
+    </div>
+
+  ))}
+
+</div>
+
+{/* DESKTOP VIEW */}
+<div className="desktop-table overflow-x-auto">
+
+<Table
+  size="small"
+  scroll={{ x: 1000 }}
+  loading={payslipLoading}
+  dataSource={payslips}
+  rowKey="id"
+  columns={[
+    {
+      title: "Employee",
+      key: "emp",
+      render: (_, r) =>
+        r.employee
+          ? `${r.employee.name} (${r.employee.employee_code})`
+          : "--"
+    },
+
+    {
+      title: "Month",
+      key: "month",
+      render: (_, r) =>
+        `${MONTHS[r.month - 1]} ${r.year}`
+    },
+
+    {
+      title: "Gross",
+      dataIndex: "gross_salary",
+      render: v =>
+        `₹${parseFloat(v).toLocaleString("en-IN")}`
+    },
+
+    {
+      title: "Deductions",
+      dataIndex: "total_deductions",
+      render: v => (
+        <span className="text-red-500">
+          ₹{parseFloat(v).toLocaleString("en-IN")}
+        </span>
+      )
+    },
+
+    {
+      title: "Net Salary",
+      dataIndex: "net_salary",
+      render: v => (
+        <span className="font-semibold text-green-600">
+          ₹{parseFloat(v).toLocaleString("en-IN")}
+        </span>
+      )
+    },
+
+    {
+      title: "Status",
+      dataIndex: "status",
+      render: v => (
+        <Tag
+          color={{
+            draft: "default",
+            generated: "blue",
+            paid: "green"
+          }[v]}
+        >
+          {v}
+        </Tag>
+      )
+    },
+
+    {
+      title: "Actions",
+      key: "actions",
+      render: (_, r) => (
+        <div className="flex gap-2">
+
+          <Button
+            size="small"
+            icon={<Eye size={12} />}
+            onClick={() => handleViewPayslip(r.id)}
+          >
+            View
+          </Button>
+
+          {r.status !== "paid" && (
+            <Button
               size="small"
-              scroll={{ x: 800 }}
-              loading={payslipLoading}
-              dataSource={payslips}
-              rowKey="id"
-              columns={[
-                { title: "Employee", key: "emp", render: (_, r) => r.employee ? `${r.employee.name} (${r.employee.employee_code})` : "--" },
-                { title: "Month", key: "month", render: (_, r) => `${MONTHS[r.month - 1]} ${r.year}` },
-                { title: "Gross", dataIndex: "gross_salary", render: v => `₹${parseFloat(v).toLocaleString("en-IN")}` },
-                { title: "Deductions", dataIndex: "total_deductions", render: v => <span className="text-red-500">₹{parseFloat(v).toLocaleString("en-IN")}</span> },
-                { title: "Net Salary", dataIndex: "net_salary", render: v => <span className="font-semibold text-green-600">₹{parseFloat(v).toLocaleString("en-IN")}</span> },
-                { title: "Status", dataIndex: "status", render: v => <Tag color={{ draft: "default", generated: "blue", paid: "green" }[v]}>{v}</Tag> },
-                {
-                  title: "Actions", key: "actions", render: (_, r) => (
-                    <div className="flex gap-2">
-                      <Button size="small" icon={<Eye size={12} />} onClick={() => handleViewPayslip(r.id)}>View</Button>
-                      {r.status !== "paid" && <Button size="small" type="primary" onClick={() => handlePayslipStatus(r.id, "paid")}>Mark Paid</Button>}
-                      <Popconfirm title="Delete payslip?" onConfirm={() => handleDeletePayslip(r.id)}>
-                        <Button size="small" danger>Delete</Button>
-                      </Popconfirm>
-                    </div>
-                  ),
-                },
-              ]}
-            />
+              type="primary"
+              onClick={() =>
+                handlePayslipStatus(r.id, "paid")
+              }
+            >
+              Mark Paid
+            </Button>
+          )}
+
+        </div>
+      )
+    },
+  ]}
+/>
+
+</div>
             </div>
           </TabPane>
 
@@ -841,55 +1216,235 @@ export default function HRMSAdmin() {
                 </Button>
               </div>
 
-              <div className="grid grid-cols-1 gap-4">
-                {shiftRules.length === 0 && (
-                  <div className="text-center py-12 text-gray-400 text-sm border border-dashed border-gray-200 rounded-xl">
-                    No shift rules defined. Add one to enable automatic attendance calculation.
-                  </div>
-                )}
-                {shiftRules.map(rule => (
-                  <div key={rule.id} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center">
-                          <Clock size={18} className="text-blue-600" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-[15px] font-bold text-gray-800">{rule.name}</h3>
-                            {rule.is_default && <Tag color="blue" className="text-[10px]">Default</Tag>}
-                          </div>
-                          <p className="text-[12px] text-gray-400">{rule.shift_start} — {rule.shift_end} &nbsp;·&nbsp; {rule.shift_hours}h shift &nbsp;·&nbsp; {rule.work_days_per_week} days/week</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button size="small" onClick={() => openEditShift(rule)}>Edit</Button>
-                        <Popconfirm title="Remove this shift rule?" onConfirm={() => handleDeleteShiftRule(rule.id)}>
-                          <Button size="small" danger>Remove</Button>
-                        </Popconfirm>
-                      </div>
-                    </div>
+              {/* MOBILE VIEW */}
+<div className="mobile-view">
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      {[
-                        { label: 'Grace Period',      value: `${rule.grace_minutes} min`,          color: 'bg-green-50 border-green-100 text-green-700' },
-                        { label: 'Late After',        value: `${rule.late_mark_after_minutes} min`, color: 'bg-yellow-50 border-yellow-100 text-yellow-700' },
-                        { label: 'Half Day After',    value: `${rule.half_day_after_minutes} min`,  color: 'bg-orange-50 border-orange-100 text-orange-700' },
-                        { label: 'Absent After',      value: `${rule.absent_after_minutes} min`,    color: 'bg-red-50 border-red-100 text-red-700' },
-                        { label: 'Full Day Min',      value: `${rule.min_hours_full_day}h`,         color: 'bg-blue-50 border-blue-100 text-blue-700' },
-                        { label: 'Half Day Min',      value: `${rule.min_hours_half_day}h`,         color: 'bg-purple-50 border-purple-100 text-purple-700' },
-                        { label: 'Permission/Month',  value: `${rule.permission_per_month} times`,  color: 'bg-indigo-50 border-indigo-100 text-indigo-700' },
-                        { label: 'Permission Max',    value: `${rule.permission_max_hours}h/day`,   color: 'bg-teal-50 border-teal-100 text-teal-700' },
-                      ].map(c => (
-                        <div key={c.label} className={`border rounded-lg p-3 ${c.color}`}>
-                          <p className="text-[10px] font-semibold uppercase tracking-wide opacity-70">{c.label}</p>
-                          <p className="text-[16px] font-bold mt-1">{c.value}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+  {shiftRules.map((rule) => (
+
+    <div
+      key={rule.id}
+      className="mobile-card"
+    >
+
+      {/* TOP */}
+      <div className="flex flex-col gap-3">
+
+        <div className="flex items-start justify-between gap-2">
+
+          <div className="flex items-center gap-2">
+
+            <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+              <Clock size={18} className="text-blue-600" />
+            </div>
+
+            <div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+
+                <h3 className="font-bold text-[14px]">
+                  {rule.name}
+                </h3>
+
+                {rule.is_default && (
+                  <Tag color="blue">
+                    Default
+                  </Tag>
+                )}
+
               </div>
+
+              <p className="text-[11px] text-gray-400">
+                {rule.shift_start} - {rule.shift_end}
+              </p>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        {/* BUTTONS */}
+        <div className="flex gap-2 w-full">
+
+          <Button
+            size="small"
+            className="flex-1"
+            onClick={() => openEditShift(rule)}
+          >
+            Edit
+          </Button>
+
+          <Popconfirm
+            title="Remove shift rule?"
+            onConfirm={() =>
+              handleDeleteShiftRule(rule.id)
+            }
+          >
+
+            <Button
+              size="small"
+              danger
+              className="flex-1"
+            >
+              Remove
+            </Button>
+
+          </Popconfirm>
+
+        </div>
+
+      </div>
+
+      {/* DETAILS */}
+      <div className="grid grid-cols-2 gap-2 mt-4">
+
+        {[
+          {
+            label: "Grace",
+            value: `${rule.grace_minutes} min`,
+            color: "bg-green-50 text-green-700"
+          },
+
+          {
+            label: "Late",
+            value: `${rule.late_mark_after_minutes} min`,
+            color: "bg-yellow-50 text-yellow-700"
+          },
+
+          {
+            label: "Half Day",
+            value: `${rule.half_day_after_minutes} min`,
+            color: "bg-orange-50 text-orange-700"
+          },
+
+          {
+            label: "Absent",
+            value: `${rule.absent_after_minutes} min`,
+            color: "bg-red-50 text-red-700"
+          },
+
+          {
+            label: "Full Day",
+            value: `${rule.min_hours_full_day}h`,
+            color: "bg-blue-50 text-blue-700"
+          },
+
+          {
+            label: "Half Day",
+            value: `${rule.min_hours_half_day}h`,
+            color: "bg-purple-50 text-purple-700"
+          },
+
+        ].map((item) => (
+
+          <div
+            key={item.label}
+            className={`rounded-xl p-3 ${item.color}`}
+          >
+
+            <p className="text-[10px] font-semibold opacity-70">
+              {item.label}
+            </p>
+
+            <p className="text-[15px] font-bold mt-1">
+              {item.value}
+            </p>
+
+          </div>
+
+        ))}
+
+      </div>
+
+    </div>
+
+  ))}
+
+</div>
+
+{/* DESKTOP VIEW */}
+<div className="desktop-table overflow-x-auto">
+
+  <Table
+    rowKey="id"
+    dataSource={shiftRules}
+    pagination={false}
+    scroll={{ x: 1000 }}
+    columns={[
+
+      {
+        title: "Shift",
+        render: (_, rule) => (
+          <div>
+
+            <p className="font-semibold">
+              {rule.name}
+            </p>
+
+            <p className="text-[11px] text-gray-400">
+              {rule.shift_start} - {rule.shift_end}
+            </p>
+
+          </div>
+        )
+      },
+
+      {
+        title: "Grace",
+        render: (_, r) =>
+          `${r.grace_minutes} min`
+      },
+
+      {
+        title: "Late",
+        render: (_, r) =>
+          `${r.late_mark_after_minutes} min`
+      },
+
+      {
+        title: "Absent",
+        render: (_, r) =>
+          `${r.absent_after_minutes} min`
+      },
+
+      {
+        title: "Actions",
+        render: (_, r) => (
+
+          <div className="flex gap-2">
+
+            <Button
+              size="small"
+              onClick={() => openEditShift(r)}
+            >
+              Edit
+            </Button>
+
+            <Popconfirm
+              title="Remove shift rule?"
+              onConfirm={() =>
+                handleDeleteShiftRule(r.id)
+              }
+            >
+
+              <Button
+                size="small"
+                danger
+              >
+                Remove
+              </Button>
+
+            </Popconfirm>
+
+          </div>
+
+        )
+      },
+
+    ]}
+  />
+
+</div>
             </div>
           </TabPane>
 
@@ -903,48 +1458,206 @@ export default function HRMSAdmin() {
                 </Button>
               </div>
 
-              <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
-                <table className="w-full min-w-[800px]">
-                  <thead className="bg-gray-50">
-                    <tr className="text-left text-[12px] text-gray-500 font-semibold uppercase tracking-wide">
-                      <th className="px-4 py-3">Leave Type</th>
-                      <th className="px-4 py-3">Days / Year</th>
-                      <th className="px-4 py-3">Carry Forward</th>
-                      <th className="px-4 py-3">Max CF Days</th>
-                      <th className="px-4 py-3">Approval</th>
-                      <th className="px-4 py-3">Applicable</th>
-                      <th className="px-4 py-3">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {leavePolicies.length === 0 ? (
-                      <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400 text-sm">No leave policies configured</td></tr>
-                    ) : leavePolicies.map((p, idx) => (
-                      <tr key={p.id} className={`border-t border-gray-100 text-[13px] ${idx % 2 === 0 ? '' : 'bg-gray-50/50'}`}>
-                        <td className="px-4 py-3">
-                          <div className="font-semibold text-gray-800">{p.label}</div>
-                          <div className="text-[11px] text-gray-400 capitalize">{p.leave_type}</div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="text-[16px] font-bold text-blue-600">{p.days_per_year}</span>
-                          <span className="text-[11px] text-gray-400 ml-1">days</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <Tag color={p.carry_forward ? 'green' : 'default'}>{p.carry_forward ? 'Yes' : 'No'}</Tag>
-                        </td>
-                        <td className="px-4 py-3 text-gray-600">{p.carry_forward ? `${p.max_carry_forward_days} days` : '—'}</td>
-                        <td className="px-4 py-3">
-                          <Tag color={p.requires_approval ? 'orange' : 'blue'}>{p.requires_approval ? 'Required' : 'Auto'}</Tag>
-                        </td>
-                        <td className="px-4 py-3 capitalize text-gray-600">{p.applicable_gender}</td>
-                        <td className="px-4 py-3">
-                          <Button size="small" onClick={() => openEditPolicy(p)}>Edit</Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              {/* MOBILE VIEW */}
+<div className="mobile-view">
+
+  {leavePolicies.map((p) => (
+
+    <div
+      key={p.id}
+      className="mobile-card"
+    >
+
+      {/* TOP */}
+      <div className="flex items-start justify-between gap-2">
+
+        <div>
+
+          <h3 className="font-bold text-[14px]">
+            {p.label}
+          </h3>
+
+          <p className="text-[11px] text-gray-400 capitalize">
+            {p.leave_type}
+          </p>
+
+        </div>
+
+        <Tag
+          color={
+            p.carry_forward
+              ? "green"
+              : "default"
+          }
+        >
+          {p.carry_forward
+            ? "Carry"
+            : "No Carry"}
+        </Tag>
+
+      </div>
+
+      {/* DETAILS */}
+      <div className="grid grid-cols-2 gap-2 mt-4">
+
+        <div className="rounded-xl bg-blue-50 p-3">
+          <p className="text-[10px] text-blue-500 font-semibold">
+            DAYS / YEAR
+          </p>
+
+          <p className="text-[18px] font-bold text-blue-700">
+            {p.days_per_year}
+          </p>
+        </div>
+
+        <div className="rounded-xl bg-purple-50 p-3">
+          <p className="text-[10px] text-purple-500 font-semibold">
+            MAX CF
+          </p>
+
+          <p className="text-[18px] font-bold text-purple-700">
+            {p.max_carry_forward_days || 0}
+          </p>
+        </div>
+
+      </div>
+
+      {/* TAGS */}
+      <div className="flex flex-wrap gap-2 mt-4">
+
+        <Tag
+          color={
+            p.requires_approval
+              ? "orange"
+              : "blue"
+          }
+        >
+          {p.requires_approval
+            ? "Approval Required"
+            : "Auto Approval"}
+        </Tag>
+
+        <Tag color="cyan">
+          {p.applicable_gender}
+        </Tag>
+
+      </div>
+
+      {/* BUTTON */}
+      <Button
+        block
+        size="small"
+        className="mt-4"
+        onClick={() => openEditPolicy(p)}
+      >
+        Edit Policy
+      </Button>
+
+    </div>
+
+  ))}
+
+</div>
+
+{/* DESKTOP VIEW */}
+<div className="desktop-table overflow-x-auto">
+
+  <Table
+    rowKey="id"
+    dataSource={leavePolicies}
+    pagination={false}
+    scroll={{ x: 1000 }}
+    columns={[
+
+      {
+        title: "Leave Type",
+        render: (_, p) => (
+
+          <div>
+
+            <p className="font-semibold">
+              {p.label}
+            </p>
+
+            <p className="text-[11px] text-gray-400 capitalize">
+              {p.leave_type}
+            </p>
+
+          </div>
+
+        )
+      },
+
+      {
+        title: "Days / Year",
+        dataIndex: "days_per_year",
+      },
+
+      {
+        title: "Carry Forward",
+        render: (_, p) => (
+          <Tag
+            color={
+              p.carry_forward
+                ? "green"
+                : "default"
+            }
+          >
+            {p.carry_forward
+              ? "Yes"
+              : "No"}
+          </Tag>
+        )
+      },
+
+      {
+        title: "Max CF Days",
+        render: (_, p) =>
+          p.carry_forward
+            ? `${p.max_carry_forward_days} days`
+            : "—"
+      },
+
+      {
+        title: "Approval",
+        render: (_, p) => (
+          <Tag
+            color={
+              p.requires_approval
+                ? "orange"
+                : "blue"
+            }
+          >
+            {p.requires_approval
+              ? "Required"
+              : "Auto"}
+          </Tag>
+        )
+      },
+
+      {
+        title: "Applicable",
+        dataIndex: "applicable_gender",
+      },
+
+      {
+        title: "Actions",
+        render: (_, p) => (
+
+          <Button
+            size="small"
+            onClick={() => openEditPolicy(p)}
+          >
+            Edit
+          </Button>
+
+        )
+      },
+
+    ]}
+  />
+
+</div>
             </div>
           </TabPane>
 
@@ -965,28 +1678,91 @@ export default function HRMSAdmin() {
                   Add Advance
                 </Button>
               </div>
-              <Table
-                size="small"
-                loading={advLoading}
-                dataSource={advances}
-                rowKey="id"
-                columns={[
-                  { title: 'Employee', key: 'emp', render: (_, r) => r.employee ? `${r.employee.name} (${r.employee.employee_code})` : '--' },
-                  { title: 'Requested', dataIndex: 'requested_date', render: v => dayjs(v).format('DD MMM YYYY') },
-                  { title: 'Amount', dataIndex: 'amount', render: v => <span className="font-bold text-gray-800">₹{parseFloat(v).toLocaleString('en-IN')}</span> },
-                  { title: 'Reason', dataIndex: 'reason', ellipsis: true },
-                  { title: 'Deduct Month', key: 'deduct', render: (_, r) => r.deduct_month ? `${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][r.deduct_month-1]} ${r.deduct_year}` : '—' },
-                  { title: 'Status', dataIndex: 'status', render: v => {
-                    const c = { pending:'orange', approved:'blue', paid:'green', rejected:'red', deducted:'default' };
-                    return <Tag color={c[v]}>{v}</Tag>;
-                  }},
-                  { title: 'Actions', key: 'actions', render: (_, r) => (
-                    <Button size="small" onClick={() => { setSelectedAdv(r); advForm.setFieldsValue({ status: r.status, admin_notes: r.admin_notes, deduct_month: r.deduct_month, deduct_year: r.deduct_year }); setAdvModal(true); }}>
-                      Manage
-                    </Button>
-                  )},
-                ]}
-              />
+              {/* MOBILE */}
+<div className="mobile-view">
+
+  {advances.map((adv) => (
+
+    <div key={adv.id} className="mobile-card">
+
+      <h3 className="font-bold text-[14px]">
+        {adv.employee?.name}
+      </h3>
+
+      <div className="mt-3">
+
+        <p className="mobile-label">Amount</p>
+
+        <p className="text-[18px] font-bold text-green-600">
+          ₹{adv.amount}
+        </p>
+
+      </div>
+
+      <Tag className="mt-2">
+        {adv.status}
+      </Tag>
+
+      <Button
+        block
+        type="primary"
+        className="mt-4"
+        onClick={() => {
+          setSelectedAdv(adv);
+          advForm.setFieldsValue({
+            status: adv.status,
+            admin_notes: adv.admin_notes,
+            deduct_month: adv.deduct_month,
+            deduct_year: adv.deduct_year
+          });
+          setAdvModal(true);
+        }}
+      >
+        Manage
+      </Button>
+
+    </div>
+
+  ))}
+
+</div>
+
+{/* DESKTOP */}
+<div className="desktop-table overflow-x-auto">
+
+<Table
+  size="small"
+  loading={advLoading}
+  dataSource={advances}
+  rowKey="id"
+  columns={[
+    { title: 'Employee', key: 'emp', render: (_, r) => r.employee ? `${r.employee.name} (${r.employee.employee_code})` : '--' },
+    { title: 'Requested', dataIndex: 'requested_date', render: v => dayjs(v).format('DD MMM YYYY') },
+    { title: 'Amount', dataIndex: 'amount', render: v => <span className="font-bold text-gray-800">₹{parseFloat(v).toLocaleString('en-IN')}</span> },
+    { title: 'Reason', dataIndex: 'reason', ellipsis: true },
+    { title: 'Deduct Month', key: 'deduct', render: (_, r) => r.deduct_month ? `${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][r.deduct_month-1]} ${r.deduct_year}` : '—' },
+    { title: 'Status', dataIndex: 'status', render: v => {
+      const c = { pending:'orange', approved:'blue', paid:'green', rejected:'red', deducted:'default' };
+      return <Tag color={c[v]}>{v}</Tag>;
+    }},
+    { title: 'Actions', key: 'actions', render: (_, r) => (
+      <Button size="small" onClick={() => {
+        setSelectedAdv(r);
+        advForm.setFieldsValue({
+          status: r.status,
+          admin_notes: r.admin_notes,
+          deduct_month: r.deduct_month,
+          deduct_year: r.deduct_year
+        });
+        setAdvModal(true);
+      }}>
+        Manage
+      </Button>
+    )},
+  ]}
+/>
+
+</div>
             </div>
           </TabPane>
 

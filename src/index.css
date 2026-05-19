@@ -68,3 +68,46 @@ body {
 body {
   font-family: var(--font-sans) !important;
 }
+/* MOBILE DEFAULT */
+.mobile-view{
+  display:block;
+}
+
+.desktop-table{
+  display:none;
+}
+
+/* TABLET + DESKTOP */
+@media screen and (min-width:768px){
+
+  .mobile-view{
+    display:none !important;
+  }
+
+  .desktop-table{
+    display:block !important;
+  }
+
+}
+
+/* MOBILE CARD DESIGN */
+.mobile-card{
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:14px;
+  padding:16px;
+  margin-bottom:14px;
+  box-shadow:0 1px 3px rgba(0,0,0,0.05);
+}
+
+.mobile-label{
+  font-size:11px;
+  color:#94a3b8;
+  margin-bottom:2px;
+}
+
+.mobile-value{
+  font-size:13px;
+  color:#111827;
+  font-weight:500;
+}
