@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect, useCallback, useRef } from "react";
-import { message, Spin, Modal } from "antd";
+import { message, Modal, Spin } from "antd";
 import { LogIn, LogOut, Plus, User, Camera, MapPin, RefreshCw, CheckCircle } from "lucide-react";
 import dayjs from "dayjs";
 import empApi from "../../api/employeeApi";
@@ -133,19 +133,29 @@ function SignInModal({ open, onConfirm, onCancel, loading }) {
         {/* Actions */}
         <div className="flex gap-3">
           {step === "camera" ? (
-            <button onClick={takeSelfie} disabled={!!camError}
+            <button onClick={takeSelfie} disabled={!!camError || loading}
               className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl text-[13px] font-semibold disabled:opacity-40 transition">
               <Camera size={15} /> Take Selfie
             </button>
           ) : (
-            <button onClick={retake}
-              className="flex items-center justify-center gap-2 border border-gray-300 text-gray-600 px-4 py-2.5 rounded-xl text-[13px] font-medium hover:bg-gray-50 transition">
+            <button onClick={retake} disabled={loading}
+              className="flex items-center justify-center gap-2 border border-gray-300 text-gray-600 px-4 py-2.5 rounded-xl text-[13px] font-medium hover:bg-gray-50 disabled:opacity-40 transition">
               <RefreshCw size={14} /> Retake
             </button>
           )}
           <button onClick={handleConfirm} disabled={loading || !selfieData || !location}
-            className="flex-1 flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white py-2.5 rounded-xl text-[13px] font-semibold disabled:opacity-40 transition">
-            {loading ? <Spin size="small" /> : <><LogIn size={15} /> Confirm Sign In</>}
+            className="flex-1 flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white py-2.5 rounded-xl text-[13px] font-semibold disabled:opacity-60 transition relative overflow-hidden">
+            {loading ? (
+              <>
+                <svg className="animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                </svg>
+                Signing In…
+              </>
+            ) : (
+              <><LogIn size={15} /> Confirm Sign In</>
+            )}
           </button>
         </div>
         <p className="text-[11px] text-gray-400 text-center">

@@ -10,6 +10,11 @@ import {
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 dayjs.extend(relativeTime);
+
+// ── Selfie URL helper — works both locally (proxied) and on hosted servers ────
+const BACKEND_BASE = (import.meta.env.VITE_BACKEND_URL || "").replace(/\/$/, "");
+const getSelfieUrl = (selfie_url) =>
+  selfie_url ? `${BACKEND_BASE}${selfie_url}` : null;
 import api from "../api/api";
 import PayslipTemplate from "./components/PayslipTemplate";
 
@@ -688,7 +693,7 @@ export default function HRMSAdmin() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {proofs.map(r => {
                       const emp = employees.find(e => e.id === r.employee_id);
-                      const selfieUrl = r.selfie_url; // served from frontend/public/selfies/
+                      const selfieUrl = getSelfieUrl(r.selfie_url);
                       const mapsUrl = r.latitude ? `https://www.google.com/maps?q=${r.latitude},${r.longitude}` : null;
                       const expiresIn = r.selfie_expires_at
                         ? Math.max(0, Math.ceil((new Date(r.selfie_expires_at) - Date.now()) / (1000 * 60 * 60)))
@@ -1350,7 +1355,7 @@ export default function HRMSAdmin() {
                   {/* Selfie thumbnail */}
                   <div className="w-28 flex-shrink-0 bg-black">
                     <img
-                      src={attEditData.existingRecord.selfie_url}
+                      src={getSelfieUrl(attEditData.existingRecord.selfie_url)}
                       alt="Sign-in selfie"
                       className="w-full h-full object-cover"
                       style={{ maxHeight: 112 }}
@@ -1777,7 +1782,7 @@ export default function HRMSAdmin() {
 // ── Sign-In Proof Viewer Modal (Admin) ────────────────────────────────────────
 function ProofModal({ record, onClose }) {
   if (!record) return null;
-  const selfieUrl = record.selfie_url ?? null; // served from frontend/public/selfies/
+  const selfieUrl = getSelfieUrl(record.selfie_url);
   const mapsUrl = record.latitude && record.longitude
     ? `https://www.google.com/maps?q=${record.latitude},${record.longitude}`
     : null;
