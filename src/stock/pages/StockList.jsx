@@ -29,9 +29,9 @@ const StockList = () => {
         setLoading(true);
         try {
             const data = await stockService.getAll({
-                page: params.current || pagination.current,
-                limit: params.pageSize || pagination.pageSize,
-                search: params.search || searchText,
+                page: params.current || 1,
+                limit: params.pageSize || 10,
+                search: params.search !== undefined ? params.search : searchText,
             });
 
             setStocks(data.data || []);
@@ -47,7 +47,7 @@ const StockList = () => {
         } finally {
             setLoading(false);
         }
-    }, [pagination.current, pagination.pageSize, searchText, selectedBranch]);
+    }, [selectedBranch, searchText]);
 
     useEffect(() => {
         if (selectedBranch) {
@@ -56,12 +56,12 @@ const StockList = () => {
     }, [selectedBranch]);
 
     const handleSearch = (value) => {
-        setPagination((prev) => ({ ...prev, current: 1 }));
         setSearchText(value);
+        fetchStocks({ current: 1, search: value });
     };
 
     const handleTableChange = (pag) => {
-        setPagination(pag);
+        fetchStocks({ current: pag.current, pageSize: pag.pageSize });
     };
 
     const handleDownloadSample = () => {

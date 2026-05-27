@@ -250,8 +250,9 @@ const DashboardFull = () => {
           )}
         </Col>
         <Col>
-          <Select value={period} onChange={setPeriod} style={{ width: 120 }}>
+          <Select value={period} onChange={setPeriod} style={{ width: 130 }}>
             <Option value="today">Today</Option>
+            <Option value="yesterday">Yesterday</Option>
             <Option value="week">This Week</Option>
             <Option value="month">This Month</Option>
             <Option value="year">This Year</Option>

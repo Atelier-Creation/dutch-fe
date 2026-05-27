@@ -277,6 +277,10 @@ const [messageApi, contextHolder] = message.useMessage();
   const [couponValidating, setCouponValidating] = useState(false);
   const [couponData, setCouponData] = useState(null);
   const [couponApplied, setCouponApplied] = useState(false);
+
+  // Bill-level discount (percentage ↔ amount auto-convert)
+  const [billDiscountPct, setBillDiscountPct] = useState(0);
+  const [billDiscountAmt, setBillDiscountAmt] = useState(0);
   const [couponError, setCouponError] = useState(""); // Track coupon validation errors
 
   // Customer states
@@ -295,8 +299,35 @@ const [messageApi, contextHolder] = message.useMessage();
   const [generatedCoupon, setGeneratedCoupon] = useState(null);
 
   // Bill Management (Tabs)
-  const [bills, setBills] = useState([]);
-  const [activeBillKey, setActiveBillKey] = useState("1");
+  const DRAFT_KEY = "billing_draft_bills";
+  const DRAFT_ACTIVE_KEY = "billing_draft_active";
+
+  // Load persisted drafts from sessionStorage on first mount
+  const [bills, setBills] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem(DRAFT_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Restore dayjs objects
+        return parsed.map(b => ({
+          ...b,
+          formValues: {
+            ...b.formValues,
+            billing_date: b.formValues?.billing_date ? dayjs(b.formValues.billing_date) : dayjs(),
+          },
+          preview: {
+            ...b.preview,
+            billing_date: b.preview?.billing_date ? dayjs(b.preview.billing_date) : dayjs(),
+          },
+        }));
+      }
+    } catch { /* ignore */ }
+    return [];
+  });
+
+  const [activeBillKey, setActiveBillKey] = useState(() => {
+    return sessionStorage.getItem(DRAFT_ACTIVE_KEY) || "1";
+  });
   const { selectedBranch, branches } = useBranch();
 
   const currentBranchDetails = branches.find(b => b.branch_id === selectedBranch?.id)?.branch;
@@ -327,8 +358,26 @@ const [messageApi, contextHolder] = message.useMessage();
       const initial = createNewBillState("1");
       setBills([initial]);
       loadBillToForm(initial);
+    } else {
+      // Restore the active bill into the form on mount
+      const activeBill = bills.find(b => b.key === activeBillKey) || bills[0];
+      if (activeBill) loadBillToForm(activeBill);
     }
   }, []);
+
+  // Persist bills to sessionStorage whenever they change
+  useEffect(() => {
+    if (bills.length > 0) {
+      try {
+        sessionStorage.setItem("billing_draft_bills", JSON.stringify(bills));
+      } catch { /* ignore quota errors */ }
+    }
+  }, [bills]);
+
+  // Persist active key
+  useEffect(() => {
+    sessionStorage.setItem("billing_draft_active", activeBillKey);
+  }, [activeBillKey]);
 
   const loadBillToForm = (billState) => {
     form.setFieldsValue(billState.formValues);
@@ -662,6 +711,25 @@ const [messageApi, contextHolder] = message.useMessage();
     setPreview((p) => ({ ...p, items }));
   };
 
+  // Bill-level discount handlers — auto-convert between % and amount
+  const handleBillDiscountPct = (val) => {
+    const pct = Math.min(100, Math.max(0, parseFloat(val) || 0));
+    const items = form.getFieldValue("items") || [];
+    const subtotal = items.reduce((s, i) => s + (Number(i.unit_price) || 0) * (Number(i.quantity) || 0), 0);
+    const amt = parseFloat(((pct / 100) * subtotal).toFixed(2));
+    setBillDiscountPct(pct);
+    setBillDiscountAmt(amt);
+  };
+
+  const handleBillDiscountAmt = (val) => {
+    const amt = Math.max(0, parseFloat(val) || 0);
+    const items = form.getFieldValue("items") || [];
+    const subtotal = items.reduce((s, i) => s + (Number(i.unit_price) || 0) * (Number(i.quantity) || 0), 0);
+    const pct = subtotal > 0 ? parseFloat(((amt / subtotal) * 100).toFixed(2)) : 0;
+    setBillDiscountAmt(amt);
+    setBillDiscountPct(pct);
+  };
+
   // calculate invoice summary
   const calculateSummaryFromItems = (items, appliedCoupon = null) => {
     const subtotal = items.reduce((sum, i) => sum + (Number(i.unit_price) || 0) * (Number(i.quantity) || 0), 0);
@@ -670,12 +738,11 @@ const [messageApi, contextHolder] = message.useMessage();
 
     let couponDiscount = 0;
     if (appliedCoupon && couponApplied) {
-      // Handle both response structures
       couponDiscount = appliedCoupon.discount_amount || appliedCoupon.discount?.discountAmount || 0;
     }
 
-    const grandTotal = subtotal - totalDiscount + totalTax - couponDiscount;
-    return { subtotal, totalDiscount, totalTax, couponDiscount, grandTotal };
+    const grandTotal = subtotal - totalDiscount - billDiscountAmt + totalTax - couponDiscount;
+    return { subtotal, totalDiscount, billDiscount: billDiscountAmt, billDiscountPct, totalTax, couponDiscount, grandTotal: Math.max(0, grandTotal) };
   };
 
   // Validate coupon
@@ -966,7 +1033,7 @@ const [messageApi, contextHolder] = message.useMessage();
 
       // Summaries
       const subtotal = items.reduce((s, it) => s + (it.unit_price * it.quantity), 0);
-      const discount_amount = items.reduce((s, it) => s + (it.discount_amount || 0), 0);
+      const discount_amount = items.reduce((s, it) => s + (it.discount_amount || 0), 0) + billDiscountAmt;
       const tax_amount = items.reduce((s, it) => s + (it.tax_amount || 0), 0);
       const totalQuantity = items.reduce((s, it) => s + (it.quantity || 0), 0);
 
@@ -978,7 +1045,7 @@ const [messageApi, contextHolder] = message.useMessage();
         coupon_code_used = couponCode.toUpperCase();
       }
 
-      const totalAmount = subtotal - discount_amount + tax_amount - coupon_discount;
+      const totalAmount = Math.max(0, subtotal - discount_amount + tax_amount - coupon_discount);
 
       // bill_no is optional — server generates billing_no; keep client-side id in bill_no if provided
       const bill_no = values.bill_no || `BILL-${Date.now()}`;
@@ -1335,6 +1402,7 @@ const [messageApi, contextHolder] = message.useMessage();
                         <Select placeholder="Select source">
                           <Option value="Walk-in">Walk-in</Option>
                           <Option value="Instagram">Instagram</Option>
+                          <Option value="Google Search">Google Search</Option>
                           <Option value="Ads">Ads</Option>
                           <Option value="Other">Other</Option>
                         </Select>
@@ -1891,9 +1959,45 @@ const [messageApi, contextHolder] = message.useMessage();
                         <div>Tax</div>
                         <div>₹{summary.totalTax.toFixed(2)}</div>
                       </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                        <div>Discount</div>
-                        <div>₹{summary.totalDiscount.toFixed(2)}</div>
+                      {summary.totalDiscount > 0 && (
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                          <div style={{ color: "#6b7280" }}>Item Discounts</div>
+                          <div style={{ color: "#ef4444" }}>-₹{summary.totalDiscount.toFixed(2)}</div>
+                        </div>
+                      )}
+
+                      {/* ── Bill-level discount ── */}
+                      <div style={{ marginBottom: 8, padding: "8px 10px", background: "#fef9f0", border: "1px solid #fde68a", borderRadius: 8 }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: "#92400e", marginBottom: 6 }}>Bill Discount</div>
+                        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                          <InputNumber
+                            size="small"
+                            min={0}
+                            max={100}
+                            precision={2}
+                            value={billDiscountPct || null}
+                            onChange={handleBillDiscountPct}
+                            addonAfter="%"
+                            style={{ flex: 1 }}
+                            placeholder="0"
+                          />
+                          <span style={{ color: "#9ca3af", fontSize: 12 }}>↔</span>
+                          <InputNumber
+                            size="small"
+                            min={0}
+                            precision={2}
+                            value={billDiscountAmt || null}
+                            onChange={handleBillDiscountAmt}
+                            prefix="₹"
+                            style={{ flex: 1 }}
+                            placeholder="0"
+                          />
+                        </div>
+                        {billDiscountAmt > 0 && (
+                          <div style={{ fontSize: 11, color: "#d97706", marginTop: 4 }}>
+                            Saving ₹{billDiscountAmt.toFixed(2)} ({billDiscountPct.toFixed(1)}% off)
+                          </div>
+                        )}
                       </div>
 
                       {couponApplied && summary.couponDiscount > 0 && (

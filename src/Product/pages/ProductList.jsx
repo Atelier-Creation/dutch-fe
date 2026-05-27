@@ -316,13 +316,11 @@ const ProductList = () => {
 
   return (
     <div className="p-4">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+      <div className="flex flex-row items-center gap-2 mb-4 flex-wrap">
         <Search
           placeholder="Search products..."
           value={inputValue}
           onSearch={(v) => {
-            // Assuming setSearchQuery was intended to be setInputValue or trigger fetch
-            // But based on original code:
             searchRef.current = v;
             setPagination((prev) => ({ ...prev, current: 1 }));
             fetchProducts({ search: v, current: 1 });
@@ -330,25 +328,22 @@ const ProductList = () => {
           onChange={handleInputChange}
           enterButton
           allowClear
-          className="w-full md:w-[300px]"
+          style={{ flex: "1 1 180px", minWidth: 140, maxWidth: 300 }}
         />
-        <div className="flex flex-wrap gap-2 w-full md:w-auto">
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate("/Product/add")} className="flex-1 md:flex-none">
-            Add Product
-          </Button>
-          <Button type="default" icon={<DownloadOutlined />} onClick={downloadAllQRPDF} className="flex-1 md:flex-none">
-            Download All QR PDF
-          </Button>
-          <Button
-            type="default"
-            icon={<DownloadOutlined />}
-            onClick={downloadLabelsPDF}
-            disabled={selectedRowKeys.length === 0}
-            className="flex-1 md:flex-none"
-          >
-            Download Labels {selectedRowKeys.length > 0 ? `(${selectedRowKeys.length})` : ""}
-          </Button>
-        </div>
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate("/Product/add")}>
+          Add Product
+        </Button>
+        <Button type="default" icon={<DownloadOutlined />} onClick={downloadAllQRPDF}>
+          QR PDF
+        </Button>
+        <Button
+          type="default"
+          icon={<DownloadOutlined />}
+          onClick={downloadLabelsPDF}
+          disabled={selectedRowKeys.length === 0}
+        >
+          Labels {selectedRowKeys.length > 0 ? `(${selectedRowKeys.length})` : ""}
+        </Button>
       </div>
 
       {!screens.md ? (

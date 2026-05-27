@@ -50,24 +50,26 @@ function SourceWiseReport() {
   const reportRef = useRef(null);
 
   useEffect(() => {
-    fetchReport();
+    // When branch changes, re-fetch with the current period (don't reset it)
+    fetchReport(period, dateRange);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedBranch]);
 
   useEffect(() => {
     if (period === "custom" && dateRange) {
-      fetchReport();
+      fetchReport("custom", dateRange);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateRange]);
 
-  const fetchReport = async () => {
+  const fetchReport = async (p = period, dr = dateRange) => {
     setLoading(true);
     try {
-      const params = { period };
+      const params = { period: p };
 
-      if (period === "custom" && dateRange) {
-        params.startDate = dateRange[0].toISOString();
-        params.endDate = dateRange[1].toISOString();
+      if (p === "custom" && dr) {
+        params.startDate = dr[0].toISOString();
+        params.endDate   = dr[1].toISOString();
       }
 
       const response = await reportService.getSourceWiseReport(params);
@@ -83,12 +85,9 @@ function SourceWiseReport() {
 
   const handlePeriodChange = (value) => {
     setPeriod(value);
-
     if (value !== "custom") {
       setDateRange(null);
-      setTimeout(() => {
-        fetchReport();
-      }, 0);
+      fetchReport(value, null);
     }
   };
 
@@ -108,6 +107,8 @@ function SourceWiseReport() {
           "WhatsApp": "cyan",
           "Instagram": "pink",
           "Facebook": "geekblue",
+          "Google Search": "volcano",
+          "Ads": "gold",
         };
         return (
           <Tag color={colors[source] || "default"} style={{ fontSize: 13, padding: "4px 12px" }}>
@@ -267,8 +268,8 @@ function SourceWiseReport() {
 
   const getPeriodLabel = () => {
     switch (period) {
-      case "today":
-        return "Today";
+      case "today":        return "Today";
+      case "yesterday":    return "Yesterday";
       case "this_month":
         return "This Month";
       case "this_year":
@@ -654,6 +655,7 @@ function SourceWiseReport() {
                   style={{ width: "100%" }}
                 >
                   <Option value="today">Today</Option>
+                  <Option value="yesterday">Yesterday</Option>
                   <Option value="this_month">This Month</Option>
                   <Option value="this_year">This Year</Option>
                   <Option value="custom">Custom Range</Option>
