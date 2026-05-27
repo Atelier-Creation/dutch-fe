@@ -37,7 +37,7 @@ import billingService from "../service/billingService.js";
 import { useBranch } from "../../context/BranchContext";
 import debounce from "lodash.debounce";
 import { jsPDF } from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 
 const { Search } = Input;
 
@@ -217,7 +217,7 @@ function BillingList() {
       bill.status,
     ]);
 
-    doc.autoTable({ head: [["Billing No", "Customer", "Date", "Quantity", "Amount", "Status"]], body: tableData });
+    autoTable(doc, { head: [["Billing No", "Customer", "Date", "Quantity", "Amount", "Status"]], body: tableData });
 
     doc.save("billings.pdf");
   }
@@ -300,34 +300,183 @@ function BillingList() {
   const exportInvoicePDF = (billing) => {
     if (!billing) return;
     const doc = new jsPDF({ unit: "pt", format: "A4" });
+    const W = doc.internal.pageSize.getWidth();
+    const H = doc.internal.pageSize.getHeight();
 
-    doc.setFontSize(18);
-    doc.text("Invoice", 40, 40);
+    // ── Helpers ──────────────────────────────────────────────────────────────
+    const fmt = (v) => `Rs.${parseFloat(v || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+    const dateStr = billing.billing_date
+      ? new Date(billing.billing_date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+      : "-";
 
+    // ── Header band ───────────────────────────────────────────────────────────
+    doc.setFillColor(15, 23, 42);          // dark navy
+    doc.rect(0, 0, W, 90, "F");
+
+    // Logo placeholder (white circle)
+    doc.setFillColor(255, 255, 255);
+    doc.circle(52, 45, 26, "F");
+    // Try to add logo image
+    try {
+      doc.addImage("/duch_small_logo.png", "PNG", 26, 19, 52, 52);
+    } catch { /* skip if not available */ }
+
+    // Company name
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(20);
+    doc.setTextColor(255, 255, 255);
+    doc.text("DUCH CLOTHING", 95, 38);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    doc.setTextColor(148, 163, 184);
+    doc.text("Saibaba Colony Branch, Raja Annamalai Road, Coimbatore – 641011", 95, 54);
+    doc.text("Phone: 9629998446", 95, 67);
+
+    // INVOICE label (right)
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(26);
+    doc.setTextColor(99, 102, 241);
+    doc.text("INVOICE", W - 40, 52, { align: "right" });
+
+    // ── Status badge ──────────────────────────────────────────────────────────
+    const statusColors = { paid: [22, 163, 74], pending: [217, 119, 6], cancelled: [220, 38, 38] };
+    const sc = statusColors[(billing.status || "").toLowerCase()] || [100, 116, 139];
+    doc.setFillColor(...sc);
+    doc.roundedRect(W - 120, 62, 80, 18, 4, 4, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(255, 255, 255);
+    doc.text((billing.status || "").toUpperCase(), W - 80, 74.5, { align: "center" });
+
+    // ── Bill info row ─────────────────────────────────────────────────────────
+    doc.setFillColor(241, 245, 249);
+    doc.rect(0, 90, W, 60, "F");
+
+    const infoItems = [
+      ["Invoice No", billing.billing_no || "-"],
+      ["Date", dateStr],
+      ["Payment", (billing.payment_method || "-").replace(/_/g, " ")],
+      ["Counter", billing.counter_no || "-"],
+    ];
+    infoItems.forEach(([label, value], i) => {
+      const x = 40 + i * 130;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(100, 116, 139);
+      doc.text(label, x, 110);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(15, 23, 42);
+      doc.text(value, x, 126);
+    });
+
+    // ── Customer block ────────────────────────────────────────────────────────
+    doc.setFillColor(238, 242, 255);
+    doc.roundedRect(30, 165, 240, 60, 6, 6, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(99, 102, 241);
+    doc.text("BILL TO", 44, 182);
+    doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
-    doc.text(`Billing No: ${billing.billing_no || "-"}`, 40, 70);
-    doc.text(`Customer: ${billing.customer_name || "-"}`, 40, 88);
-    doc.text(`Date: ${billing.billing_date ? new Date(billing.billing_date).toLocaleString() : "-"}`, 40, 106);
+    doc.setTextColor(15, 23, 42);
+    doc.text(billing.customer_name || "Walk-in Customer", 44, 198);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(71, 85, 105);
+    doc.text(billing.customer_phone || "", 44, 213);
 
-    const head = [["Product", "Code", "Unit", "Qty", "Unit Price", "Total"]];
-    const body = (billing.items || []).map((it) => [
-      it.product?.product_name || "-",
-      it.product?.product_code || "-",
-      it.product?.unit || "-",
+    // ── Items table ───────────────────────────────────────────────────────────
+    const head = [["#", "Product", "Code", "Qty", "Unit Price", "Discount", "Tax", "Total"]];
+    const body = (billing.items || []).map((it, idx) => [
+      idx + 1,
+      it.product?.product_name || it.product_name || "-",
+      it.product?.product_code || it.product_code || "-",
       it.quantity,
-      `₹${it.unit_price}`,
-      `₹${it.total_price}`,
+      fmt(it.unit_price),
+      fmt(it.discount_amount || 0),
+      fmt(it.tax_amount || 0),
+      fmt(it.total_price),
     ]);
 
-    doc.autoTable({ startY: 130, head, body, styles: { fontSize: 10 } });
+    const tableResult = autoTable(doc, {
+      startY: 240,
+      head,
+      body,
+      styles: { fontSize: 9, cellPadding: 7, textColor: [30, 41, 59] },
+      headStyles: {
+        fillColor: [15, 23, 42],
+        textColor: [255, 255, 255],
+        fontStyle: "bold",
+        fontSize: 9,
+      },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      columnStyles: {
+        0: { cellWidth: 24, halign: "center" },
+        3: { halign: "center" },
+        4: { halign: "right" },
+        5: { halign: "right" },
+        6: { halign: "right" },
+        7: { halign: "right", fontStyle: "bold" },
+      },
+      margin: { left: 30, right: 30 },
+      tableLineColor: [226, 232, 240],
+      tableLineWidth: 0.5,
+    });
 
-    const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 20 : 300;
+    const finalY = (tableResult?.finalY ?? 400) + 20;
 
-    doc.text(`Subtotal: ₹${billing.subtotal_amount || "0.00"}`, 40, finalY);
-    doc.text(`Discount: ₹${billing.discount_amount || "0.00"}`, 40, finalY + 16);
-    doc.text(`Tax: ₹${billing.tax_amount || "0.00"}`, 40, finalY + 32);
-    doc.setFontSize(13);
-    doc.text(`Total: ₹${billing.total_amount || "0.00"}`, 40, finalY + 56);
+    // ── Totals block ──────────────────────────────────────────────────────────
+    const totalsX = W - 220;
+    const totalsW = 190;
+
+    const rows = [
+      ["Subtotal",  fmt(billing.subtotal_amount)],
+      ["Discount",  `- ${fmt(billing.discount_amount)}`],
+      ["Tax",       fmt(billing.tax_amount)],
+    ];
+
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.5);
+
+    rows.forEach(([label, value], i) => {
+      const y = finalY + i * 22;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9.5);
+      doc.setTextColor(71, 85, 105);
+      doc.text(label, totalsX, y);
+      doc.setTextColor(30, 41, 59);
+      doc.text(value, totalsX + totalsW, y, { align: "right" });
+      doc.line(totalsX, y + 5, totalsX + totalsW, y + 5);
+    });
+
+    // Grand total band
+    const totalY = finalY + rows.length * 22 + 10;
+    doc.setFillColor(15, 23, 42);
+    doc.roundedRect(totalsX - 10, totalY - 14, totalsW + 20, 30, 5, 5, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(255, 255, 255);
+    doc.text("TOTAL", totalsX, totalY + 7);
+    doc.text(fmt(billing.total_amount), totalsX + totalsW, totalY + 7, { align: "right" });
+
+    // ── Notes ─────────────────────────────────────────────────────────────────
+    if (billing.notes) {
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(8.5);
+      doc.setTextColor(100, 116, 139);
+      doc.text(`Note: ${billing.notes}`, 30, totalY + 50);
+    }
+
+    // ── Footer ────────────────────────────────────────────────────────────────
+    doc.setFillColor(15, 23, 42);
+    doc.rect(0, H - 36, W, 36, "F");
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(148, 163, 184);
+    doc.text("Thank you for shopping with DUCH CLOTHING!", W / 2, H - 20, { align: "center" });
+    doc.text("This is a computer-generated invoice and does not require a signature.", W / 2, H - 9, { align: "center" });
 
     doc.save(`${billing.billing_no || "invoice"}.pdf`);
   };
