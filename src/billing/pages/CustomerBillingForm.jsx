@@ -124,9 +124,15 @@ const CustomerBillingForm = () => {
         items: values.items || [],
         remarks: values.remarks,
       };
-      await BillingService.create(payload);
+      const response = await BillingService.create(payload);
+      const createdBill = response.data || response;
+      const receiptUrl = createdBill.id
+        ? `/billing/customer-copy/${createdBill.id}?print=1`
+        : "/billing/customer-copy?print=1";
       messageApi.success("Billing created successfully");
-      navigate("/billing/customer-copy", { state: { billing: payload } });
+      navigate(receiptUrl, {
+        state: { billing: createdBill.id ? createdBill : payload, autoPrint: true },
+      });
     } catch (err) {
       console.error(err);
       messageApi.error("Failed to save billing");

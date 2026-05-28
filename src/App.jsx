@@ -184,6 +184,14 @@ const App = () => {
                 }
               />
               <Route
+                path="/billing/customer-copy/:id"
+                element={
+                  <ProtectedRoute>
+                    <CustomerBillCopy />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/billing/customer-add"
                 element={
                   <ProtectedRoute>
