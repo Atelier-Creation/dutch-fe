@@ -47,6 +47,7 @@ const BillingRoutes = () => {
       <Route path="edit/:id" element={<BillingForm />} />
       <Route path="self-checkout" element={<ComingSoon />} />
       <Route path="customer-copy" element={<CustomerBillCopy />} />
+      <Route path="customer-copy/:id" element={<CustomerBillCopy />} />
       <Route path="reports" element={<SalesReport />} />
       <Route path="source-wise-report" element={<SourceWiseReport />} />
     </Routes>

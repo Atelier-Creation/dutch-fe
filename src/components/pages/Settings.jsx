@@ -4,68 +4,47 @@ import {
   Form,
   Input,
   Button,
-  Switch,
   Divider,
-  Select,
   Tabs,
-  notification,
   Space,
-  Upload,
-  Radio,
   Row,
   Col,
-  Avatar,
   message,
   Spin,
+  Alert,
 } from "antd";
 import {
   SaveOutlined,
   UserOutlined,
-  SettingOutlined,
-  BellOutlined,
   SecurityScanOutlined,
   LockOutlined,
-  UploadOutlined,
-  PlusOutlined
+  PrinterOutlined,
+  ReloadOutlined,
+  DownloadOutlined,
 } from "@ant-design/icons";
-import { useTheme } from "../../context/ThemeContext";
-import { useAuth } from "../../context/AuthContext";
 import userService from "../../user/service/userService";
+import localPrintService from "../../billing/service/localPrintService";
+import { defaultReceiptSettings, getReceiptSettings, saveReceiptSettings } from "../../billing/service/receiptSettings";
 
-const { Option } = Select;
 const { TabPane } = Tabs;
 
 const Settings = () => {
   const [profileForm] = Form.useForm();
   const [securityForm] = Form.useForm();
+  const [receiptForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [fetchingData, setFetchingData] = useState(false);
-  const [avatarUrl, setAvatarUrl] = useState(null);
   const [activeTab, setActiveTab] = useState("profile");
   const [userData, setUserData] = useState(null);
-  const { user } = useAuth();
-
-  const {
-    theme,
-    setTheme,
-    primaryColor,
-    setPrimaryColor,
-    contentBgColor,
-    setContentBgColor,
-    headerBgColor,
-    setHeaderBgColor,
-    sidebarBgColor,
-    setSidebarBgColor,
-    footerBgColor,
-    setFooterBgColor,
-    presetThemes,
-    applyPresetTheme,
-    currentPreset,
-  } = useTheme();
+  const [printerName, setPrinterName] = useState(() => localStorage.getItem("thermalPrinterName") || "");
+  const [localPrinters, setLocalPrinters] = useState([]);
+  const [printServiceStatus, setPrintServiceStatus] = useState(null);
+  const [printServiceLoading, setPrintServiceLoading] = useState(false);
 
   // Fetch user data on component mount
   useEffect(() => {
     fetchUserData();
+    receiptForm.setFieldsValue(getReceiptSettings());
   }, []);
 
   const fetchUserData = async () => {
@@ -146,10 +125,91 @@ const Settings = () => {
     }
   };
 
-  const handleAvatarChange = (info) => {
-    if (info.file.status === "done") {
-      setAvatarUrl(URL.createObjectURL(info.file.originFileObj));
+  const checkPrintService = async () => {
+    setPrintServiceLoading(true);
+    try {
+      const status = await localPrintService.checkLocalPrintService();
+      setPrintServiceStatus(status);
+      message.success("Local print service is running");
+    } catch (error) {
+      console.error(error);
+      setPrintServiceStatus(null);
+      message.error("Local print service is not running");
+    } finally {
+      setPrintServiceLoading(false);
     }
+  };
+
+  const fetchLocalPrinters = async () => {
+    setPrintServiceLoading(true);
+    try {
+      const printers = await localPrintService.findLocalPrinters();
+      setLocalPrinters(printers);
+      const defaultPrinter = printers.find((printer) => printer.default);
+      if (!printerName && defaultPrinter) {
+        setPrinterName(defaultPrinter.name);
+        localStorage.setItem("thermalPrinterName", defaultPrinter.name);
+      }
+      message.success("Printers loaded");
+    } catch (error) {
+      console.error(error);
+      message.error(error.message || "Failed to load local printers");
+    } finally {
+      setPrintServiceLoading(false);
+    }
+  };
+
+  const savePrinterName = () => {
+    localStorage.setItem("thermalPrinterName", printerName.trim());
+    message.success("Printer saved for this computer");
+  };
+
+  const handleReceiptSettingsSubmit = (values) => {
+    saveReceiptSettings(values);
+    message.success("Receipt header and footer saved");
+  };
+
+  const resetReceiptSettings = () => {
+    saveReceiptSettings(defaultReceiptSettings);
+    receiptForm.setFieldsValue(defaultReceiptSettings);
+    message.success("Receipt settings reset");
+  };
+
+  const printTestReceipt = async () => {
+    setPrintServiceLoading(true);
+    try {
+      await localPrintService.printReceiptLocally({
+        receiptProfile: getReceiptSettings(),
+        billing_no: "TEST-PRINT",
+        billing_date: new Date().toISOString(),
+        customer_name: "Test Customer",
+        payment_method: "cash",
+        items: [
+          { product_name: "Printer Test", quantity: 1, unit_price: 1, total_price: 1 },
+        ],
+        subtotal_amount: 1,
+        total_amount: 1,
+        paid_amount: 1,
+      }, printerName.trim());
+      message.success("Test receipt sent");
+    } catch (error) {
+      console.error(error);
+      message.error(error.message || "Test print failed");
+    } finally {
+      setPrintServiceLoading(false);
+    }
+  };
+
+  const downloadInstallerCommand = () => {
+    const selectedPrinter = printerName || "80mm Series Printer";
+    const script = `# DUCH Local Print Service installer\n# Run this from the extracted local-print-service folder.\n\npowershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\install-startup-shortcut.ps1 -PrinterName "${selectedPrinter}"\n\n# For Scheduled Task mode, run PowerShell as Administrator:\n# powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\install-windows-task.ps1 -PrinterName "${selectedPrinter}"\n`;
+    const blob = new Blob([script], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "duch-local-print-install.txt";
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -325,6 +385,129 @@ const Settings = () => {
                 </Button>
               </Form.Item>
             </Form>
+          </TabPane>
+          <TabPane
+            tab={
+              <span>
+                <PrinterOutlined /> Printer
+              </span>
+            }
+            key="printer"
+          >
+            <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+              <Alert
+                type={printServiceStatus ? "success" : "info"}
+                showIcon
+                message={printServiceStatus ? "Local print service is running" : "Configure local thermal printing"}
+                description={
+                  printServiceStatus
+                    ? `Connected to ${printServiceStatus.service}. Default printer: ${printServiceStatus.default_printer || "Not set"}`
+                    : "Install and run DUCH Local Print Service on each cashier computer. The web app prints to http://127.0.0.1:9123."
+                }
+              />
+
+              <Row gutter={16}>
+                <Col xs={24} md={16}>
+                  <Form layout="vertical">
+                    <Form.Item label="Thermal Printer Name">
+                      <Input
+                        list="settings-local-printers"
+                        value={printerName}
+                        onChange={(event) => setPrinterName(event.target.value)}
+                        placeholder="80mm Series Printer"
+                      />
+                      <datalist id="settings-local-printers">
+                        {localPrinters.map((printer) => (
+                          <option key={printer.name} value={printer.name} />
+                        ))}
+                      </datalist>
+                    </Form.Item>
+                  </Form>
+                </Col>
+              </Row>
+
+              <Space wrap>
+                <Button loading={printServiceLoading} icon={<ReloadOutlined />} onClick={checkPrintService}>
+                  Check Service
+                </Button>
+                <Button loading={printServiceLoading} onClick={fetchLocalPrinters}>
+                  Find Local Printers
+                </Button>
+                <Button type="primary" icon={<SaveOutlined />} onClick={savePrinterName}>
+                  Save Printer
+                </Button>
+                <Button loading={printServiceLoading} icon={<PrinterOutlined />} onClick={printTestReceipt}>
+                  Print Test
+                </Button>
+                <Button icon={<DownloadOutlined />} onClick={downloadInstallerCommand}>
+                  Download Install Command
+                </Button>
+              </Space>
+
+              <Divider />
+
+              <Form
+                form={receiptForm}
+                layout="vertical"
+                onFinish={handleReceiptSettingsSubmit}
+              >
+                <Row gutter={16}>
+                  <Col xs={24} md={12}>
+                    <Form.Item label="Store Name" name="storeName">
+                      <Input placeholder="DUCH CLOTHING" />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <Form.Item label="Bill Title" name="billTitle">
+                      <Input placeholder="CASH BILL" />
+                    </Form.Item>
+                  </Col>
+                </Row>
+
+                <Row gutter={16}>
+                  <Col xs={24} md={12}>
+                    <Form.Item label="Instagram ID" name="instagram">
+                      <Input placeholder="duch clothing_" />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <Form.Item label="GST Number" name="gstin">
+                      <Input placeholder="33AYDPV1722F1ZO" />
+                    </Form.Item>
+                  </Col>
+                </Row>
+
+                <Row gutter={16}>
+                  <Col xs={24} md={12}>
+                    <Form.Item label="Cell Number 1" name="cell1">
+                      <Input placeholder="7010968189" />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <Form.Item label="Cell Number 2" name="cell2">
+                      <Input placeholder="8973418464" />
+                    </Form.Item>
+                  </Col>
+                </Row>
+
+                <Form.Item label="Footer Title" name="footerTitle">
+                  <Input placeholder="Terms & Conditions:" />
+                </Form.Item>
+
+                <Form.Item label="Footer Terms" name="footerTerms">
+                  <Input.TextArea rows={5} placeholder="One term per line" />
+                </Form.Item>
+
+                <Space wrap>
+                  <Button type="primary" htmlType="submit" icon={<SaveOutlined />}>
+                    Save Header/Footer
+                  </Button>
+                  <Button onClick={resetReceiptSettings}>
+                    Reset Header/Footer
+                  </Button>
+                </Space>
+              </Form>
+            </Space>
           </TabPane>
         </Tabs>
       </Card>

@@ -377,6 +377,9 @@ function BillingList() {
           <Tooltip title="Quick view">
             <Button type="default" icon={<EyeOutlined />} onClick={() => showDetails(record)} />
           </Tooltip>
+          <Tooltip title="Print thermal receipt">
+            <Button icon={<PrinterOutlined />} onClick={() => navigate(`/billing/customer-copy/${record.id}?print=1`)} />
+          </Tooltip>
           <Button type="primary" icon={<EditOutlined />} onClick={() => navigate(`/billing/edit/${record.id}`)} />
           {/* <Popconfirm title="Are you sure to delete this billing?" onConfirm={() => handleDelete(record.id)}>
             <Button danger icon={<DeleteOutlined />} />
@@ -571,6 +574,14 @@ function BillingList() {
                           </Tooltip>
 
                           <Button type="primary" icon={<EditOutlined />} onClick={() => navigate(`/billing/edit/${item.id}`)} style={{ borderRadius: 8, padding: "6px 14px" }} />
+
+                          <Tooltip title="Print thermal receipt">
+                            <Button
+                              icon={<PrinterOutlined />}
+                              onClick={() => navigate(`/billing/customer-copy/${item.id}?print=1`)}
+                              style={{ borderRadius: 8, padding: "6px 14px" }}
+                            />
+                          </Tooltip>
 
                           {/* <Popconfirm title="Are you sure to delete this billing?" onConfirm={() => handleDelete(item.id)}>
                             <Button danger icon={<DeleteOutlined />} style={{ borderRadius: 8, padding: "6px 14px" }} />

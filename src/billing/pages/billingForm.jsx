@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { Tabs } from "antd";
 import { useBranch } from "../../context/BranchContext";
 import {
@@ -26,6 +26,8 @@ import { CheckCircleOutlined, GiftOutlined, DeleteOutlined, PlusOutlined, EditOu
 import dayjs from "dayjs";
 import productService from "../../Product/services/productService";
 import billingService from "../service/billingService";
+import localPrintService from "../service/localPrintService";
+import { getReceiptProfile } from "../service/receiptSettings";
 import couponService from "../../coupon/service/couponService";
 import customerService from "../../customer/service/customerService";
 import { Gift, Laptop, PhoneCall, Printer, ShieldCheck, Trash2 } from "lucide-react";
@@ -35,7 +37,6 @@ const { Option } = Select;
 
 function BillingForm() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [fetchingData, setFetchingData] = useState(false);
@@ -297,6 +298,7 @@ const [messageApi, contextHolder] = message.useMessage();
   // Success modal for generated coupon
   const [showCouponModal, setShowCouponModal] = useState(false);
   const [generatedCoupon, setGeneratedCoupon] = useState(null);
+  const [billToPrint, setBillToPrint] = useState(null);
 
   // Bill Management (Tabs)
   const DRAFT_KEY = "billing_draft_bills";
@@ -331,6 +333,44 @@ const [messageApi, contextHolder] = message.useMessage();
   const { selectedBranch, branches } = useBranch();
 
   const currentBranchDetails = branches.find(b => b.branch_id === selectedBranch?.id)?.branch;
+
+  const printBillSilently = async (bill, sourceItems) => {
+    const printableItems = (sourceItems || []).map((rawItem) => {
+      const item = updateItemCalculations({ ...rawItem });
+      return {
+        ...item,
+        product: item.product || {
+          product_name: item.product_name,
+          product_code: item.product_code,
+          unit: item.unit,
+        },
+        product_name: item.product_name,
+        product_code: item.product_code,
+        quantity: Number(item.quantity || 0),
+        unit_price: Number(item.unit_price || 0),
+        total_price: Number(item.total_price || 0),
+        tax_amount: Number(item.tax_amount || 0),
+      };
+    });
+
+    const printableBill = {
+      ...bill,
+      items: printableItems,
+      customer_name: bill.customer_name || form.getFieldValue("customer_name") || "",
+      customer_phone: bill.customer_phone || form.getFieldValue("customer_phone") || "",
+      counter_no: bill.counter_no || form.getFieldValue("counter_no") || null,
+      payment_method: bill.payment_method || form.getFieldValue("payment_method") || "cash",
+      receiptProfile: getReceiptProfile({
+        branches,
+        selectedBranch,
+        branch: bill.branch || currentBranchDetails,
+      }),
+    };
+
+    const printerName = localStorage.getItem("thermalPrinterName") || "";
+    await localPrintService.printReceiptLocally(printableBill, printerName);
+    return printableBill;
+  };
 
   // Helper to generate a blank bill state
   const createNewBillState = (key) => {
@@ -1102,15 +1142,25 @@ const [messageApi, contextHolder] = message.useMessage();
       }
       
       const result = response.data || response;
+      let printableBill = result;
+
+      try {
+        printableBill = await printBillSilently(result, itemsRaw);
+        messageApi.success("Thermal receipt printed");
+      } catch (printError) {
+        console.error("thermal print error:", printError);
+        messageApi.error(`Bill saved but thermal print failed: ${printError.message}`);
+      }
 
       // Check if a referral coupon was generated (only for new billings)
       if (!id && result.coupon_generated) {
         setGeneratedCoupon(result.coupon_generated);
+        setBillToPrint(printableBill);
         setShowCouponModal(true);
       } else {
-  setTimeout(() => {
-    closeCurrentTab();
-  }, 1500);
+        setTimeout(() => {
+          closeCurrentTab();
+        }, 500);
       }
     } catch (err) {
       console.error("create billing error:", err);
@@ -2058,17 +2108,32 @@ const [messageApi, contextHolder] = message.useMessage();
         open={showCouponModal}
         onCancel={() => {
           setShowCouponModal(false);
-          navigate("/billing/list");
+          closeCurrentTab();
         }
         }
         footer={
           [
             <Button
+              key="print-again"
+              onClick={async () => {
+                if (!billToPrint) return;
+                try {
+                  const printerName = localStorage.getItem("thermalPrinterName") || "";
+                  await localPrintService.printReceiptLocally(billToPrint, printerName);
+                  messageApi.success("Thermal receipt printed");
+                } catch (error) {
+                  messageApi.error(`Thermal print failed: ${error.message}`);
+                }
+              }}
+            >
+              Print Again
+            </Button>,
+            <Button
               key="done"
               type="primary"
               onClick={() => {
                 setShowCouponModal(false);
-                navigate("/billing/list");
+                closeCurrentTab();
               }}
             >
               Done
