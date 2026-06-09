@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { Tabs } from "antd";
 import { useBranch } from "../../context/BranchContext";
@@ -298,6 +298,12 @@ const [messageApi, contextHolder] = message.useMessage();
   // Success modal for generated coupon
   const [showCouponModal, setShowCouponModal] = useState(false);
   const [generatedCoupon, setGeneratedCoupon] = useState(null);
+
+  // Print confirmation modal after billing save
+  const [printConfirmModal, setPrintConfirmModal] = useState(false);
+  const printYesRef = useRef(null);
+  const [savedBillingResult, setSavedBillingResult] = useState(null);
+  const [savedItemsRaw, setSavedItemsRaw] = useState([]);
   const [billToPrint, setBillToPrint] = useState(null);
 
   // Bill Management (Tabs)
@@ -1106,7 +1112,7 @@ const [messageApi, contextHolder] = message.useMessage();
         coupon_discount, // Add coupon discount
         coupon_code: coupon_code_used, // Add coupon code
         total_amount: totalAmount,
-        paid_amount: Number(values.paid_amount || totalAmount),
+        paid_amount: totalAmount, // Always equal to total — bill is fully paid on submit
         payment_method: isSplitPayment ? "split" : (values.payment_method || "cash"),
         payment_details: isSplitPayment ? splitPayments : null,
         notes: values.remarks || "",
@@ -1132,35 +1138,22 @@ const [messageApi, contextHolder] = message.useMessage();
 
       let response;
       if (id) {
-        // Update existing billing
         response = await billingService.update(id, payload);
         messageApi.success("Billing updated successfully" + (couponApplied ? " with coupon applied!" : ""));
       } else {
-        // Create new billing
         response = await billingService.create(payload);
         messageApi.success("Billing created successfully" + (couponApplied ? " with coupon applied!" : ""));
       }
-      
+
       const result = response.data || response;
-      let printableBill = result;
 
-      try {
-        printableBill = await printBillSilently(result, itemsRaw);
-        messageApi.success("Thermal receipt printed");
-      } catch (printError) {
-        console.error("thermal print error:", printError);
-        messageApi.error(`Bill saved but thermal print failed: ${printError.message}`);
-      }
-
-      // Check if a referral coupon was generated (only for new billings)
       if (!id && result.coupon_generated) {
         setGeneratedCoupon(result.coupon_generated);
-        setBillToPrint(printableBill);
         setShowCouponModal(true);
       } else {
-        setTimeout(() => {
-          closeCurrentTab();
-        }, 500);
+        setSavedBillingResult(result);
+        setSavedItemsRaw(itemsRaw);
+        setPrintConfirmModal(true);
       }
     } catch (err) {
       console.error("create billing error:", err);
@@ -1453,6 +1446,8 @@ const [messageApi, contextHolder] = message.useMessage();
                           <Option value="Walk-in">Walk-in</Option>
                           <Option value="Instagram">Instagram</Option>
                           <Option value="Google Search">Google Search</Option>
+                          <Option value="Google Review">Google Review</Option>
+                          <Option value="Friend Ref">Friend Ref</Option>
                           <Option value="Ads">Ads</Option>
                           <Option value="Other">Other</Option>
                         </Select>
@@ -2102,6 +2097,55 @@ const [messageApi, contextHolder] = message.useMessage();
           </Form>
         </Spin>
       </div >
+
+      {/* ── Print Confirmation Modal ── */}
+      <Modal
+        open={printConfirmModal}
+        onCancel={() => { setPrintConfirmModal(false); closeCurrentTab(); }}
+        afterOpenChange={(open) => { if (open && printYesRef.current) printYesRef.current.focus(); }}
+        footer={null}
+        width={380}
+        centered
+        closable={false}
+      >
+        <div style={{ textAlign: "center", padding: "8px 0 16px" }}>
+          <div style={{ width: 60, height: 60, borderRadius: "50%", background: "#f0fdf4", border: "2px solid #bbf7d0", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: "#111827", marginBottom: 6 }}>
+            Bill Saved Successfully!
+          </div>
+          <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 24 }}>
+            Do you want to print the thermal receipt?
+          </div>
+          <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+            <button
+              onClick={() => { setPrintConfirmModal(false); closeCurrentTab(); }}
+              style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: "1.5px solid #e5e7eb", background: "#fff", color: "#374151", fontWeight: 600, fontSize: 14, cursor: "pointer" }}
+            >
+              No, Skip
+            </button>
+            <button
+              ref={printYesRef}
+              onClick={async () => {
+                setPrintConfirmModal(false);
+                try {
+                  await printBillSilently(savedBillingResult, savedItemsRaw);
+                  messageApi.success("Thermal receipt printed");
+                } catch (err) {
+                  messageApi.error("Print failed: " + err.message);
+                } finally {
+                  closeCurrentTab();
+                }
+              }}
+              style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: "none", background: "#1e3a8a", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+              Yes, Print
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Success Modal for Generated Coupon */}
       < Modal

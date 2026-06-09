@@ -124,6 +124,8 @@ const [messageApi, contextHolder] = message.useMessage();
               <Select.Option value="Walk-in">Walk-in</Select.Option>
               <Select.Option value="Instagram">Instagram</Select.Option>
               <Select.Option value="Google Search">Google Search</Select.Option>
+              <Select.Option value="Google Review">Google Review</Select.Option>
+              <Select.Option value="Friend Ref">Friend Ref</Select.Option>
               <Select.Option value="Ads">Ads</Select.Option>
               <Select.Option value="Other">Other</Select.Option>
             </Select>

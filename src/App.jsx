@@ -1,6 +1,7 @@
 import { Suspense, useMemo } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import MainLayout from "./components/layout/Mainlayout";
+import { useAuth } from "./context/AuthContext";
 import {
   LayoutDashboard,
   IndianRupee,
@@ -15,7 +16,8 @@ import {
   BarChart,
   Megaphone,
   UserCheck,
-  TrendingUp
+  TrendingUp,
+  Ticket
 } from "lucide-react";
 import CustomerBillCopy from "./billing/pages/CustomerBillCopy";
 import CustomerBillForm from "./billing/pages/CustomerBillingForm";
@@ -38,6 +40,8 @@ import EmployeeAdvance from "./employee/pages/EmployeeAdvance";
 import Loading from "./utils/Loading";
 import Settings from "./components/pages/Settings";
 import ComingSoon from "./billing/pages/ComingSoon";
+import DeveloperLogin from "./ticket/pages/DeveloperLogin";
+import DeveloperPortal from "./ticket/pages/DeveloperPortal";
 
 const routeModules = import.meta.glob("./*/AppRoutes.jsx", { eager: true });
 
@@ -54,8 +58,28 @@ const moduleIcons = {
   user: <User size={20} />,
   marketing: <Megaphone size={20} />,
   employee: <UserCheck size={20} />,
+  ticket: <Ticket size={20} />,
 };
 const App = () => {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <EmployeeAuthProvider>
+        <BranchProvider>
+          <Loading duration={3000} />
+          <Suspense fallback={<div className="p-4"><Loading /></div>}>
+            <AppInner />
+          </Suspense>
+        </BranchProvider>
+        </EmployeeAuthProvider>
+      </AuthProvider>
+    </BrowserRouter>
+  );
+};
+
+function AppInner() {
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role?.role_name === "super admin";
   const modules = Object.entries(routeModules).map(([path, mod]) => {
     const match = path.match(/\.\/(.*?)\/AppRoutes\.jsx$/);
     const name = match?.[1];
@@ -95,11 +119,16 @@ const App = () => {
 
         // ✅ If MULTIPLE children → dropdown
         if (menuItems && menuItems.length > 1) {
+          // For ticket module: hide Developers item for non-super-admins
+          const filteredChildren = name === "ticket"
+            ? menuItems.filter(item => item.key !== "/ticket/developers" || isSuperAdmin)
+            : menuItems;
+
           return {
             key: name,
             icon: moduleIcons[name] || null,
             label: name.charAt(0).toUpperCase() + name.slice(1),
-            children: menuItems,
+            children: filteredChildren,
           };
         }
 
@@ -146,16 +175,12 @@ const App = () => {
   };
 
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <EmployeeAuthProvider>
-        <BranchProvider>
-          <Loading duration={3000} />
-          <Suspense fallback={<div className="p-4"><Loading /></div>}>
-            <Routes>
-              {/* Public/Login routes */}
-              <Route path="/" element={<Login />} />
-              <Route path="/employee-login" element={<EmployeeLogin />} />
+    <Routes>
+      {/* Public/Login routes */}
+      <Route path="/" element={<Login />} />
+      <Route path="/employee-login" element={<EmployeeLogin />} />
+      <Route path="/developer-login" element={<DeveloperLogin />} />
+      <Route path="/developer/tickets" element={<DeveloperPortal />} />
 
               {/* Employee portal — outside admin layout, uses its own layout */}
               <Route
@@ -244,13 +269,8 @@ const App = () => {
                   element={<div className="p-4 text-red-500">404 - Page Not Found</div>}
                 />
               </Route>
-            </Routes>
-          </Suspense>
-        </BranchProvider>
-        </EmployeeAuthProvider>
-      </AuthProvider>
-    </BrowserRouter>
+    </Routes>
   );
-};
+}
 
 export default App;

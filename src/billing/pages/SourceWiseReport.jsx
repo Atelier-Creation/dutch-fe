@@ -108,6 +108,8 @@ function SourceWiseReport() {
           "Instagram": "pink",
           "Facebook": "geekblue",
           "Google Search": "volcano",
+          "Google Review": "lime",
+          "Friend Ref": "gold",
           "Ads": "gold",
         };
         return (

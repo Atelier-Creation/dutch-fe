@@ -10,6 +10,8 @@ import {
   message,
   Tabs,
   Radio,
+  Select,
+  Popover,
   List,
   Card,
   Row,
@@ -117,12 +119,16 @@ function BillingList() {
   const [sorter, setSorter] = useState({ field: null, order: null });
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all"); // <-- all | mobile | casier
-  const [viewMode, setViewMode] = useState("card"); // default to card to preview easily
+  const [paymentFilter, setPaymentFilter] = useState("all"); // payment method filter
+  const [viewMode, setViewMode] = useState("card");
 
   // modal + realtime state
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedBilling, setSelectedBilling] = useState(null);
   const [modalLoading, setModalLoading] = useState(false);
+
+  // Split payment detail modal
+  const [splitDetailBill, setSplitDetailBill] = useState(null);
   const pollingRef = useRef(null);
   const lastSyncedRef = useRef(null);
   const POLL_INTERVAL = 5000; // 5 seconds (change if needed)
@@ -152,7 +158,10 @@ function BillingList() {
 
         const effectiveTypeKey = params.type ?? typeFilter;
         const backendType = mapTypeKeyToBackend(effectiveTypeKey);
-        if (backendType) req.type = backendType; // pass actual type label the backend expects
+        if (backendType) req.type = backendType;
+
+        const effectivePayment = params.payment ?? paymentFilter;
+        if (effectivePayment && effectivePayment !== "all") req.payment_method = effectivePayment;
 
         const data = await billingService.getAll(req);
 
@@ -170,7 +179,7 @@ function BillingList() {
         setLoading(false);
       }
     },
-    [pagination.current, pagination.pageSize, searchText, sorter, statusFilter, typeFilter]
+    [pagination.current, pagination.pageSize, searchText, sorter, statusFilter, typeFilter, paymentFilter]
   );
 
   const doSearch = debounce((value) => {
@@ -348,7 +357,10 @@ function BillingList() {
       title: "Billing Date",
       dataIndex: "billing_date",
       key: "billing_date",
-      render: (date) => new Date(date).toLocaleDateString(),
+      render: (date) => new Date(date).toLocaleString("en-IN", {
+        day: "2-digit", month: "short", year: "numeric",
+        hour: "2-digit", minute: "2-digit", hour12: true,
+      }),
       sorter: true,
     },
     { title: "Quantity", dataIndex: "total_quantity", key: "total_quantity", sorter: true },
@@ -358,6 +370,27 @@ function BillingList() {
       key: "total_amount",
       render: (amount) => `₹${amount}`,
       sorter: true,
+    },
+    {
+      title: "Payment",
+      dataIndex: "payment_method",
+      key: "payment_method",
+      render: (method, record) => {
+        if (method === "split") {
+          return (
+            <Tooltip title="Click to see split details">
+              <Tag
+                color="gold"
+                style={{ cursor: "pointer" }}
+                onClick={() => setSplitDetailBill(record)}
+              >
+                Split ▾
+              </Tag>
+            </Tooltip>
+          );
+        }
+        return <Tag color="geekblue">{(method || "—").replace(/_/g, " ")}</Tag>;
+      },
     },
     {
       title: "Status",
@@ -436,6 +469,7 @@ function BillingList() {
             ]}
             className="w-full sm:w-auto"
           />
+
         </div>
 
         {/* Right Side: Actions */}
@@ -465,6 +499,91 @@ function BillingList() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Payment Method Filter — filter icon with popover */}
+      <div className="flex items-center gap-2 mb-3">
+        <Popover
+          trigger="click"
+          placement="bottomLeft"
+          overlayInnerStyle={{ padding: 12, borderRadius: 14, minWidth: 220 }}
+          content={
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
+                Filter by Payment Method
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                {[
+                  { value: "all",                 label: "All Methods"        },
+                  { value: "cash",                label: "Cash"               },
+                  { value: "UPI Current Account", label: "UPI Current Account"},
+                  { value: "UPI Normal Account",  label: "UPI Normal Account" },
+                  { value: "credit_card",         label: "Credit Card"        },
+                  { value: "debit_card",          label: "Debit Card"         },
+                  { value: "net_banking",         label: "Net Banking"        },
+                  { value: "split",               label: "Split Payment"      },
+                ].map(({ value, label }) => {
+                  const active = paymentFilter === value;
+                  return (
+                    <div
+                      key={value}
+                      onClick={() => {
+                        setPaymentFilter(value);
+                        setPagination((prev) => ({ ...prev, current: 1 }));
+                        fetchBillings({ current: 1, status: statusFilter, search: searchText, type: typeFilter, payment: value });
+                      }}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 10,
+                        padding: "8px 12px", borderRadius: 8, cursor: "pointer",
+                        background: active ? "#6366f1" : "transparent",
+                        color: active ? "#fff" : "#374151",
+                        fontWeight: active ? 600 : 400,
+                        fontSize: 13,
+                        transition: "all 0.15s",
+                      }}
+                      onMouseEnter={e => { if (!active) e.currentTarget.style.background = "#f1f5f9"; }}
+                      onMouseLeave={e => { if (!active) e.currentTarget.style.background = "transparent"; }}
+                    >
+                      {label}
+                      {active && <span style={{ marginLeft: "auto", fontSize: 14 }}>✓</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          }
+        >
+          <button
+            style={{
+              display: "flex", alignItems: "center", gap: 6,
+              padding: "6px 14px", borderRadius: 20,
+              border: `1.5px solid ${paymentFilter !== "all" ? "#6366f1" : "#e2e8f0"}`,
+              background: paymentFilter !== "all" ? "#eef2ff" : "#fff",
+              color: paymentFilter !== "all" ? "#4f46e5" : "#374151",
+              fontWeight: 600, fontSize: 13, cursor: "pointer",
+              boxShadow: paymentFilter !== "all" ? "0 1px 6px #6366f140" : "none",
+              transition: "all 0.15s",
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+            </svg>
+            {paymentFilter === "all" ? "Payment" : paymentFilter === "UPI Current Account" ? "UPI Current" : paymentFilter === "UPI Normal Account" ? "UPI Normal" : paymentFilter.replace(/_/g, " ")}
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+        </Popover>
+
+        {paymentFilter !== "all" && (
+          <button
+            onClick={() => { setPaymentFilter("all"); fetchBillings({ current: 1, status: statusFilter, search: searchText, type: typeFilter, payment: "all" }); }}
+            style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 18, cursor: "pointer", lineHeight: 1, padding: "0 2px" }}
+            title="Clear filter"
+          >
+            ×
+          </button>
+        )}
       </div>
 
       {viewMode === "table" ? (
@@ -519,7 +638,8 @@ function BillingList() {
               renderItem={(item) => {
                 const initials = getInitials(item.customer_name);
                 const sMeta = statusMeta(item.status);
-                const typeLabel = getTypeLabel(item.type);
+                const isSplit = item.payment_method === "split";
+                const pmLabel = isSplit ? "Split" : (item.payment_method || "—").replace(/_/g, " ");
                 return (
                   <List.Item key={item.id}>
                     <Card bodyStyle={{ padding: 16 }} style={cardStyles.cardWrap}>
@@ -529,17 +649,28 @@ function BillingList() {
                           <div>
                             <div style={{ fontWeight: 700, fontSize: 16 }}>{item.customer_name}</div>
                             <div style={cardStyles.smallMeta}>Order {item.billing_no}</div>
-                            <div style={cardStyles.smallMeta}>{new Date(item.billing_date).toLocaleString()}</div>
+                            <div style={cardStyles.smallMeta}>{new Date(item.billing_date).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true })}</div>
+                            {/* Payment method below name */}
+                            {isSplit ? (
+                              <Tooltip title="Click to see split details">
+                                <div
+                                  onClick={() => setSplitDetailBill(item)}
+                                  style={{ display: "inline-flex", alignItems: "center", gap: 3, background: "#fef3c7", color: "#92400e", padding: "2px 8px", borderRadius: 10, fontWeight: 700, fontSize: 10, cursor: "pointer", marginTop: 4 }}
+                                >
+                                  Split ▾
+                                </div>
+                              </Tooltip>
+                            ) : (
+                              <div style={{ display: "inline-block", background: "#eef2ff", color: "#3730a3", padding: "2px 8px", borderRadius: 10, fontWeight: 600, fontSize: 10, marginTop: 4 }}>
+                                {pmLabel}
+                              </div>
+                            )}
                           </div>
                         </div>
 
                         <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8 }}>
                           <div style={{ background: sMeta.bg, color: sMeta.color, padding: "6px 10px", borderRadius: 16, fontWeight: 700, fontSize: 12 }}>
                             {sMeta.label}
-                          </div>
-
-                          <div style={{ background: "#eef2ff", color: "#3730a3", padding: "6px 10px", borderRadius: 16, fontWeight: 700, fontSize: 12 }}>
-                            {typeLabel}
                           </div>
                         </div>
                       </div>
@@ -621,6 +752,40 @@ function BillingList() {
     }
   `}
       </style>
+
+      {/* ── Split Payment Detail Modal ── */}
+      <Modal
+        open={!!splitDetailBill}
+        onCancel={() => setSplitDetailBill(null)}
+        footer={<button onClick={() => setSplitDetailBill(null)} className="px-4 py-1.5 bg-gray-100 rounded-lg text-sm">Close</button>}
+        title={
+          <div className="flex items-center gap-2 text-[15px] font-bold text-gray-800">
+            Split Payment Details
+            <span className="text-[12px] font-normal text-gray-400">— {splitDetailBill?.billing_no}</span>
+          </div>
+        }
+        width={380}
+        centered
+      >
+        {splitDetailBill && (
+          <div className="flex flex-col gap-3 pt-2">
+            {(splitDetailBill.payment_details || []).map((p, i) => (
+              <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-200">
+                <span className="text-[13px] font-medium text-gray-700 capitalize">
+                  {(p.method || "").replace(/_/g, " ")}
+                </span>
+                <span className="text-[15px] font-bold text-gray-900">₹{parseFloat(p.amount).toLocaleString("en-IN")}</span>
+              </div>
+            ))}
+            <div className="flex justify-between pt-1 border-t border-gray-200 mt-1">
+              <span className="text-[13px] font-semibold text-gray-600">Total</span>
+              <span className="text-[15px] font-bold text-green-600">
+                ₹{(splitDetailBill.payment_details || []).reduce((s, p) => s + parseFloat(p.amount || 0), 0).toLocaleString("en-IN")}
+              </span>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* Advanced Modal — colorful invoice-like layout, realtime polling, print/pdf/refresh */}
       <Modal style={{ top: 15, paddingTop: 0 }}

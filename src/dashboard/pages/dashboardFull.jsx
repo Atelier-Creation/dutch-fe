@@ -87,28 +87,37 @@ const DashboardFull = () => {
 
     return num.toString();
   };
+  const getPeriodLabel = () => {
+    switch (period) {
+      case "today":     return "Today";
+      case "yesterday": return "Yesterday";
+      case "week":      return "This Week";
+      case "month":     return "This Month";
+      case "year":      return "This Year";
+      default:          return "Period";
+    }
+  };
+
   // Prepare summary cards
   const summaryCards = dashboardData ? [
     {
       id: "revenue",
-      title: "Total Revenue",
+      title: `${getPeriodLabel()} Revenue`,
       value: (
-        <Tooltip title={`₹${dashboardData.summary.totalRevenue}`}>
-          <span>
-            ₹{formatNumber(dashboardData.summary.totalRevenue)}
-          </span>
+        <Tooltip title={`₹${dashboardData.summary.periodRevenue}`}>
+          <span>₹{formatNumber(dashboardData.summary.periodRevenue)}</span>
         </Tooltip>
       ),
-      meta: `Period: ₹${dashboardData.summary.periodRevenue}`,
+      meta: `Total all time: ₹${formatNumber(dashboardData.summary.totalRevenue)}`,
       gradient: "linear-gradient(135deg,#7c3aed,#a78bfa)",
       icon: <Wallet />,
       onClick: () => navigate('/billing/reports'),
     },
     {
       id: "bills",
-      title: "Total Bills",
-      value: dashboardData.summary.totalBills,
-      meta: `Period: ${dashboardData.summary.periodBills} bills`,
+      title: `${getPeriodLabel()} Bills`,
+      value: dashboardData.summary.periodBills,
+      meta: `Total all time: ${dashboardData.summary.totalBills} bills`,
       gradient: "linear-gradient(135deg,#ff8a00,#ff5e3a)",
       icon: <IndianRupee />,
       onClick: () => navigate('/billing/list'),

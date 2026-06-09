@@ -69,9 +69,17 @@ function SignInModal({ open, onConfirm, onCancel, loading }) {
   const takeSelfie = () => {
     const video = videoRef.current; const canvas = canvasRef.current;
     if (!video || !canvas) return;
-    canvas.width = video.videoWidth || 640; canvas.height = video.videoHeight || 480;
-    canvas.getContext("2d").drawImage(video, 0, 0);
-    setSelfieData(canvas.toDataURL("image/jpeg", 0.8));
+
+    // Aggressive compression for high-res cameras (iPhone etc.)
+    // Cap at 480px wide, JPEG at 50% quality → typically 20–60KB
+    const MAX_WIDTH = 480;
+    const srcW = video.videoWidth  || 640;
+    const srcH = video.videoHeight || 480;
+    const scale = Math.min(1, MAX_WIDTH / srcW);
+    canvas.width  = Math.round(srcW * scale);
+    canvas.height = Math.round(srcH * scale);
+    canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
+    setSelfieData(canvas.toDataURL("image/jpeg", 0.5));
     setStep("preview"); stopCamera();
   };
 
