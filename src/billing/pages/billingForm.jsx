@@ -187,6 +187,29 @@ const [messageApi, contextHolder] = message.useMessage();
         billing_date: billingData.billing_date ? dayjs(billingData.billing_date) : dayjs(),
       });
 
+      // Restore bill-level discount state
+      const existingDiscount = parseFloat(billingData.discount_amount) || 0;
+      // Per-item discounts
+      const itemDiscounts = processedItems.reduce((s, it) => s + (Number(it.discount_amount) || 0), 0);
+      // Bill-level discount = total discount - item discounts (can't be negative)
+      const billLevelDiscount = Math.max(0, existingDiscount - itemDiscounts);
+      const subtotalForPct = processedItems.reduce((s, it) => s + (Number(it.unit_price) || 0) * (Number(it.quantity) || 0), 0);
+      const billLevelPct = subtotalForPct > 0 ? parseFloat(((billLevelDiscount / subtotalForPct) * 100).toFixed(2)) : 0;
+      setBillDiscountAmt(billLevelDiscount);
+      setBillDiscountPct(billLevelPct);
+
+      // Restore split payment state
+      if (billingData.payment_method === 'split') {
+        setIsSplitPayment(true);
+        const details = billingData.payment_details;
+        if (Array.isArray(details) && details.length > 0) {
+          setSplitPayments(details.map(p => ({ method: p.method, amount: p.amount })));
+        }
+      } else {
+        setIsSplitPayment(false);
+        setSplitPayments([{ method: billingData.payment_method || 'cash', amount: parseFloat(billingData.total_amount) || 0 }]);
+      }
+
       console.log('Form values after set:', form.getFieldsValue());
       message.success('Billing data loaded');
     } catch (error) {
@@ -1150,6 +1173,9 @@ const [messageApi, contextHolder] = message.useMessage();
       if (!id && result.coupon_generated) {
         setGeneratedCoupon(result.coupon_generated);
         setShowCouponModal(true);
+        // Store result so print modal can use it after coupon modal closes
+        setSavedBillingResult(result);
+        setSavedItemsRaw(itemsRaw);
       } else {
         setSavedBillingResult(result);
         setSavedItemsRaw(itemsRaw);
@@ -2158,9 +2184,10 @@ const [messageApi, contextHolder] = message.useMessage();
         open={showCouponModal}
         onCancel={() => {
           setShowCouponModal(false);
-          closeCurrentTab();
-        }
-        }
+          setSavedBillingResult(savedBillingResult);
+          setSavedItemsRaw(savedItemsRaw);
+          setPrintConfirmModal(true);
+        }}
         footer={
           [
             <Button
@@ -2183,10 +2210,10 @@ const [messageApi, contextHolder] = message.useMessage();
               type="primary"
               onClick={() => {
                 setShowCouponModal(false);
-                closeCurrentTab();
+                setPrintConfirmModal(true);
               }}
             >
-              Done
+              Done & Print?
             </Button>,
           ]}
         width={500}
