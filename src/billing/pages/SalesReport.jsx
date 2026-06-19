@@ -129,22 +129,30 @@ function SalesReport() {
       render: (amount) => `₹${parseFloat(amount).toFixed(2)}`,
     },
     {
-      title: "Paid Amount",
+      title: "Collected",
       dataIndex: "paid_amount",
       key: "paid_amount",
       align: "right",
-      render: (amount) => `₹${parseFloat(amount).toFixed(2)}`,
+      render: (amount) => (
+        <span style={{ color: "#16a34a", fontWeight: 600 }}>
+          ₹{parseFloat(amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+        </span>
+      ),
     },
     {
-      title: "Due Amount",
+      title: "Pending",
       dataIndex: "due_amount",
       key: "due_amount",
       align: "right",
-      render: (amount) => (
-        <Text type={amount > 0 ? "danger" : "success"}>
-          ₹{parseFloat(amount).toFixed(2)}
-        </Text>
-      ),
+      render: (amount) => {
+        const val = parseFloat(amount);
+        if (val <= 0) return <span style={{ color: "#94a3b8" }}>—</span>;
+        return (
+          <span style={{ color: "#ef4444", fontWeight: 600 }}>
+            ₹{val.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+          </span>
+        );
+      },
     },
     {
       title: "Percentage",

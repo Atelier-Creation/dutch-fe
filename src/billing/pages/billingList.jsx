@@ -689,9 +689,15 @@ function BillingList() {
                       </div>
 
                       <div style={cardStyles.footerRow}>
-                        <div>
-                          <div style={{ color: "#6b7280", fontSize: 13 }}>Total</div>
-                          <div style={cardStyles.totalText}>₹{item.total_amount}</div>
+                        <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
+                          <div>
+                            <div style={{ color: "#6b7280", fontSize: 11 }}>Total</div>
+                            <div style={cardStyles.totalText}>₹{item.total_amount}</div>
+                          </div>
+                          <div>
+                            <div style={{ color: "#6b7280", fontSize: 11 }}>Qty</div>
+                            <div style={{ fontWeight: 700, fontSize: 16, color: "#374151" }}>{item.total_quantity}</div>
+                          </div>
                         </div>
 
                         <div style={{ display: "flex", gap: 8 }}>
@@ -913,6 +919,10 @@ function BillingList() {
 
           <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
             <div style={{ width: 360 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "0px 0" }}>
+                <div style={{ color: "#6b7280" }}>Total Quantity</div>
+                <div style={{ fontWeight: 700 }}>{selectedBilling?.total_quantity ?? 0} pcs</div>
+              </div>
               <div style={{ display: "flex", justifyContent: "space-between", padding: "0px 0" }}>
                 <div style={{ color: "#6b7280" }}>Subtotal</div>
                 <div style={{ fontWeight: 700 }}>₹{selectedBilling?.subtotal_amount ?? "0.00"}</div>
