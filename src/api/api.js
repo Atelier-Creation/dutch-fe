@@ -11,6 +11,60 @@ const api = axios.create({
   },
 });
 
+let refreshPromise = null;
+
+const clearSessionAndRedirect = () => {
+  localStorage.removeItem('token');
+  localStorage.removeItem('refreshToken');
+  sessionStorage.removeItem('token');
+  sessionStorage.removeItem('refreshToken');
+  window.location.href = '/';
+};
+
+const isExpiredTokenError = (error) => {
+  const status = error.response?.status;
+  const message = String(
+    error.response?.data?.message || error.response?.data?.error || ''
+  ).toLowerCase();
+
+  return (
+    status === 401 ||
+    (status === 403 && (message.includes('token') || message.includes('expired')))
+  );
+};
+
+const refreshAccessToken = async () => {
+  const refreshToken = localStorage.getItem('refreshToken') || sessionStorage.getItem('refreshToken');
+
+  if (!refreshToken) {
+    throw new Error('Refresh token missing');
+  }
+
+  if (!refreshPromise) {
+    refreshPromise = axios
+      .post(`${BASE_API}/user/refresh-token`, { refreshToken })
+      .then((response) => {
+        const { token, refreshToken: newRefreshToken } = response.data || {};
+
+        if (!token) {
+          throw new Error('Invalid refresh response');
+        }
+
+        localStorage.setItem('token', token);
+        if (newRefreshToken) {
+          localStorage.setItem('refreshToken', newRefreshToken);
+        }
+
+        return token;
+      })
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
+
+  return refreshPromise;
+};
+
 // Add token to all requests
 api.interceptors.request.use(
   (config) => {
@@ -28,16 +82,34 @@ api.interceptors.request.use(
 // Add response interceptor for error handling
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     // Don't show toast for login requests - let the login page handle it
     const isLoginRequest = error.config?.url?.includes('/login');
+    const isRefreshRequest = error.config?.url?.includes('/refresh-token');
 
-    // Handle 401 Unauthorized
-    if (error.response?.status === 401 && !isLoginRequest) {
-      // Token expired or invalid
-      localStorage.removeItem('token');
-      sessionStorage.removeItem('token');
-      window.location.href = '/';
+    if (isExpiredTokenError(error) && !isLoginRequest && !isRefreshRequest) {
+      try {
+        const token = await refreshAccessToken();
+        const originalRequest = error.config;
+
+        if (!originalRequest || originalRequest._retry) {
+          clearSessionAndRedirect();
+          return Promise.reject(error);
+        }
+
+        originalRequest._retry = true;
+        originalRequest.headers = originalRequest.headers || {};
+        originalRequest.headers.Authorization = `Bearer ${token}`;
+
+        return api(originalRequest);
+      } catch (refreshError) {
+        clearSessionAndRedirect();
+        return Promise.reject(refreshError);
+      }
+    }
+
+    if (isRefreshRequest && isExpiredTokenError(error)) {
+      clearSessionAndRedirect();
       return Promise.reject(error);
     }
 

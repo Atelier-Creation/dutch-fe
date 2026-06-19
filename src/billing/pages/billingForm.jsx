@@ -2079,7 +2079,13 @@ const [messageApi, contextHolder] = message.useMessage();
                       <div style={{ display: "flex", justifyContent: "right", marginTop: 10, alignItems: "center" }}>
                         <div style={{ display: "flex", gap: 8 }}>
                           <Button onClick={handleReset}><ShieldCheck size={16} />Save To Draft</Button>
-                          <Button type="primary" htmlType="submit" style={{ background: "#09b13bff", borderColor: "#09b13bff" }}>
+                          <Button
+                            type="primary"
+                            htmlType="submit"
+                            loading={loading}
+                            disabled={loading}
+                            style={{ background: "#09b13bff", borderColor: "#09b13bff" }}
+                          >
                             Add Bill
                           </Button>
                           {/* <Button type="primary" htmlType="submit" style={{ background: "#0b75ff", borderColor: "#0b75ff" }}>

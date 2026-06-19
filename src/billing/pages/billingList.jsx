@@ -647,9 +647,9 @@ function BillingList() {
                         <div style={cardStyles.leftMeta}>
                           <div style={cardStyles.avatarSquare("#0ea5a4")}>{initials}</div>
                           <div>
-                            <div style={{ fontWeight: 700, fontSize: 16 }}>{item.customer_name}</div>
-                            <div style={cardStyles.smallMeta}>Order {item.billing_no}</div>
-                            <div style={cardStyles.smallMeta}>{new Date(item.billing_date).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true })}</div>
+                            <div style={{ fontWeight: 700, fontSize: 16,textTransform: "capitalize" }}>{item.customer_name}</div>
+                            <div style={cardStyles.smallMeta}><strong>Bill No:</strong> {item.billing_no}</div>
+                            {/* <div style={{fontSize: 10,opacity: 0.6}}>{new Date(item.billing_date).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true })}</div> */}
                             {/* Payment method below name */}
                             {isSplit ? (
                               <Tooltip title="Click to see split details">
@@ -668,10 +668,11 @@ function BillingList() {
                           </div>
                         </div>
 
-                        <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 8 }}>
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "end", gap: 8 }}>
                           <div style={{ background: sMeta.bg, color: sMeta.color, padding: "6px 10px", borderRadius: 16, fontWeight: 700, fontSize: 12 }}>
                             {sMeta.label}
                           </div>
+                           <div style={{fontSize: 8,opacity: 0.6}}>{new Date(item.billing_date).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true })}</div>
                         </div>
                       </div>
 
