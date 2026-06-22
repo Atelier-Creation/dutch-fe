@@ -20,10 +20,11 @@ import {
   Divider,
   Modal,
   Tooltip,
-  Avatar,
-  Badge,
   Statistic,
   Progress,
+  Avatar,
+  DatePicker,
+  Typography,
 } from "antd";
 import {
   PlusOutlined,
@@ -120,6 +121,8 @@ function BillingList() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all"); // <-- all | mobile | casier
   const [paymentFilter, setPaymentFilter] = useState("all"); // payment method filter
+  const [period, setPeriod] = useState("all");
+  const [dateRange, setDateRange] = useState(null);
   const [viewMode, setViewMode] = useState("card");
 
   // modal + realtime state
@@ -163,6 +166,16 @@ function BillingList() {
         const effectivePayment = params.payment ?? paymentFilter;
         if (effectivePayment && effectivePayment !== "all") req.payment_method = effectivePayment;
 
+        const effectivePeriod = params.period ?? period;
+        if (effectivePeriod && effectivePeriod !== "all") {
+          req.period = effectivePeriod;
+          const effectiveDateRange = params.dateRange !== undefined ? params.dateRange : dateRange;
+          if (effectivePeriod === "custom" && effectiveDateRange && effectiveDateRange.length === 2) {
+            req.startDate = effectiveDateRange[0].toISOString();
+            req.endDate = effectiveDateRange[1].toISOString();
+          }
+        }
+
         const data = await billingService.getAll(req);
 
         setBillings(data.data || []);
@@ -179,7 +192,7 @@ function BillingList() {
         setLoading(false);
       }
     },
-    [pagination.current, pagination.pageSize, searchText, sorter, statusFilter, typeFilter, paymentFilter]
+    [pagination.current, pagination.pageSize, searchText, sorter, statusFilter, typeFilter, paymentFilter, period, dateRange]
   );
 
   const doSearch = debounce((value) => {
@@ -492,7 +505,7 @@ function BillingList() {
             </Button>
 
             <div className="hidden md:block">
-              <Radio.Group value={viewMode} onChange={(e) => setViewMode(e.target.value)} optionType="button" buttonStyle="solid" style={{display:'flex',justifyContent:'center',alignItems:'center'}}>
+              <Radio.Group value={viewMode} onChange={(e) => setViewMode(e.target.value)} optionType="button" buttonStyle="solid" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                 <Radio.Button value="table">Table</Radio.Button>
                 <Radio.Button value="card">Card</Radio.Button>
               </Radio.Group>
@@ -501,88 +514,138 @@ function BillingList() {
         </div>
       </div>
 
-      {/* Payment Method Filter — filter icon with popover */}
-      <div className="flex items-center gap-2 mb-3">
-        <Popover
-          trigger="click"
-          placement="bottomLeft"
-          overlayInnerStyle={{ padding: 12, borderRadius: 14, minWidth: 220 }}
-          content={
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
-                Filter by Payment Method
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                {[
-                  { value: "all",                 label: "All Methods"        },
-                  { value: "cash",                label: "Cash"               },
-                  { value: "UPI Current Account", label: "UPI Current Account"},
-                  { value: "UPI Normal Account",  label: "UPI Normal Account" },
-                  { value: "credit_card",         label: "Credit Card"        },
-                  { value: "debit_card",          label: "Debit Card"         },
-                  { value: "net_banking",         label: "Net Banking"        },
-                  { value: "split",               label: "Split Payment"      },
-                ].map(({ value, label }) => {
-                  const active = paymentFilter === value;
-                  return (
-                    <div
-                      key={value}
-                      onClick={() => {
-                        setPaymentFilter(value);
-                        setPagination((prev) => ({ ...prev, current: 1 }));
-                        fetchBillings({ current: 1, status: statusFilter, search: searchText, type: typeFilter, payment: value });
-                      }}
-                      style={{
-                        display: "flex", alignItems: "center", gap: 10,
-                        padding: "8px 12px", borderRadius: 8, cursor: "pointer",
-                        background: active ? "#6366f1" : "transparent",
-                        color: active ? "#fff" : "#374151",
-                        fontWeight: active ? 600 : 400,
-                        fontSize: 13,
-                        transition: "all 0.15s",
-                      }}
-                      onMouseEnter={e => { if (!active) e.currentTarget.style.background = "#f1f5f9"; }}
-                      onMouseLeave={e => { if (!active) e.currentTarget.style.background = "transparent"; }}
-                    >
-                      {label}
-                      {active && <span style={{ marginLeft: "auto", fontSize: 14 }}>✓</span>}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          }
-        >
-          <button
-            style={{
-              display: "flex", alignItems: "center", gap: 6,
-              padding: "6px 14px", borderRadius: 20,
-              border: `1.5px solid ${paymentFilter !== "all" ? "#6366f1" : "#e2e8f0"}`,
-              background: paymentFilter !== "all" ? "#eef2ff" : "#fff",
-              color: paymentFilter !== "all" ? "#4f46e5" : "#374151",
-              fontWeight: 600, fontSize: 13, cursor: "pointer",
-              boxShadow: paymentFilter !== "all" ? "0 1px 6px #6366f140" : "none",
-              transition: "all 0.15s",
-            }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
-            </svg>
-            {paymentFilter === "all" ? "Payment" : paymentFilter === "UPI Current Account" ? "UPI Current" : paymentFilter === "UPI Normal Account" ? "UPI Normal" : paymentFilter.replace(/_/g, " ")}
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="6 9 12 15 18 9"/>
-            </svg>
-          </button>
-        </Popover>
+       {/* Filters Row (Payment + Date Period) */}
+      <div className="flex flex-wrap items-end gap-4 mb-4">
+        {/* Payment Method Filter */}
+        <div className="flex flex-col gap-1 w-full sm:w-auto">
+          <Typography.Text strong style={{ fontSize: 13, color: "#4b5563" }}>Payment Method</Typography.Text>
+          <div className="flex items-center gap-2">
+            <Popover
+              trigger="click"
+              placement="bottomLeft"
+              overlayInnerStyle={{ padding: 12, borderRadius: 14, minWidth: 220 }}
+              content={
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
+                    Filter by Payment Method
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    {[
+                      { value: "all", label: "All Methods" },
+                      { value: "cash", label: "Cash" },
+                      { value: "UPI Current Account", label: "UPI Current Account" },
+                      { value: "UPI Normal Account", label: "UPI Normal Account" },
+                      { value: "credit_card", label: "Credit Card" },
+                      { value: "debit_card", label: "Debit Card" },
+                      { value: "net_banking", label: "Net Banking" },
+                      { value: "split", label: "Split Payment" },
+                    ].map(({ value, label }) => {
+                      const active = paymentFilter === value;
+                      return (
+                        <div
+                          key={value}
+                          onClick={() => {
+                            setPaymentFilter(value);
+                            setPagination((prev) => ({ ...prev, current: 1 }));
+                            fetchBillings({ current: 1, status: statusFilter, search: searchText, type: typeFilter, payment: value });
+                          }}
+                          style={{
+                            display: "flex", alignItems: "center", gap: 10,
+                            padding: "8px 12px", borderRadius: 8, cursor: "pointer",
+                            background: active ? "#6366f1" : "transparent",
+                            color: active ? "#fff" : "#374151",
+                            fontWeight: active ? 600 : 400,
+                            fontSize: 13,
+                            transition: "all 0.15s",
+                          }}
+                          onMouseEnter={e => { if (!active) e.currentTarget.style.background = "#f1f5f9"; }}
+                          onMouseLeave={e => { if (!active) e.currentTarget.style.background = "transparent"; }}
+                        >
+                          {label}
+                          {active && <span style={{ marginLeft: "auto", fontSize: 14 }}>✓</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              }
+            >
+              <button
+                style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  height: 32,
+                  padding: "0 14px", borderRadius: 20,
+                  border: `1.5px solid ${paymentFilter !== "all" ? "#6366f1" : "#e2e8f0"}`,
+                  background: paymentFilter !== "all" ? "#eef2ff" : "#fff",
+                  color: paymentFilter !== "all" ? "#4f46e5" : "#374151",
+                  fontWeight: 600, fontSize: 13, cursor: "pointer",
+                  boxShadow: paymentFilter !== "all" ? "0 1px 6px #6366f140" : "none",
+                  transition: "all 0.15s",
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+                </svg>
+                {paymentFilter === "all" ? "Payment" : paymentFilter === "UPI Current Account" ? "UPI Current" : paymentFilter === "UPI Normal Account" ? "UPI Normal" : paymentFilter.replace(/_/g, " ")}
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+            </Popover>
 
-        {paymentFilter !== "all" && (
-          <button
-            onClick={() => { setPaymentFilter("all"); fetchBillings({ current: 1, status: statusFilter, search: searchText, type: typeFilter, payment: "all" }); }}
-            style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 18, cursor: "pointer", lineHeight: 1, padding: "0 2px" }}
-            title="Clear filter"
+            {paymentFilter !== "all" && (
+              <button
+                onClick={() => { setPaymentFilter("all"); fetchBillings({ current: 1, status: statusFilter, search: searchText, type: typeFilter, payment: "all" }); }}
+                style={{ background: "none", border: "none", color: "#94a3b8", fontSize: 18, cursor: "pointer", lineHeight: 1, padding: "0 2px" }}
+                title="Clear filter"
+              >
+                ×
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Period Filter */}
+        <div className="flex flex-col gap-1 w-full sm:w-[180px]">
+          <Typography.Text strong style={{ fontSize: 13, color: "#4b5563" }}>Period</Typography.Text>
+          <Select
+            value={period}
+            onChange={(value) => {
+              setPeriod(value);
+              if (value !== "custom") {
+                setDateRange(null);
+                setPagination((prev) => ({ ...prev, current: 1 }));
+                fetchBillings({ current: 1, period: value, dateRange: null });
+              }
+            }}
+            style={{ width: "100%" }}
           >
-            ×
-          </button>
+            <Select.Option value="all">All Time</Select.Option>
+            <Select.Option value="today">Today</Select.Option>
+            <Select.Option value="yesterday">Yesterday</Select.Option>
+            <Select.Option value="this_month">This Month</Select.Option>
+            <Select.Option value="this_year">This Year</Select.Option>
+            <Select.Option value="custom">Custom Range</Select.Option>
+          </Select>
+        </div>
+
+        {/* Date Range Filter */}
+        {period === "custom" && (
+          <div className="flex flex-col gap-1 w-full sm:w-[260px]">
+            <Typography.Text strong style={{ fontSize: 13, color: "#4b5563" }}>Date Range</Typography.Text>
+            <DatePicker.RangePicker
+              value={dateRange}
+              onChange={(val) => {
+                setDateRange(val);
+                if (val) {
+                  setPagination((prev) => ({ ...prev, current: 1 }));
+                  fetchBillings({ current: 1, period: "custom", dateRange: val });
+                }
+              }}
+              style={{ width: "100%" }}
+              format="DD MMM YYYY"
+            />
+          </div>
         )}
       </div>
 
@@ -647,7 +710,7 @@ function BillingList() {
                         <div style={cardStyles.leftMeta}>
                           <div style={cardStyles.avatarSquare("#0ea5a4")}>{initials}</div>
                           <div>
-                            <div style={{ fontWeight: 700, fontSize: 16,textTransform: "capitalize" }}>{item.customer_name}</div>
+                            <div style={{ fontWeight: 700, fontSize: 16, textTransform: "capitalize" }}>{item.customer_name}</div>
                             <div style={cardStyles.smallMeta}><strong>Bill No:</strong> {item.billing_no}</div>
                             {/* <div style={{fontSize: 10,opacity: 0.6}}>{new Date(item.billing_date).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true })}</div> */}
                             {/* Payment method below name */}
@@ -672,7 +735,7 @@ function BillingList() {
                           <div style={{ background: sMeta.bg, color: sMeta.color, padding: "6px 10px", borderRadius: 16, fontWeight: 700, fontSize: 12 }}>
                             {sMeta.label}
                           </div>
-                           <div style={{fontSize: 8,opacity: 0.6}}>{new Date(item.billing_date).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true })}</div>
+                          <div style={{ fontSize: 8, opacity: 0.6 }}>{new Date(item.billing_date).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true })}</div>
                         </div>
                       </div>
 

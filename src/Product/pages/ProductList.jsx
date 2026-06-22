@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Table, Input, Button, Space, message, Grid, List, Card } from "antd";
-import { PlusOutlined, EditOutlined, DownloadOutlined } from "@ant-design/icons";
+import { Table, Input, Button, Space, Popconfirm, message, Grid, List, Card } from "antd";
+import { PlusOutlined, EditOutlined, DeleteOutlined, DownloadOutlined } from "@ant-design/icons";
 import productService from "../services/productService.js";
 import debounce from "lodash.debounce";
 import { QRCodeCanvas } from "qrcode.react";
@@ -304,9 +304,9 @@ const ProductList = () => {
               <Button type="primary" icon={<EditOutlined />} onClick={() => navigate(`/Product/edit/${record.id}`)}>
                 Edit
               </Button>
-              {/* <Popconfirm title="Are you sure to delete this product?" onConfirm={() => handleDelete(record.id)}>
-              <Button danger icon={<DeleteOutlined />}>Delete</Button>
-            </Popconfirm> */}
+              <Popconfirm title="Are you sure you want to delete this product?" onConfirm={() => handleDelete(record.id)} okText="Yes" cancelText="No">
+                <Button danger icon={<DeleteOutlined />}>Delete</Button>
+              </Popconfirm>
             </Space>
           </>
         );
@@ -363,11 +363,16 @@ const ProductList = () => {
               <Card
                 title={item.product_name}
                 extra={
-                  <Button
-                    type="text"
-                    icon={<EditOutlined />}
-                    onClick={() => navigate(`/Product/edit/${item.id}`)}
-                  />
+                  <Space>
+                    <Button
+                      type="text"
+                      icon={<EditOutlined />}
+                      onClick={() => navigate(`/Product/edit/${item.id}`)}
+                    />
+                    <Popconfirm title="Are you sure you want to delete this product?" onConfirm={() => handleDelete(item.id)} okText="Yes" cancelText="No">
+                      <Button type="text" danger icon={<DeleteOutlined />} />
+                    </Popconfirm>
+                  </Space>
                 }
               >
                 <div className="flex justify-between mb-2">

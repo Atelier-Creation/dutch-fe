@@ -77,9 +77,9 @@ const CategoryList = () => {
             <Button type="primary" icon={<EditOutlined />} onClick={() => navigate(`/Product/categories/edit/${record.id}`)}>
               Edit
             </Button>
-            {/* <Popconfirm title="Are you sure?" onConfirm={() => handleDelete(record.id)}>
-            <Button danger icon={<DeleteOutlined />}>Delete</Button>
-          </Popconfirm> */}
+            <Popconfirm title="Are you sure you want to delete this category?" onConfirm={() => handleDelete(record.id)} okText="Yes" cancelText="No">
+              <Button danger icon={<DeleteOutlined />}>Delete</Button>
+            </Popconfirm>
           </Space>
         </>
       ),
@@ -115,11 +115,16 @@ const CategoryList = () => {
                 bordered={false}
                 style={{ borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
                 extra={
-                  <Button
-                    type="text"
-                    icon={<EditOutlined />}
-                    onClick={() => navigate(`/Product/categories/edit/${item.id}`)}
-                  />
+                  <Space>
+                    <Button
+                      type="text"
+                      icon={<EditOutlined />}
+                      onClick={() => navigate(`/Product/categories/edit/${item.id}`)}
+                    />
+                    <Popconfirm title="Are you sure you want to delete this category?" onConfirm={() => handleDelete(item.id)} okText="Yes" cancelText="No">
+                      <Button type="text" danger icon={<DeleteOutlined />} />
+                    </Popconfirm>
+                  </Space>
                 }
               >
                 <div style={{ color: "#666" }}>

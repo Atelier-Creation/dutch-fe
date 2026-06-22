@@ -137,6 +137,8 @@ export const buildEscPosReceipt = (billing) => {
   if (discount > 0) lines.push(padRow("Discount", `-${discount.toFixed(2)}`));
 
   const totalText = `Rs ${Number(total).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
+  const received = Number(billing.received_amount || 0);
+  const balance = Math.max(0, received - total);
 
   lines.push(
     "\x1B\x45\x01" + padRow("NET AMOUNT", totalText) + "\x1B\x45\x00",
@@ -145,6 +147,8 @@ export const buildEscPosReceipt = (billing) => {
     padRow("Total Items :", String(items.length)),
     padRow("Total Qty :", Number(getTotalQty(items)).toFixed(2)),
     discount > 0 ? padRow("Today Savings :", money(discount)) : "",
+    received > 0 ? padRow("Amount Received :", money(received)) : "",
+    received > 0 ? padRow("Balance/Change :", money(balance)) : "",
     due > 0 ? padRow("Due", money(due)) : "",
     "",
     "",

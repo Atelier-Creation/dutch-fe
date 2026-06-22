@@ -35,6 +35,60 @@ import { Gift, Laptop, PhoneCall, Printer, ShieldCheck, Trash2 } from "lucide-re
 const { Title } = Typography;
 const { Option } = Select;
 
+const BalanceCalculator = React.memo(({ grandTotal, receivedAmount, onReceivedAmountChange }) => {
+  const [localVal, setLocalVal] = useState(receivedAmount);
+  const debounceRef = useRef(null);
+
+  useEffect(() => {
+    setLocalVal(receivedAmount);
+  }, [receivedAmount]);
+
+  const handleChange = (val) => {
+    const num = val || 0;
+    setLocalVal(num);
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    debounceRef.current = setTimeout(() => {
+      onReceivedAmountChange(num);
+    }, 500);
+  };
+
+  return (
+    <div style={{ marginBottom: 8, padding: "8px 10px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8 }}>
+      <div style={{ fontSize: 12, fontWeight: 600, color: "#16a34a", marginBottom: 6 }}>Balance Calculator</div>
+      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 11, color: "#6b7280" }}>Amount Received</div>
+          <InputNumber
+            size="small"
+            min={0}
+            precision={2}
+            value={localVal || null}
+            onChange={handleChange}
+            prefix="₹"
+            style={{ width: "100%" }}
+            placeholder="0"
+          />
+        </div>
+        <span style={{ color: "#9ca3af", fontSize: 12, marginTop: 14 }}>➔</span>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 11, color: "#6b7280" }}>Balance to Return</div>
+          <div style={{ 
+            height: 24, 
+            lineHeight: "24px", 
+            fontWeight: 700, 
+            fontSize: 14, 
+            color: (localVal - grandTotal) >= 0 ? "#16a34a" : "#ef4444" 
+          }}>
+            ₹{Math.max(0, (localVal || 0) - grandTotal).toFixed(2)}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+});
+
 function BillingForm() {
   const { id } = useParams();
   const [form] = Form.useForm();
@@ -50,16 +104,16 @@ function BillingForm() {
   const [allProducts, setAllProducts] = useState([]);
   const [productsLoading, setProductsLoading] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
-  
+
   // Quick add product modal states
   const [quickAddModalVisible, setQuickAddModalVisible] = useState(false);
   const [quickAddForm] = Form.useForm();
   const [quickAddLoading, setQuickAddLoading] = useState(false);
-  
+
   // Inline new product states
   const [creatingInlineProducts, setCreatingInlineProducts] = useState(new Set());
-  
-const [messageApi, contextHolder] = message.useMessage();
+
+  const [messageApi, contextHolder] = message.useMessage();
   // Fetch all products for dropdown
   const fetchAllProducts = async (searchTerm = "") => {
     setProductsLoading(true);
@@ -105,16 +159,16 @@ const [messageApi, contextHolder] = message.useMessage();
       console.log('Response keys:', Object.keys(response));
       console.log('Response.data:', response.data);
       console.log('Response.data type:', typeof response.data);
-      
+
       // Try different possible response structures
       let billingData = null;
-      
+
       if (response.data) {
         billingData = response.data;
       } else if (response) {
         billingData = response;
       }
-      
+
       console.log('Extracted billing data:', billingData);
       console.log('Billing data type:', typeof billingData);
 
@@ -129,14 +183,14 @@ const [messageApi, contextHolder] = message.useMessage();
         const unitPrice = parseFloat(item.unit_price) || 0;
         const tax = parseFloat(item.tax) || 0;
         const discount = parseFloat(item.discount) || 0;
-        
+
         // Calculate tax_percentage from tax amount if not provided
         // tax_percentage = (tax / (quantity * unitPrice)) * 100
         let taxPercentage = parseFloat(item.tax_percentage) || 0;
         if (!taxPercentage && tax > 0 && quantity > 0 && unitPrice > 0) {
           taxPercentage = (tax / (quantity * unitPrice)) * 100;
         }
-        
+
         return {
           key: item.id || Math.random().toString(),
           product_id: item.product_id,
@@ -176,7 +230,7 @@ const [messageApi, contextHolder] = message.useMessage();
         due_amount: parseFloat(billingData.due_amount) || 0,
         notes: billingData.notes || '',
       };
-      
+
       console.log('Form values to set:', formValues);
       form.setFieldsValue(formValues);
 
@@ -282,9 +336,9 @@ const [messageApi, contextHolder] = message.useMessage();
       title: "Action",
       key: "action",
       render: (_, record) => (
-        <Button 
-          type="primary" 
-          icon={<EditOutlined />} 
+        <Button
+          type="primary"
+          icon={<EditOutlined />}
           size="small"
           onClick={() => {
             // Open in new tab
@@ -325,9 +379,11 @@ const [messageApi, contextHolder] = message.useMessage();
   // Print confirmation modal after billing save
   const [printConfirmModal, setPrintConfirmModal] = useState(false);
   const printYesRef = useRef(null);
+  const previewTimeoutRef = useRef(null);
   const [savedBillingResult, setSavedBillingResult] = useState(null);
   const [savedItemsRaw, setSavedItemsRaw] = useState([]);
   const [billToPrint, setBillToPrint] = useState(null);
+  const [receivedAmount, setReceivedAmount] = useState(0);
 
   // Bill Management (Tabs)
   const DRAFT_KEY = "billing_draft_bills";
@@ -385,6 +441,7 @@ const [messageApi, contextHolder] = message.useMessage();
     const printableBill = {
       ...bill,
       items: printableItems,
+      received_amount: receivedAmount,
       customer_name: bill.customer_name || form.getFieldValue("customer_name") || "",
       customer_phone: bill.customer_phone || form.getFieldValue("customer_phone") || "",
       counter_no: bill.counter_no || form.getFieldValue("counter_no") || null,
@@ -407,7 +464,18 @@ const [messageApi, contextHolder] = message.useMessage();
     return {
       key: key || Date.now().toString(),
       label: `Bill ${key || 1}`,
-      formValues: { bill_no: "", billing_date: dayjs(), status: "pending", items: [], counter_no: "Counter 1", source: "" },
+      formValues: { 
+        bill_no: "", 
+        billing_date: dayjs(), 
+        status: "pending", 
+        items: [], 
+        counter_no: "Counter 1", 
+        source: "",
+        customer_name: "",
+        customer_phone: "",
+        payment_method: "cash",
+        notes: ""
+      },
       customerData: null,
       isNewCustomer: false,
       couponCode: "",
@@ -416,6 +484,7 @@ const [messageApi, contextHolder] = message.useMessage();
       isSplitPayment: false,
       splitPayments: [{ method: 'cash', amount: 0 }],
       customerHistoryBills: [],
+      receivedAmount: 0,
       preview: { items: [], customer_name: "", billing_date: dayjs(), counter_no: "Counter 1" },
     };
   };
@@ -449,6 +518,7 @@ const [messageApi, contextHolder] = message.useMessage();
   }, [activeBillKey]);
 
   const loadBillToForm = (billState) => {
+    form.resetFields();
     form.setFieldsValue(billState.formValues);
     setCustomerData(billState.customerData);
     setIsNewCustomer(billState.isNewCustomer);
@@ -458,6 +528,7 @@ const [messageApi, contextHolder] = message.useMessage();
     setIsSplitPayment(billState.isSplitPayment);
     setSplitPayments(billState.splitPayments);
     setCustomerHistoryBills(billState.customerHistoryBills);
+    setReceivedAmount(billState.receivedAmount || 0);
     setPreview(billState.preview);
   };
 
@@ -473,6 +544,7 @@ const [messageApi, contextHolder] = message.useMessage();
       isSplitPayment,
       splitPayments,
       customerHistoryBills,
+      receivedAmount,
       preview,
     };
   };
@@ -645,7 +717,7 @@ const [messageApi, contextHolder] = message.useMessage();
       console.log('Creating quick product:', productData);
       const response = await productService.create(productData);
       console.log('Product created response:', response);
-      
+
       const newProduct = response.data?.data || response.data;
       console.log('New product data:', newProduct);
 
@@ -933,10 +1005,10 @@ const [messageApi, contextHolder] = message.useMessage();
         setCustomerData(customer);
         setIsNewCustomer(false);
 
-        // Auto-fill customer name if found
+        // Auto-fill customer name if found and set source to 'Existing Customer'
         form.setFieldsValue({
           customer_name: customer.customer_name,
-          source: customer.source || null
+          source: "Existing Customer"
         });
 
         message.success(`Customer found: ${customer.customer_name}`);
@@ -990,11 +1062,14 @@ const [messageApi, contextHolder] = message.useMessage();
     }
   };
 
-  // when form changes, keep preview in sync and make sure computed fields exist
+  // when form changes, keep preview in sync (debounced by 0.5s to prevent typing lag)
   const onValuesChange = (changed, all) => {
-    const items = (all.items || []).map((it) => updateItemCalculations({ ...it }));
-    form.setFieldsValue({ items });
-    setPreview({ ...all, items });
+    if (previewTimeoutRef.current) {
+      clearTimeout(previewTimeoutRef.current);
+    }
+    previewTimeoutRef.current = setTimeout(() => {
+      setPreview(all);
+    }, 500);
   };
 
   // SUBMIT -> send payload shape backend expects
@@ -1025,7 +1100,7 @@ const [messageApi, contextHolder] = message.useMessage();
       const newProductRows = itemsRaw.filter(item => item._isNew);
       if (newProductRows.length > 0) {
         messageApi.loading('Creating new products...', 0);
-        
+
         for (let i = 0; i < itemsRaw.length; i++) {
           const item = itemsRaw[i];
           if (item._isNew) {
@@ -1071,7 +1146,7 @@ const [messageApi, contextHolder] = message.useMessage();
 
         messageApi.destroy();
         messageApi.success(`${newProductRows.length} new product(s) created!`);
-        
+
         // Update form with new product IDs
         form.setFieldsValue({ items: itemsRaw });
       }
@@ -1184,12 +1259,12 @@ const [messageApi, contextHolder] = message.useMessage();
     } catch (err) {
       console.error("create billing error:", err);
       console.error("error response:", err.response?.data);
-      
+
       let errorMessage = "Failed to create billing";
-      
+
       if (err.response?.data) {
         const errorData = err.response.data;
-        
+
         // Handle different error formats
         if (typeof errorData === 'string') {
           errorMessage = errorData;
@@ -1206,7 +1281,7 @@ const [messageApi, contextHolder] = message.useMessage();
       } else if (err.message) {
         errorMessage = err.message;
       }
-      
+
       messageApi.error(errorMessage);
     } finally {
       setLoading(false);
@@ -1251,15 +1326,15 @@ const [messageApi, contextHolder] = message.useMessage();
 
   // table columns (editable)
   const columns = [
-    { 
-      title: "Product Code", 
-      dataIndex: "product_code", 
+    {
+      title: "Product Code",
+      dataIndex: "product_code",
       key: "code",
       render: (text, record) => record._isNew ? <Tag color="blue">NEW</Tag> : text
     },
-    { 
-      title: "Product Name", 
-      dataIndex: "product_name", 
+    {
+      title: "Product Name",
+      dataIndex: "product_name",
       key: "name",
       render: (text, record, idx) => record._isNew ? (
         <Input
@@ -1277,10 +1352,10 @@ const [messageApi, contextHolder] = message.useMessage();
         <InputNumber min={1} value={record.quantity} onChange={(v) => handleItemChange(idx, "quantity", v || 0)} />
       ),
     },
-    { 
-      title: "Unit Price", 
-      dataIndex: "unit_price", 
-      key: "price", 
+    {
+      title: "Unit Price",
+      dataIndex: "unit_price",
+      key: "price",
       render: (v, record, idx) => record._isNew ? (
         <InputNumber
           placeholder="Price"
@@ -1376,113 +1451,115 @@ const [messageApi, contextHolder] = message.useMessage();
   };
   return (
     <>
-    {contextHolder}
-    <div style={styles.page}>
-      <div style={styles.container}>
-        {/* Bill Tabs */}
-        <Tabs
-          type="editable-card"
-          activeKey={activeBillKey}
-          onChange={handleTabChange}
-          onEdit={handleEditTabs}
-          items={bills.map(b => ({ label: b.label, key: b.key, closable: bills.length > 1 }))}
-          style={{ marginBottom: 0 }}
-        />
-        <Spin spinning={loading}>
-          <Form
-            form={form}
-            className="form"
-            layout="vertical"
-            onFinish={handleSubmit}
-            initialValues={{ status: "pending", items: [] }}
-            onValuesChange={onValuesChange}
-          >
-            <Row gutter={24}>
-              <Col xs={24} lg={16}>
-                <div style={styles.leftCard}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                    <div style={styles.sectionTitle}>Billing Details</div>
-                  </div>
+      {contextHolder}
+      <div style={styles.page}>
+        <div style={styles.container}>
+          {/* Bill Tabs */}
+          <Tabs
+            type="editable-card"
+            activeKey={activeBillKey}
+            onChange={handleTabChange}
+            onEdit={handleEditTabs}
+            items={bills.map(b => ({ label: b.label, key: b.key, closable: bills.length > 1 }))}
+            style={{ marginBottom: 0 }}
+          />
+          <Spin spinning={loading}>
+            <Form
+              form={form}
+              className="form"
+              layout="vertical"
+              onFinish={handleSubmit}
+              initialValues={{ status: "pending", items: [] }}
+              onValuesChange={onValuesChange}
+            >
+              <Row gutter={24}>
+                <Col xs={24} lg={16}>
+                  <div style={styles.leftCard}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                      <div style={styles.sectionTitle}>Billing Details</div>
+                    </div>
 
-                  <Row gutter={16}>
-                    <Col span={12}>
-                      <Form.Item label="Bill no" name="bill_no">
-                        <Input disabled placeholder="Auto Generates" />
-                      </Form.Item>
-                    </Col>
-                    <Col span={12}>
-                      <Form.Item label="Billing Date" name="billing_date" rules={[{ required: true, message: "Select billing date" }]}>
-                        <DatePicker style={{ width: "100%" }} disabled />
-                      </Form.Item>
-                    </Col>
-                  </Row>
+                    <Row gutter={16}>
+                      <Col span={12}>
+                        <Form.Item label="Bill no" name="bill_no">
+                          <Input disabled placeholder="Auto Generates" />
+                        </Form.Item>
+                      </Col>
+                      <Col span={12}>
+                        <Form.Item label="Billing Date" name="billing_date" rules={[{ required: true, message: "Select billing date" }]}>
+                          <DatePicker style={{ width: "100%" }} disabled />
+                        </Form.Item>
+                      </Col>
+                    </Row>
 
-                  <Row gutter={16}>
-                    <Col span={12}>
-                      <Form.Item
-                        label="Customer Phone"
-                        name="customer_phone"
-                        rules={[
-                          { required: true, message: "Enter phone number" },
-                          { pattern: /^[0-9]{10}$/, message: "Enter valid 10-digit number" }
-                        ]}
-                      >
-                        <Input
-                          placeholder="Enter 10-digit phone number"
-                          maxLength={10}
-                          onChange={(e) => {
-                            const phone = e.target.value;
-                            if (phone.length === 10) {
-                              handleCustomerLookup(phone);
-                            } else {
-                              setCustomerData(null);
-                              setIsNewCustomer(false);
+                    <Row gutter={16}>
+                      <Col span={12}>
+                        <Form.Item
+                          label="Customer Phone"
+                          name="customer_phone"
+                          rules={[
+                            { required: true, message: "Enter phone number" },
+                            { pattern: /^[0-9]{10}$/, message: "Enter valid 10-digit number" }
+                          ]}
+                        >
+                          <Input
+                            placeholder="Enter 10-digit phone number"
+                            maxLength={10}
+                            onChange={(e) => {
+                              const phone = e.target.value;
+                              if (phone.length === 10) {
+                                handleCustomerLookup(phone);
+                              } else {
+                                setCustomerData(null);
+                                setIsNewCustomer(false);
+                              }
+                            }}
+                            suffix={
+                              customerLoading ? (
+                                <Spin size="small" />
+                              ) : customerData ? (
+                                <CheckCircleOutlined style={{ color: '#52c41a' }} />
+                              ) : isNewCustomer ? (
+                                <Tag color="blue">New</Tag>
+                              ) : null
                             }
-                          }}
-                          suffix={
-                            customerLoading ? (
-                              <Spin size="small" />
-                            ) : customerData ? (
-                              <CheckCircleOutlined style={{ color: '#52c41a' }} />
-                            ) : isNewCustomer ? (
-                              <Tag color="blue">New</Tag>
-                            ) : null
-                          }
-                        />
-                      </Form.Item>
-                    </Col>
-                    <Col span={12}>
-                      <Form.Item
-                        label="Customer Name"
-                        name="customer_name"
-                        rules={[{ required: true, message: "Enter customer name" }]}
-                      >
-                        <Input
-                          placeholder={isNewCustomer ? "Enter new customer name" : "Enter customer name"}
-                          disabled={customerLoading}
-                        />
-                      </Form.Item>
-                    </Col>
-                  </Row>
+                          />
+                        </Form.Item>
+                      </Col>
+                      <Col span={12}>
+                        <Form.Item
+                          label="Customer Name"
+                          name="customer_name"
+                          rules={[{ required: true, message: "Enter customer name" }]}
+                        >
+                          <Input
+                            placeholder={isNewCustomer ? "Enter new customer name" : "Enter customer name"}
+                            disabled={customerLoading}
+                            style={{ textTransform: "capitalize" }}
+                          />
+                        </Form.Item>
+                      </Col>
+                    </Row>
 
-                  <Row gutter={16}>
-                    <Col span={12}>
-                      <Form.Item label="Source" name="source">
-                        <Select placeholder="Select source">
-                          <Option value="Walk-in">Walk-in</Option>
-                          <Option value="Instagram">Instagram</Option>
-                          <Option value="Google Search">Google Search</Option>
-                          <Option value="Google Review">Google Review</Option>
-                          <Option value="Friend Ref">Friend Ref</Option>
-                          <Option value="Ads">Ads</Option>
-                          <Option value="Other">Other</Option>
-                        </Select>
-                      </Form.Item>
-                    </Col>
-                  </Row>
+                    <Row gutter={16}>
+                      <Col span={12}>
+                        <Form.Item label="Source" name="source">
+                          <Select placeholder="Select source">
+                            <Option value="Existing Customer">Existing Customer</Option>
+                            <Option value="Walk-in">Walk-in</Option>
+                            <Option value="Instagram">Instagram</Option>
+                            <Option value="Google Search">Google Search</Option>
+                            <Option value="Google Review">Google Review</Option>
+                            <Option value="Friend Ref">Friend Ref</Option>
+                            <Option value="Ads">Ads</Option>
+                            <Option value="Other">Other</Option>
+                          </Select>
+                        </Form.Item>
+                      </Col>
+                    </Row>
 
-                  {/* Customer Info Card */}
-                  {/* {customerData && (
+                    {/* Customer Info Card */}
+                    {/* {customerData && (
                   <Card
                     size="small"
                     style={{ marginBottom: 16, background: '#e6f7ff', border: '1px solid #91d5ff' }}
@@ -1586,131 +1663,131 @@ const [messageApi, contextHolder] = message.useMessage();
                   </Card>
                 )} */}
 
-                  {isNewCustomer && (
-                    <Alert
-                      message="New Customer"
-                      description="This is a new customer. Please enter their name above."
-                      type="info"
-                      showIcon
-                      style={{ marginBottom: 16 }}
-                    />
-                  )}
+                    {isNewCustomer && (
+                      <Alert
+                        message="New Customer"
+                        description="This is a new customer. Please enter their name above."
+                        type="info"
+                        showIcon
+                        style={{ marginBottom: 16 }}
+                      />
+                    )}
 
-                  <Row gutter={16}>
-                    <Col span={12}>
-                      <Form.Item label="Counter No" name="counter_no" placeholder="Select Counter">
-                        <Select>
-                          <Option value="Counter 1">Counter 1</Option>
-                          <Option value="Counter 2">Counter 2</Option>
-                          <Option value="Counter 3">Counter 3</Option>
-                          <Option value="Counter 4">Counter 4</Option>
-                          <Option value="Counter 5">Counter 5</Option>
-                        </Select>
-                      </Form.Item>
-                    </Col>
-                    <Col span={12}>
-                      <Form.Item label="Payment Method" name="payment_method">
-                        {!isSplitPayment ? (
-                          <Select onChange={(value) => {
-                            if (value === 'split') {
-                              setIsSplitPayment(true);
-                            }
-                          }}>
-                            <Option value="cash">Cash</Option>
-                            <Option value="credit_card">Credit Card</Option>
-                            <Option value="debit_card">Debit Card</Option>
-                            <Option value="UPI Current Account">UPI Current Account</Option>
-                            <Option value="UPI Normal Account">UPI</Option>
-                            <Option value="net_banking">Net Banking(Bank Transfer)</Option>
-                            <Option value="split">Split Payment</Option>
-                            <Option value="hold">Hold</Option>
+                    <Row gutter={16}>
+                      <Col span={12}>
+                        <Form.Item label="Counter No" name="counter_no" placeholder="Select Counter">
+                          <Select>
+                            <Option value="Counter 1">Counter 1</Option>
+                            <Option value="Counter 2">Counter 2</Option>
+                            <Option value="Counter 3">Counter 3</Option>
+                            <Option value="Counter 4">Counter 4</Option>
+                            <Option value="Counter 5">Counter 5</Option>
                           </Select>
-                        ) : (
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <span style={{ fontWeight: 600 }}>Split Payment Active</span>
-                            <Button size="small" type="link" onClick={() => setIsSplitPayment(false)}>Cancel</Button>
-                          </div>
-                        )}
-                      </Form.Item>
-                    </Col>
-                  </Row>
-
-                  {/* Split Payment Section */}
-                  {isSplitPayment && (
-                    <Card
-                      size="small"
-                      title="Split Payment Details"
-                      style={{ marginBottom: 16, background: '#fff7e6', border: '1px solid #ffd591' }}
-                      extra={
-                        <Button
-                          type="dashed"
-                          size="small"
-                          onClick={addSplitPayment}
-                        >
-                          + Add Payment
-                        </Button>
-                      }
-                    >
-                      {splitPayments.map((payment, index) => (
-                        <Row key={index} gutter={8} style={{ marginBottom: 8 }}>
-                          <Col span={10}>
-                            <Select
-                              value={payment.method}
-                              onChange={(value) => updateSplitPayment(index, 'method', value)}
-                              style={{ width: '100%' }}
-                            >
+                        </Form.Item>
+                      </Col>
+                      <Col span={12}>
+                        <Form.Item label="Payment Method" name="payment_method">
+                          {!isSplitPayment ? (
+                            <Select onChange={(value) => {
+                              if (value === 'split') {
+                                setIsSplitPayment(true);
+                              }
+                            }}>
                               <Option value="cash">Cash</Option>
                               <Option value="credit_card">Credit Card</Option>
                               <Option value="debit_card">Debit Card</Option>
-                              <Option value="UPI Current Account">UPI Current</Option>
-                              <Option value="UPI Normal Account">UPI Normal</Option>
-                              <Option value="net_banking">Net Banking</Option>
+                              <Option value="UPI Current Account">UPI Current Account</Option>
+                              <Option value="UPI Normal Account">UPI</Option>
+                              <Option value="net_banking">Net Banking(Bank Transfer)</Option>
+                              <Option value="split">Split Payment</Option>
+                              <Option value="hold">Hold</Option>
                             </Select>
-                          </Col>
-                          <Col span={10}>
-                            <InputNumber
-                              value={payment.amount}
-                              onChange={(value) => updateSplitPayment(index, 'amount', value)}
-                              placeholder="Amount"
-                              min={0}
-                              style={{ width: '100%' }}
-                              prefix="₹"
-                            />
-                          </Col>
-                          <Col span={4}>
-                            {splitPayments.length > 1 && (
-                              <Button
-                                danger
-                                size="icon"
-                                onClick={() => removeSplitPayment(index)}
-                                icon={<Trash2 size={16} />}
-                                style={{ border: 'none', background: 'none', boxShadow: "none" }}
-                              >
-                              </Button>
-                            )}
-                          </Col>
-                        </Row>
-                      ))}
-                      <Divider style={{ margin: '12px 0' }} />
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}>
-                        <span>Total Split Amount:</span>
-                        <span style={{ color: getTotalSplitAmount() === summary.grandTotal ? '#52c41a' : '#ff4d4f' }}>
-                          ₹{getTotalSplitAmount().toFixed(2)} / ₹{summary.grandTotal.toFixed(2)}
-                        </span>
-                      </div>
-                      {getTotalSplitAmount() !== summary.grandTotal && (
-                        <Alert
-                          message="Split payment total must equal the bill total"
-                          type="warning"
-                          showIcon
-                          style={{ marginTop: 8 }}
-                        />
-                      )}
-                    </Card>
-                  )}
+                          ) : (
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <span style={{ fontWeight: 600 }}>Split Payment Active</span>
+                              <Button size="small" type="link" onClick={() => setIsSplitPayment(false)}>Cancel</Button>
+                            </div>
+                          )}
+                        </Form.Item>
+                      </Col>
+                    </Row>
 
-                  {/* Coupon Section - Always show */}
-                  {/* <Card
+                    {/* Split Payment Section */}
+                    {isSplitPayment && (
+                      <Card
+                        size="small"
+                        title="Split Payment Details"
+                        style={{ marginBottom: 16, background: '#fff7e6', border: '1px solid #ffd591' }}
+                        extra={
+                          <Button
+                            type="dashed"
+                            size="small"
+                            onClick={addSplitPayment}
+                          >
+                            + Add Payment
+                          </Button>
+                        }
+                      >
+                        {splitPayments.map((payment, index) => (
+                          <Row key={index} gutter={8} style={{ marginBottom: 8 }}>
+                            <Col span={10}>
+                              <Select
+                                value={payment.method}
+                                onChange={(value) => updateSplitPayment(index, 'method', value)}
+                                style={{ width: '100%' }}
+                              >
+                                <Option value="cash">Cash</Option>
+                                <Option value="credit_card">Credit Card</Option>
+                                <Option value="debit_card">Debit Card</Option>
+                                <Option value="UPI Current Account">UPI Current</Option>
+                                <Option value="UPI Normal Account">UPI Normal</Option>
+                                <Option value="net_banking">Net Banking</Option>
+                              </Select>
+                            </Col>
+                            <Col span={10}>
+                              <InputNumber
+                                value={payment.amount}
+                                onChange={(value) => updateSplitPayment(index, 'amount', value)}
+                                placeholder="Amount"
+                                min={0}
+                                style={{ width: '100%' }}
+                                prefix="₹"
+                              />
+                            </Col>
+                            <Col span={4}>
+                              {splitPayments.length > 1 && (
+                                <Button
+                                  danger
+                                  size="icon"
+                                  onClick={() => removeSplitPayment(index)}
+                                  icon={<Trash2 size={16} />}
+                                  style={{ border: 'none', background: 'none', boxShadow: "none" }}
+                                >
+                                </Button>
+                              )}
+                            </Col>
+                          </Row>
+                        ))}
+                        <Divider style={{ margin: '12px 0' }} />
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}>
+                          <span>Total Split Amount:</span>
+                          <span style={{ color: getTotalSplitAmount() === summary.grandTotal ? '#52c41a' : '#ff4d4f' }}>
+                            ₹{getTotalSplitAmount().toFixed(2)} / ₹{summary.grandTotal.toFixed(2)}
+                          </span>
+                        </div>
+                        {getTotalSplitAmount() !== summary.grandTotal && (
+                          <Alert
+                            message="Split payment total must equal the bill total"
+                            type="warning"
+                            showIcon
+                            style={{ marginTop: 8 }}
+                          />
+                        )}
+                      </Card>
+                    )}
+
+                    {/* Coupon Section - Always show */}
+                    {/* <Card
                   size="small"
                   title={
                     <Space>
@@ -1763,223 +1840,223 @@ const [messageApi, contextHolder] = message.useMessage();
                     💡 Tip: Earn coupons by making purchases of ₹2000 or more!
                   </div>
                 </Card> */}
-                  <Row gutter={16}>
-                    <Col span={12}>
-                      <Form.Item label="Select Product">
-                        <Space.Compact style={{ width: '100%' }}>
-                          <Select
-                            showSearch
-                            placeholder="Search and select product"
-                            value={selectedProduct}
-                            onChange={handleProductSelect}
-                            onSearch={(value) => {
-                              if (value.length >= 2) {
-                                fetchAllProducts(value);
-                              } else if (value.length === 0) {
-                                fetchAllProducts();
-                              }
-                            }}
-                            loading={productsLoading}
-                            filterOption={false}
-                            notFoundContent={productsLoading ? <Spin size="small" /> : "No products found"}
-                            style={{ width: "100%" }}
-                          >
-                            {allProducts.map((product) => (
-                              <Option key={product.id} value={product.id}>
-                                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                                  <span>
-                                    {product.product_name} ({product.product_code})
-                                  </span>
-                                  <span style={{ color: "#52c41a", fontWeight: 600 }}>
-                                    ₹{product.selling_price}
-                                  </span>
-                                </div>
-                              </Option>
-                            ))}
-                          </Select>
-                          <Button 
-                            type="primary" 
-                            icon={<PlusOutlined />}
-                            onClick={() => setQuickAddModalVisible(true)}
-                            title="Quick Add New Product"
-                          >
-                            New
-                          </Button>
-                        </Space.Compact>
-                      </Form.Item>
-                    </Col>
-
-                    <Col span={12}>
-                      <Form.Item label="Apply Coupon">
-                        {!couponApplied ? (
-                          <>
-                            <Space.Compact style={{ width: "100%" }}>
-                              <Input
-                                placeholder="Enter coupon code"
-                                value={couponCode}
-                                maxLength={10}
-                                onChange={(e) => {
-                                  setCouponCode(e.target.value.toUpperCase());
-                                  setCouponError(""); // Clear error when user types
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") {
-                                    e.preventDefault();
-                                    handleValidateCoupon();
-                                  }
-                                }}
-                                style={{ textTransform: "uppercase" }}
-                                status={couponError ? "error" : ""}
-                              />
-                              <Button
-                                type="primary"
-                                loading={couponValidating}
-                                onClick={handleValidateCoupon}
-                              >
-                                Apply
-                              </Button>
-                            </Space.Compact>
-                            {couponError && (
-                              <Alert
-                                message={couponError}
-                                type="error"
-                                showIcon
-                                style={{ marginTop: "8px", fontSize: "12px" }}
-                                closable
-                                onClose={() => setCouponError("")}
-                              />
-                            )}
-                          </>
-                        ) : (
-                          <div
-                            style={{
-                              background: "#f6ffed",
-                              border: "1px solid #b7eb8f",
-                              borderRadius: "6px",
-                              padding: "0px 10px",
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "12px",
-                            }}
-                          >
-                            <CheckCircleOutlined
-                              style={{ color: "#52c41a", fontSize: "16px" }}
-                            />
-                            <div style={{ flex: 1 }}>
-                              <div style={{ fontWeight: 600, color: "#52c41a", marginBottom: "2px" }}>
-                                Coupon Applied! <Tag style={{ marginLeft: "6px" }} color="warning">{couponCode}</Tag>
-                              </div>
-                            </div>
-                            <Button
-                              danger
-                              type="text"
-                              icon={<Trash2 size={16} />}
-                              onClick={handleRemoveCoupon}
-                              style={{ padding: "0px 8px" }}
-                            />
-                          </div>
-                        )}
-                      </Form.Item>
-                    </Col>
-                  </Row>
-
-
-
-                  {/* Items table (editable) */}
-                  <Tabs
-                    activeKey={activeTab}
-                    onChange={(key) => {
-                      setActiveTab(key);
-                      if (key === "history") {
-                        fetchCustomerBills();
-                      }
-                    }}
-                    items={[
-                      {
-                        key: "new",
-                        label: "New Bill",
-                        children: (
-                          <Form.List name="items">
-                            {() => {
-                              const items = form.getFieldValue("items") || [];
-                              return (
-                                <>
-                                  <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <div style={{ fontSize: 14, fontWeight: 600, color: '#374151' }}>
-                                      Bill Items ({items.length})
-                                    </div>
-                                    <Button
-                                      type="dashed"
-                                      icon={<PlusOutlined />}
-                                      onClick={handleAddEmptyRow}
-                                      size="small"
-                                    >
-                                      Add New Product
-                                    </Button>
+                    <Row gutter={16}>
+                      <Col span={12}>
+                        <Form.Item label="Select Product">
+                          <Space.Compact style={{ width: '100%' }}>
+                            <Select
+                              showSearch
+                              placeholder="Search and select product"
+                              value={selectedProduct}
+                              onChange={handleProductSelect}
+                              onSearch={(value) => {
+                                if (value.length >= 2) {
+                                  fetchAllProducts(value);
+                                } else if (value.length === 0) {
+                                  fetchAllProducts();
+                                }
+                              }}
+                              loading={productsLoading}
+                              filterOption={false}
+                              notFoundContent={productsLoading ? <Spin size="small" /> : "No products found"}
+                              style={{ width: "100%" }}
+                            >
+                              {allProducts.map((product) => (
+                                <Option key={product.id} value={product.id}>
+                                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                                    <span>
+                                      {product.product_name} ({product.product_code})
+                                    </span>
+                                    <span style={{ color: "#52c41a", fontWeight: 600 }}>
+                                      ₹{product.selling_price}
+                                    </span>
                                   </div>
-                                  <Table
-                                    dataSource={items}
-                                    columns={columns}
-                                    pagination={false}
-                                    rowKey={(r, idx) => r._tempId || idx}
-                                    size="small"
-                                    scroll={{ x: 600 }}
-                                    className="billingItemsTable"
-                                    style={{ marginBottom: 8 }}
-                                  />
+                                </Option>
+                              ))}
+                            </Select>
+                            <Button
+                              type="primary"
+                              icon={<PlusOutlined />}
+                              onClick={() => setQuickAddModalVisible(true)}
+                              title="Quick Add New Product"
+                            >
+                              New
+                            </Button>
+                          </Space.Compact>
+                        </Form.Item>
+                      </Col>
 
-                                  <div style={{ display: "flex", justifyContent: "right", marginTop: 10 }}>
-                                    <div>
-                                      <div style={{ display: "flex", justifyContent: "space-between", gap: "4px" }}>
-                                        <div style={{ color: "#374151" }}>Subtotal</div>
-                                        <div style={{ fontWeight: 700, color: "#222" }}>₹{summary.subtotal.toFixed(2)}</div>
+                      <Col span={12}>
+                        <Form.Item label="Apply Coupon">
+                          {!couponApplied ? (
+                            <>
+                              <Space.Compact style={{ width: "100%" }}>
+                                <Input
+                                  placeholder="Enter coupon code"
+                                  value={couponCode}
+                                  maxLength={10}
+                                  onChange={(e) => {
+                                    setCouponCode(e.target.value.toUpperCase());
+                                    setCouponError(""); // Clear error when user types
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      e.preventDefault();
+                                      handleValidateCoupon();
+                                    }
+                                  }}
+                                  style={{ textTransform: "uppercase" }}
+                                  status={couponError ? "error" : ""}
+                                />
+                                <Button
+                                  type="primary"
+                                  loading={couponValidating}
+                                  onClick={handleValidateCoupon}
+                                >
+                                  Apply
+                                </Button>
+                              </Space.Compact>
+                              {couponError && (
+                                <Alert
+                                  message={couponError}
+                                  type="error"
+                                  showIcon
+                                  style={{ marginTop: "8px", fontSize: "12px" }}
+                                  closable
+                                  onClose={() => setCouponError("")}
+                                />
+                              )}
+                            </>
+                          ) : (
+                            <div
+                              style={{
+                                background: "#f6ffed",
+                                border: "1px solid #b7eb8f",
+                                borderRadius: "6px",
+                                padding: "0px 10px",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "12px",
+                              }}
+                            >
+                              <CheckCircleOutlined
+                                style={{ color: "#52c41a", fontSize: "16px" }}
+                              />
+                              <div style={{ flex: 1 }}>
+                                <div style={{ fontWeight: 600, color: "#52c41a", marginBottom: "2px" }}>
+                                  Coupon Applied! <Tag style={{ marginLeft: "6px" }} color="warning">{couponCode}</Tag>
+                                </div>
+                              </div>
+                              <Button
+                                danger
+                                type="text"
+                                icon={<Trash2 size={16} />}
+                                onClick={handleRemoveCoupon}
+                                style={{ padding: "0px 8px" }}
+                              />
+                            </div>
+                          )}
+                        </Form.Item>
+                      </Col>
+                    </Row>
+
+
+
+                    {/* Items table (editable) */}
+                    <Tabs
+                      activeKey={activeTab}
+                      onChange={(key) => {
+                        setActiveTab(key);
+                        if (key === "history") {
+                          fetchCustomerBills();
+                        }
+                      }}
+                      items={[
+                        {
+                          key: "new",
+                          label: "New Bill",
+                          children: (
+                            <Form.List name="items">
+                              {() => {
+                                const items = form.getFieldValue("items") || [];
+                                return (
+                                  <>
+                                    <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                      <div style={{ fontSize: 14, fontWeight: 600, color: '#374151' }}>
+                                        Bill Items ({items.length})
+                                      </div>
+                                      <Button
+                                        type="dashed"
+                                        icon={<PlusOutlined />}
+                                        onClick={handleAddEmptyRow}
+                                        size="small"
+                                      >
+                                        Add New Product
+                                      </Button>
+                                    </div>
+                                    <Table
+                                      dataSource={items}
+                                      columns={columns}
+                                      pagination={false}
+                                      rowKey={(r, idx) => r._tempId || idx}
+                                      size="small"
+                                      scroll={{ x: 600 }}
+                                      className="billingItemsTable"
+                                      style={{ marginBottom: 8 }}
+                                    />
+
+                                    <div style={{ display: "flex", justifyContent: "right", marginTop: 10 }}>
+                                      <div>
+                                        <div style={{ display: "flex", justifyContent: "space-between", gap: "4px" }}>
+                                          <div style={{ color: "#374151" }}>Subtotal</div>
+                                          <div style={{ fontWeight: 700, color: "#222" }}>₹{summary.subtotal.toFixed(2)}</div>
+                                        </div>
                                       </div>
                                     </div>
-                                  </div>
 
-                                  <Divider />
-                                </>
-                              );
-                            }}
-                          </Form.List>
-                        ),
-                      },
-                      ...(customerData
-                        ? [
-                          {
-                            key: "history",
-                            label: "History",
-                            children: (
-                              <Spin spinning={historyLoading}>
-                                <Table
-                                  dataSource={customerHistoryBills}
-                                  columns={historyColumns}
-                                  rowKey={(record) => record.billing_no}
-                                  pagination={{ pageSize: 5 }}
-                                  locale={{ emptyText: "No previous bills found" }}
-                                  size="small"
-                                  expandable={{
-                                    expandedRowRender: renderHistoryExpandedRow,
-                                    rowExpandable: () => true,
-                                  }}
-                                />
-                              </Spin>
-                            ),
-                          },
-                        ]
-                        : []),
-                    ]}
-                  />
-                </div>
-              </Col>
-              <Col xs={24} lg={8}>
-                {/* RIGHT: live preview */}
-                <div style={styles.rightCard}>
-                  <Title level={5} style={{ marginBottom: 6 }}>
-                    Bill Preview
-                  </Title>
+                                    <Divider />
+                                  </>
+                                );
+                              }}
+                            </Form.List>
+                          ),
+                        },
+                        ...(customerData
+                          ? [
+                            {
+                              key: "history",
+                              label: "History",
+                              children: (
+                                <Spin spinning={historyLoading}>
+                                  <Table
+                                    dataSource={customerHistoryBills}
+                                    columns={historyColumns}
+                                    rowKey={(record) => record.billing_no}
+                                    pagination={{ pageSize: 5 }}
+                                    locale={{ emptyText: "No previous bills found" }}
+                                    size="small"
+                                    expandable={{
+                                      expandedRowRender: renderHistoryExpandedRow,
+                                      rowExpandable: () => true,
+                                    }}
+                                  />
+                                </Spin>
+                              ),
+                            },
+                          ]
+                          : []),
+                      ]}
+                    />
+                  </div>
+                </Col>
+                <Col xs={24} lg={8}>
+                  {/* RIGHT: live preview */}
+                  <div style={styles.rightCard}>
+                    <Title level={5} style={{ marginBottom: 6 }}>
+                      Bill Preview
+                    </Title>
 
-                  <style>{`
+                    <style>{`
                   .invoiceHeader{background: gray; padding:12px; border-radius:6px; color:#fff}
                   .invoiceHeader .company{font-weight:800; font-size:16px}
                   .invoiceHeader .meta{font-size:12px; opacity:0.95}
@@ -1995,382 +2072,389 @@ const [messageApi, contextHolder] = message.useMessage();
                   .billingItemsTable .ant-input-number-input{font-size:12px; padding:2px 6px;}
                 `}</style>
 
-                  <div className="invoiceHeader">
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <div>
-                        <div className="company">{currentBranchDetails?.name || currentBranchDetails?.branch_name || "Atelier Tech"}</div>
-                        <div className="meta">{currentBranchDetails?.address || "Address Not Available"}</div>
-                      </div>
-                      <div style={{ textAlign: "right" }}>
-                        <div style={{ fontWeight: 700 }}>{preview.billing_date ? dayjs(preview.billing_date).format("DD MMM YYYY") : "-"}</div>
-                        <div style={{ fontSize: 12 }}>{preview.customer_name || "-"}</div>
-                        <div style={{ fontSize: 12, display: "flex", alignItems: "center", gap: "4px" }}><PhoneCall size={12} /> {preview.customer_phone || preview.customer_phone_nu || "-"}</div>
-                        <div style={{ fontSize: 12, display: "flex", alignItems: "center", gap: "4px" }}> <Laptop size={12} /> {preview.counter_no || preview.couner || "-"}</div>
+                    <div className="invoiceHeader">
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div>
+                          <div className="company">{currentBranchDetails?.name || currentBranchDetails?.branch_name || "Atelier Tech"}</div>
+                          <div className="meta">{currentBranchDetails?.address || "Address Not Available"}</div>
+                        </div>
+                        <div style={{ textAlign: "right" }}>
+                          <div style={{ fontWeight: 700 }}>{preview.billing_date ? dayjs(preview.billing_date).format("DD MMM YYYY") : "-"}</div>
+                          <div style={{ fontSize: 12 }}>{preview.customer_name || "-"}</div>
+                          <div style={{ fontSize: 12, display: "flex", alignItems: "center", gap: "4px" }}><PhoneCall size={12} /> {preview.customer_phone || preview.customer_phone_nu || "-"}</div>
+                          <div style={{ fontSize: 12, display: "flex", alignItems: "center", gap: "4px" }}> <Laptop size={12} /> {preview.counter_no || preview.couner || "-"}</div>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div style={{ marginTop: 12 }}>
-                    <Table
-                      className="previewTable"
-                      dataSource={(preview.items || []).map((it, i) => ({ ...it, key: i }))}
-                      columns={previewColumns}
-                      pagination={false}
-                      size="small"
-                      rowClassName={(record, idx) => (idx % 2 === 0 ? "even-row" : "")}
-                      style={{ marginBottom: 8, borderRadius: 6, overflow: "hidden" }}
-                    />
+                    <div style={{ marginTop: 12 }}>
+                      <Table
+                        className="previewTable"
+                        dataSource={(preview.items || []).map((it, i) => ({ ...it, key: i }))}
+                        columns={previewColumns}
+                        pagination={false}
+                        size="small"
+                        rowClassName={(record, idx) => (idx % 2 === 0 ? "even-row" : "")}
+                        style={{ marginBottom: 8, borderRadius: 6, overflow: "hidden" }}
+                      />
 
-                    <div className="previewTotals" style={{ marginTop: 8 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                        <div style={{ color: "#374151" }}>Subtotal</div>
-                        <div>₹{summary.subtotal.toFixed(2)}</div>
-                      </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                        <div>Tax</div>
-                        <div>₹{summary.totalTax.toFixed(2)}</div>
-                      </div>
-                      {summary.totalDiscount > 0 && (
+                      <div className="previewTotals" style={{ marginTop: 8 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                          <div style={{ color: "#6b7280" }}>Item Discounts</div>
-                          <div style={{ color: "#ef4444" }}>-₹{summary.totalDiscount.toFixed(2)}</div>
+                          <div style={{ color: "#374151" }}>Subtotal</div>
+                          <div>₹{summary.subtotal.toFixed(2)}</div>
                         </div>
-                      )}
-
-                      {/* ── Bill-level discount ── */}
-                      <div style={{ marginBottom: 8, padding: "8px 10px", background: "#fef9f0", border: "1px solid #fde68a", borderRadius: 8 }}>
-                        <div style={{ fontSize: 12, fontWeight: 600, color: "#92400e", marginBottom: 6 }}>Bill Discount</div>
-                        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                          <InputNumber
-                            size="small"
-                            min={0}
-                            max={100}
-                            precision={2}
-                            value={billDiscountPct || null}
-                            onChange={handleBillDiscountPct}
-                            addonAfter="%"
-                            style={{ flex: 1 }}
-                            placeholder="0"
-                          />
-                          <span style={{ color: "#9ca3af", fontSize: 12 }}>↔</span>
-                          <InputNumber
-                            size="small"
-                            min={0}
-                            precision={2}
-                            value={billDiscountAmt || null}
-                            onChange={handleBillDiscountAmt}
-                            prefix="₹"
-                            style={{ flex: 1 }}
-                            placeholder="0"
-                          />
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                          <div>Tax</div>
+                          <div>₹{summary.totalTax.toFixed(2)}</div>
                         </div>
-                        {billDiscountAmt > 0 && (
-                          <div style={{ fontSize: 11, color: "#d97706", marginTop: 4 }}>
-                            Saving ₹{billDiscountAmt.toFixed(2)} ({billDiscountPct.toFixed(1)}% off)
+                        {summary.totalDiscount > 0 && (
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                            <div style={{ color: "#6b7280" }}>Item Discounts</div>
+                            <div style={{ color: "#ef4444" }}>-₹{summary.totalDiscount.toFixed(2)}</div>
                           </div>
                         )}
-                      </div>
 
-                      {couponApplied && summary.couponDiscount > 0 && (
-                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                          <div style={{ color: "#52c41a", fontWeight: 600 }}>
-                            <GiftOutlined /> Coupon Discount
+                        {/* ── Bill-level discount ── */}
+                        <div style={{ marginBottom: 8, padding: "8px 10px", background: "#fef9f0", border: "1px solid #fde68a", borderRadius: 8 }}>
+                          <div style={{ fontSize: 12, fontWeight: 600, color: "#92400e", marginBottom: 6 }}>Bill Discount</div>
+                          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                            <InputNumber
+                              size="small"
+                              min={0}
+                              max={100}
+                              precision={2}
+                              value={billDiscountPct || null}
+                              onChange={handleBillDiscountPct}
+                              addonAfter="%"
+                              style={{ flex: 1 }}
+                              placeholder="0"
+                            />
+                            <span style={{ color: "#9ca3af", fontSize: 12 }}>↔</span>
+                            <InputNumber
+                              size="small"
+                              min={0}
+                              precision={2}
+                              value={billDiscountAmt || null}
+                              onChange={handleBillDiscountAmt}
+                              prefix="₹"
+                              style={{ flex: 1 }}
+                              placeholder="0"
+                            />
                           </div>
-                          <div style={{ color: "#52c41a", fontWeight: 600 }}>
-                            -₹{summary.couponDiscount.toFixed(2)}
-                          </div>
+                          {billDiscountAmt > 0 && (
+                            <div style={{ fontSize: 11, color: "#d97706", marginTop: 4 }}>
+                              Saving ₹{billDiscountAmt.toFixed(2)} ({billDiscountPct.toFixed(1)}% off)
+                            </div>
+                          )}
                         </div>
-                      )}
 
-                      <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #e5e7eb", paddingTop: 10, marginTop: 8 }}>
-                        <div style={{ fontWeight: 800, fontSize: 16 }}>Total Amount</div>
-                        <div style={{ fontWeight: 800, fontSize: 16 }}>₹{summary.grandTotal.toFixed(2)}</div>
-                      </div>
-
-                      {couponApplied && (
-                        <div style={{ marginTop: 8, padding: 8, background: '#f6ffed', borderRadius: 4, fontSize: 12 }}>
-                          Coupon code <Tag color="success">{couponCode}</Tag> is Applied <Button
-                            danger
-                            type="text"
-                            icon={<Trash2 size={16} />}
-                            onClick={handleRemoveCoupon}
-                            style={{ padding: "0px 8px" }}
-                          />
-                          <div style={{ marginTop: 4, color: '#52c41a', display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <Gift color="red" size={16} /> Discount: ₹{couponData?.discount_amount?.toFixed(2)}
+                        {couponApplied && summary.couponDiscount > 0 && (
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                            <div style={{ color: "#52c41a", fontWeight: 600 }}>
+                              <GiftOutlined /> Coupon Discount
+                            </div>
+                            <div style={{ color: "#52c41a", fontWeight: 600 }}>
+                              -₹{summary.couponDiscount.toFixed(2)}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
 
-                      <div style={{ display: "flex", justifyContent: "right", marginTop: 10, alignItems: "center" }}>
-                        <div style={{ display: "flex", gap: 8 }}>
-                          <Button onClick={handleReset}><ShieldCheck size={16} />Save To Draft</Button>
-                          <Button
-                            type="primary"
-                            htmlType="submit"
-                            loading={loading}
-                            disabled={loading}
-                            style={{ background: "#09b13bff", borderColor: "#09b13bff" }}
-                          >
-                            Add Bill
-                          </Button>
-                          {/* <Button type="primary" htmlType="submit" style={{ background: "#0b75ff", borderColor: "#0b75ff" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #e5e7eb", paddingTop: 10, marginTop: 8 }}>
+                          <div style={{ fontWeight: 800, fontSize: 16 }}>Total Amount</div>
+                          <div style={{ fontWeight: 800, fontSize: 16 }}>₹{summary.grandTotal.toFixed(2)}</div>
+                        </div>
+
+                        <Divider style={{ margin: "12px 0" }} />
+                        <BalanceCalculator
+                          grandTotal={summary.grandTotal}
+                          receivedAmount={receivedAmount}
+                          onReceivedAmountChange={setReceivedAmount}
+                        />
+
+                        {couponApplied && (
+                          <div style={{ marginTop: 8, padding: 8, background: '#f6ffed', borderRadius: 4, fontSize: 12 }}>
+                            Coupon code <Tag color="success">{couponCode}</Tag> is Applied <Button
+                              danger
+                              type="text"
+                              icon={<Trash2 size={16} />}
+                              onClick={handleRemoveCoupon}
+                              style={{ padding: "0px 8px" }}
+                            />
+                            <div style={{ marginTop: 4, color: '#52c41a', display: 'flex', alignItems: 'center', gap: 4 }}>
+                              <Gift color="red" size={16} /> Discount: ₹{couponData?.discount_amount?.toFixed(2)}
+                            </div>
+                          </div>
+                        )}
+
+                        <div style={{ display: "flex", justifyContent: "right", marginTop: 10, alignItems: "center" }}>
+                          <div style={{ display: "flex", gap: 8 }}>
+                            <Button onClick={handleReset}><ShieldCheck size={16} />Save To Draft</Button>
+                            <Button
+                              type="primary"
+                              htmlType="submit"
+                              loading={loading}
+                              disabled={loading}
+                              style={{ background: "#09b13bff", borderColor: "#09b13bff" }}
+                            >
+                              Add Bill
+                            </Button>
+                            {/* <Button type="primary" htmlType="submit" style={{ background: "#0b75ff", borderColor: "#0b75ff" }}>
                           <Printer size={16} /> Print
                         </Button> */}
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </Col>
-            </Row>
+                </Col>
+              </Row>
 
-            <div style={{ height: 18 }} />
-          </Form>
-        </Spin>
-      </div >
+              <div style={{ height: 18 }} />
+            </Form>
+          </Spin>
+        </div >
 
-      {/* ── Print Confirmation Modal ── */}
-      <Modal
-        open={printConfirmModal}
-        onCancel={() => { setPrintConfirmModal(false); closeCurrentTab(); }}
-        afterOpenChange={(open) => { if (open && printYesRef.current) printYesRef.current.focus(); }}
-        footer={null}
-        width={380}
-        centered
-        closable={false}
-      >
-        <div style={{ textAlign: "center", padding: "8px 0 16px" }}>
-          <div style={{ width: 60, height: 60, borderRadius: "50%", background: "#f0fdf4", border: "2px solid #bbf7d0", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-          </div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: "#111827", marginBottom: 6 }}>
-            Bill Saved Successfully!
-          </div>
-          <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 24 }}>
-            Do you want to print the thermal receipt?
-          </div>
-          <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
-            <button
-              onClick={() => { setPrintConfirmModal(false); closeCurrentTab(); }}
-              style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: "1.5px solid #e5e7eb", background: "#fff", color: "#374151", fontWeight: 600, fontSize: 14, cursor: "pointer" }}
-            >
-              No, Skip
-            </button>
-            <button
-              ref={printYesRef}
-              onClick={async () => {
-                setPrintConfirmModal(false);
-                try {
-                  await printBillSilently(savedBillingResult, savedItemsRaw);
-                  messageApi.success("Thermal receipt printed");
-                } catch (err) {
-                  messageApi.error("Print failed: " + err.message);
-                } finally {
-                  closeCurrentTab();
-                }
-              }}
-              style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: "none", background: "#1e3a8a", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-              Yes, Print
-            </button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Success Modal for Generated Coupon */}
-      < Modal
-        open={showCouponModal}
-        onCancel={() => {
-          setShowCouponModal(false);
-          setSavedBillingResult(savedBillingResult);
-          setSavedItemsRaw(savedItemsRaw);
-          setPrintConfirmModal(true);
-        }}
-        footer={
-          [
-            <Button
-              key="print-again"
-              onClick={async () => {
-                if (!billToPrint) return;
-                try {
-                  const printerName = localStorage.getItem("thermalPrinterName") || "";
-                  await localPrintService.printReceiptLocally(billToPrint, printerName);
-                  messageApi.success("Thermal receipt printed");
-                } catch (error) {
-                  messageApi.error(`Thermal print failed: ${error.message}`);
-                }
-              }}
-            >
-              Print Again
-            </Button>,
-            <Button
-              key="done"
-              type="primary"
-              onClick={() => {
-                setShowCouponModal(false);
-                setPrintConfirmModal(true);
-              }}
-            >
-              Done & Print?
-            </Button>,
-          ]}
-        width={500}
-        centered
-      >
-        <div style={{ textAlign: "center", padding: "20px 0" }}>
-          <GiftOutlined style={{ fontSize: 64, color: "#52c41a", marginBottom: 16 }} />
-          <Title level={3} style={{ marginBottom: 8 }}>
-            Congratulations! 🎉
-          </Title>
-          <Title level={5} style={{ color: "#666", fontWeight: "normal", marginBottom: 24 }}>
-            A referral coupon has been generated for this purchase!
-          </Title>
-
-          {generatedCoupon && (
-            <Card
-              style={{
-                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                border: "none",
-                borderRadius: 12,
-                marginBottom: 16,
-              }}
-            >
-              <div style={{ color: "#fff" }}>
-                <div style={{ fontSize: 12, opacity: 0.9, marginBottom: 8 }}>
-                  COUPON CODE
-                </div>
-                <div
-                  style={{
-                    fontSize: 32,
-                    fontWeight: "bold",
-                    letterSpacing: 4,
-                    marginBottom: 16,
-                    fontFamily: "monospace",
-                  }}
-                >
-                  {generatedCoupon.code}
-                </div>
-                <Divider style={{ borderColor: "rgba(255,255,255,0.3)", margin: "16px 0" }} />
-                <Row gutter={16} style={{ textAlign: "left" }}>
-                  <Col span={12}>
-                    <div style={{ fontSize: 12, opacity: 0.9 }}>Valid From</div>
-                    <div style={{ fontSize: 14, fontWeight: "bold" }}>
-                      {dayjs(generatedCoupon.valid_from).format("DD MMM YYYY")}
-                    </div>
-                  </Col>
-                  <Col span={12}>
-                    <div style={{ fontSize: 12, opacity: 0.9 }}>Valid Until</div>
-                    <div style={{ fontSize: 14, fontWeight: "bold" }}>
-                      {dayjs(generatedCoupon.valid_until).format("DD MMM YYYY")}
-                    </div>
-                  </Col>
-                </Row>
-                <Divider style={{ borderColor: "rgba(255,255,255,0.3)", margin: "16px 0" }} />
-                <div style={{ fontSize: 16, fontWeight: "bold" }}>
-                  {generatedCoupon.discount}
-                </div>
-              </div>
-            </Card>
-          )}
-
-          <Alert
-            message={generatedCoupon?.message || "Share this code with friends!"}
-            type="info"
-            showIcon
-            style={{ textAlign: "left" }}
-          />
-        </div>
-      </Modal >
-
-      {/* Quick Add Product Modal */}
-      <Modal
-        title="Quick Add New Product"
-        open={quickAddModalVisible}
-        onCancel={() => {
-          setQuickAddModalVisible(false);
-          quickAddForm.resetFields();
-        }}
-        footer={null}
-        width={500}
-      >
-        <Form
-          form={quickAddForm}
-          layout="vertical"
-          onFinish={handleQuickAddProduct}
+        {/* ── Print Confirmation Modal ── */}
+        <Modal
+          open={printConfirmModal}
+          onCancel={() => { setPrintConfirmModal(false); closeCurrentTab(); }}
+          afterOpenChange={(open) => { if (open && printYesRef.current) printYesRef.current.focus(); }}
+          footer={null}
+          width={380}
+          centered
+          closable={false}
         >
-          <Form.Item
-            name="product_name"
-            label="Product Name"
-            rules={[{ required: true, message: 'Please enter product name' }]}
-          >
-            <Input 
-              placeholder="e.g., Blue Cotton Dress" 
-              autoFocus
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="unit_price"
-            label="Unit Price (₹)"
-            rules={[
-              { required: true, message: 'Please enter unit price' },
-              { type: 'number', min: 0, message: 'Price must be positive' }
-            ]}
-          >
-            <InputNumber
-              placeholder="e.g., 500"
-              style={{ width: '100%' }}
-              min={0}
-              precision={2}
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="unit"
-            label="Unit"
-            initialValue="piece"
-          >
-            <Select>
-              <Option value="piece">Piece</Option>
-              <Option value="kg">Kilogram (kg)</Option>
-              <Option value="gram">Gram (g)</Option>
-              <Option value="liter">Liter (L)</Option>
-              <Option value="meter">Meter (m)</Option>
-              <Option value="box">Box</Option>
-              <Option value="pack">Pack</Option>
-            </Select>
-          </Form.Item>
-
-          <Alert
-            message="Quick Add"
-            description="This will create a basic product with auto-generated code. You can edit full details later in Products section."
-            type="info"
-            showIcon
-            style={{ marginBottom: 16 }}
-          />
-
-          <Form.Item style={{ marginBottom: 0 }}>
-            <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
-              <Button onClick={() => {
-                setQuickAddModalVisible(false);
-                quickAddForm.resetFields();
-              }}>
-                Cancel
-              </Button>
-              <Button 
-                type="primary" 
-                htmlType="submit"
-                loading={quickAddLoading}
+          <div style={{ textAlign: "center", padding: "8px 0 16px" }}>
+            <div style={{ width: 60, height: 60, borderRadius: "50%", background: "#f0fdf4", border: "2px solid #bbf7d0", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+            </div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: "#111827", marginBottom: 6 }}>
+              Bill Saved Successfully!
+            </div>
+            <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 24 }}>
+              Do you want to print the thermal receipt?
+            </div>
+            <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+              <button
+                onClick={() => { setPrintConfirmModal(false); closeCurrentTab(); }}
+                style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: "1.5px solid #e5e7eb", background: "#fff", color: "#374151", fontWeight: 600, fontSize: 14, cursor: "pointer" }}
               >
-                Add & Use in Bill
-              </Button>
-            </Space>
-          </Form.Item>
-        </Form>
-      </Modal>
-    </div >
+                No, Skip
+              </button>
+              <button
+                ref={printYesRef}
+                onClick={async () => {
+                  setPrintConfirmModal(false);
+                  try {
+                    await printBillSilently(savedBillingResult, savedItemsRaw);
+                    messageApi.success("Thermal receipt printed");
+                  } catch (err) {
+                    messageApi.error("Print failed: " + err.message);
+                  } finally {
+                    closeCurrentTab();
+                  }
+                }}
+                style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: "none", background: "#1e3a8a", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9" /><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" /><rect x="6" y="14" width="12" height="8" /></svg>
+                Yes, Print
+              </button>
+            </div>
+          </div>
+        </Modal>
+
+        {/* Success Modal for Generated Coupon */}
+        < Modal
+          open={showCouponModal}
+          onCancel={() => {
+            setShowCouponModal(false);
+            setSavedBillingResult(savedBillingResult);
+            setSavedItemsRaw(savedItemsRaw);
+            setPrintConfirmModal(true);
+          }}
+          footer={
+            [
+              <Button
+                key="print-again"
+                onClick={async () => {
+                  if (!billToPrint) return;
+                  try {
+                    const printerName = localStorage.getItem("thermalPrinterName") || "";
+                    await localPrintService.printReceiptLocally(billToPrint, printerName);
+                    messageApi.success("Thermal receipt printed");
+                  } catch (error) {
+                    messageApi.error(`Thermal print failed: ${error.message}`);
+                  }
+                }}
+              >
+                Print Again
+              </Button>,
+              <Button
+                key="done"
+                type="primary"
+                onClick={() => {
+                  setShowCouponModal(false);
+                  setPrintConfirmModal(true);
+                }}
+              >
+                Done & Print?
+              </Button>,
+            ]}
+          width={500}
+          centered
+        >
+          <div style={{ textAlign: "center", padding: "20px 0" }}>
+            <GiftOutlined style={{ fontSize: 64, color: "#52c41a", marginBottom: 16 }} />
+            <Title level={3} style={{ marginBottom: 8 }}>
+              Congratulations! 🎉
+            </Title>
+            <Title level={5} style={{ color: "#666", fontWeight: "normal", marginBottom: 24 }}>
+              A referral coupon has been generated for this purchase!
+            </Title>
+
+            {generatedCoupon && (
+              <Card
+                style={{
+                  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                  border: "none",
+                  borderRadius: 12,
+                  marginBottom: 16,
+                }}
+              >
+                <div style={{ color: "#fff" }}>
+                  <div style={{ fontSize: 12, opacity: 0.9, marginBottom: 8 }}>
+                    COUPON CODE
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 32,
+                      fontWeight: "bold",
+                      letterSpacing: 4,
+                      marginBottom: 16,
+                      fontFamily: "monospace",
+                    }}
+                  >
+                    {generatedCoupon.code}
+                  </div>
+                  <Divider style={{ borderColor: "rgba(255,255,255,0.3)", margin: "16px 0" }} />
+                  <Row gutter={16} style={{ textAlign: "left" }}>
+                    <Col span={12}>
+                      <div style={{ fontSize: 12, opacity: 0.9 }}>Valid From</div>
+                      <div style={{ fontSize: 14, fontWeight: "bold" }}>
+                        {dayjs(generatedCoupon.valid_from).format("DD MMM YYYY")}
+                      </div>
+                    </Col>
+                    <Col span={12}>
+                      <div style={{ fontSize: 12, opacity: 0.9 }}>Valid Until</div>
+                      <div style={{ fontSize: 14, fontWeight: "bold" }}>
+                        {dayjs(generatedCoupon.valid_until).format("DD MMM YYYY")}
+                      </div>
+                    </Col>
+                  </Row>
+                  <Divider style={{ borderColor: "rgba(255,255,255,0.3)", margin: "16px 0" }} />
+                  <div style={{ fontSize: 16, fontWeight: "bold" }}>
+                    {generatedCoupon.discount}
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            <Alert
+              message={generatedCoupon?.message || "Share this code with friends!"}
+              type="info"
+              showIcon
+              style={{ textAlign: "left" }}
+            />
+          </div>
+        </Modal >
+
+        {/* Quick Add Product Modal */}
+        <Modal
+          title="Quick Add New Product"
+          open={quickAddModalVisible}
+          onCancel={() => {
+            setQuickAddModalVisible(false);
+            quickAddForm.resetFields();
+          }}
+          footer={null}
+          width={500}
+        >
+          <Form
+            form={quickAddForm}
+            layout="vertical"
+            onFinish={handleQuickAddProduct}
+          >
+            <Form.Item
+              name="product_name"
+              label="Product Name"
+              rules={[{ required: true, message: 'Please enter product name' }]}
+            >
+              <Input
+                placeholder="e.g., Blue Cotton Dress"
+                autoFocus
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="unit_price"
+              label="Unit Price (₹)"
+              rules={[
+                { required: true, message: 'Please enter unit price' },
+                { type: 'number', min: 0, message: 'Price must be positive' }
+              ]}
+            >
+              <InputNumber
+                placeholder="e.g., 500"
+                style={{ width: '100%' }}
+                min={0}
+                precision={2}
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="unit"
+              label="Unit"
+              initialValue="piece"
+            >
+              <Select>
+                <Option value="piece">Piece</Option>
+                <Option value="kg">Kilogram (kg)</Option>
+                <Option value="gram">Gram (g)</Option>
+                <Option value="liter">Liter (L)</Option>
+                <Option value="meter">Meter (m)</Option>
+                <Option value="box">Box</Option>
+                <Option value="pack">Pack</Option>
+              </Select>
+            </Form.Item>
+
+            <Alert
+              message="Quick Add"
+              description="This will create a basic product with auto-generated code. You can edit full details later in Products section."
+              type="info"
+              showIcon
+              style={{ marginBottom: 16 }}
+            />
+
+            <Form.Item style={{ marginBottom: 0 }}>
+              <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
+                <Button onClick={() => {
+                  setQuickAddModalVisible(false);
+                  quickAddForm.resetFields();
+                }}>
+                  Cancel
+                </Button>
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  loading={quickAddLoading}
+                >
+                  Add & Use in Bill
+                </Button>
+              </Space>
+            </Form.Item>
+          </Form>
+        </Modal>
+      </div >
     </>
   );
 }
