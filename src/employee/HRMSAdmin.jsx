@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import {
   Table, Button, Modal, Form, Input, Select, DatePicker,
-  Tag, Tabs, message, Popconfirm, Drawer, Descriptions, Divider, TimePicker, InputNumber
+  Tag, Tabs, message, Popconfirm, Drawer, Descriptions, Divider, TimePicker, InputNumber, Segmented
 } from "antd";
 import {
   Plus, Users, CalendarDays, FileText, Search,
@@ -50,6 +50,10 @@ export default function HRMSAdmin() {
   const [leaveFilter, setLeaveFilter] = useState("");
   const [attMonth, setAttMonth] = useState(dayjs());
   const [attEmpFilter, setAttEmpFilter] = useState("");
+  const [attViewMode, setAttViewMode] = useState("grid"); // "grid" or "sheet"
+  const [attStatusFilter, setAttStatusFilter] = useState("");
+  const [attSearchQuery, setAttSearchQuery] = useState("");
+  const [sheetPagination, setSheetPagination] = useState({ current: 1, pageSize: 15 });
 
   // Employee modal
   const [empModal, setEmpModal] = useState(false);
@@ -211,9 +215,9 @@ export default function HRMSAdmin() {
     setAttEditData({ emp, day, date, existingStatus, existingRecord });
     attEditForm.setFieldsValue({
       status: existingStatus || 'present',
-      sign_in: null,
-      sign_out: null,
-      notes: '',
+      sign_in: existingRecord && existingRecord.sign_in ? dayjs(existingRecord.sign_in, 'HH:mm:ss') : null,
+      sign_out: existingRecord && existingRecord.sign_out ? dayjs(existingRecord.sign_out, 'HH:mm:ss') : null,
+      notes: existingRecord && existingRecord.notes ? existingRecord.notes : '',
     });
     setAttEditModal(true);
   };
@@ -356,7 +360,7 @@ export default function HRMSAdmin() {
     try {
       const m = month.month() + 1;
       const y = month.year();
-      const res = await api.get(`/hrms/attendance?month=${m}&year=${y}&limit=500`);
+      const res = await api.get(`/hrms/attendance?month=${m}&year=${y}&limit=1000`);
       const rows = res.data.data || [];
       const grid = {};
       const recordMap = {};
@@ -413,6 +417,130 @@ export default function HRMSAdmin() {
       message.error('Failed to save attendance');
     }
   };
+
+  const formatTime = (timeStr) => {
+    if (!timeStr) return "--";
+    return dayjs(`2000-01-01T${timeStr}`).format("hh:mm A");
+  };
+
+  const attendanceSheetData = useMemo(() => {
+    const data = [];
+    const daysInMonth = attMonth.daysInMonth();
+    const sortedEmployees = [...employees].sort((a, b) => a.name.localeCompare(b.name));
+
+    sortedEmployees.forEach(emp => {
+      if (attEmpFilter && emp.id !== attEmpFilter) return;
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const key = `${emp.id}-${day}`;
+        const record = attRecords[key];
+        const dateStr = `${attMonth.year()}-${String(attMonth.month() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        
+        const isWeekend = d => [0, 6].includes(new Date(attMonth.year(), attMonth.month(), d).getDay());
+        const weekend = isWeekend(day);
+
+        let status = record?.status || null;
+        if (!status && weekend) {
+          status = "holiday";
+        }
+
+        // Search Filter
+        if (attSearchQuery) {
+          const q = attSearchQuery.toLowerCase();
+          const nameMatch = emp.name?.toLowerCase().includes(q);
+          const codeMatch = emp.employee_code?.toLowerCase().includes(q);
+          if (!nameMatch && !codeMatch) continue;
+        }
+
+        // Status Filter
+        if (attStatusFilter && status !== attStatusFilter) continue;
+
+        data.push({
+          key,
+          day,
+          date: dateStr,
+          employee: emp,
+          sign_in: record?.sign_in || null,
+          sign_out: record?.sign_out || null,
+          hours_worked: record?.hours_worked ? parseFloat(record.hours_worked) : null,
+          status,
+          notes: record?.notes || '',
+          record,
+        });
+      }
+    });
+
+    return data;
+  }, [employees, attRecords, attMonth, attEmpFilter, attSearchQuery, attStatusFilter]);
+
+  const employeeStats = useMemo(() => {
+    if (!attEmpFilter) return null;
+    const empRecords = attendanceSheetData.filter(d => d.employee.id === attEmpFilter);
+    let totalHours = 0;
+    let presentCount = 0;
+    let absentCount = 0;
+    let halfDayCount = 0;
+    let leaveCount = 0;
+    let holidayCount = 0;
+    let lateCount = 0;
+
+    empRecords.forEach(r => {
+      if (r.hours_worked) totalHours += r.hours_worked;
+      if (r.status === 'present') presentCount++;
+      else if (r.status === 'absent') absentCount++;
+      else if (r.status === 'half_day') halfDayCount++;
+      else if (r.status === 'leave') leaveCount++;
+      else if (r.status === 'holiday') holidayCount++;
+      else if (r.status === 'late') {
+        lateCount++;
+        presentCount++;
+      } else if (r.status === 'permission') {
+        presentCount++;
+      }
+    });
+
+    return {
+      totalHours: totalHours.toFixed(2),
+      present: presentCount,
+      absent: absentCount,
+      halfDay: halfDayCount,
+      leave: leaveCount,
+      holiday: holidayCount,
+      late: lateCount,
+      totalDays: empRecords.length
+    };
+  }, [attendanceSheetData, attEmpFilter]);
+
+  const handleExportCSV = () => {
+    const headers = ["Date", "Employee Name", "Employee Code", "Department", "Sign In", "Sign Out", "Total Working Hours", "Status", "Notes"];
+    const rows = attendanceSheetData.map(row => [
+      dayjs(row.date).format("YYYY-MM-DD"),
+      row.employee?.name || "",
+      row.employee?.employee_code || "",
+      row.employee?.department || "",
+      row.sign_in || "--",
+      row.sign_out || "--",
+      row.hours_worked !== null ? `${row.hours_worked} hrs` : "--",
+      row.status ? row.status.replace("_", " ").toUpperCase() : "NOT MARKED",
+      row.notes || ""
+    ]);
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    const employeeName = attEmpFilter ? employees.find(e => e.id === attEmpFilter)?.name?.replace(/\s+/g, '_') : "all_employees";
+    link.setAttribute("download", `attendance_report_${employeeName}_${attMonth.format("YYYY_MM")}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // ── Handlers ───────────────────────────────────────────────────────────────
   const handleSaveEmployee = async (values) => {
     try {
@@ -597,6 +725,97 @@ export default function HRMSAdmin() {
     },
   ];
 
+  const sheetColumns = [
+    {
+      title: "Date",
+      dataIndex: "date",
+      key: "date",
+      width: 160,
+      sorter: (a, b) => dayjs(a.date).unix() - dayjs(b.date).unix(),
+      render: (text) => {
+        const date = dayjs(text);
+        const isWeekend = [0, 6].includes(date.day());
+        return (
+          <span className={isWeekend ? "text-gray-400 font-medium" : "text-gray-800 font-medium"}>
+            {date.format("DD MMM YYYY")} <span className="text-[11px] text-gray-400">({date.format("ddd")})</span>
+          </span>
+        );
+      }
+    },
+    {
+      title: "Employee",
+      key: "employee",
+      sorter: (a, b) => a.employee.name.localeCompare(b.employee.name),
+      render: (_, row) => (
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-[11px] font-bold">
+            {row.employee.name.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <div className="text-[13px] font-semibold text-gray-800 leading-tight truncate" style={{ maxWidth: 120 }}>{row.employee.name}</div>
+            <div className="text-[10px] text-gray-400 mt-0.5">{row.employee.employee_code} · {row.employee.department || 'General'}</div>
+          </div>
+        </div>
+      )
+    },
+    {
+      title: "In Time",
+      dataIndex: "sign_in",
+      key: "sign_in",
+      render: (v) => formatTime(v)
+    },
+    {
+      title: "Out Time",
+      dataIndex: "sign_out",
+      key: "sign_out",
+      render: (v) => formatTime(v)
+    },
+    {
+      title: "Hours Worked",
+      dataIndex: "hours_worked",
+      key: "hours_worked",
+      sorter: (a, b) => (a.hours_worked || 0) - (b.hours_worked || 0),
+      render: (v) => v !== null ? `${v} hrs` : <span className="text-gray-300">—</span>
+    },
+    {
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
+      render: (status) => {
+        if (!status) return <span className="text-gray-300">Not Marked</span>;
+        const s = STATUS_STYLE[status] || { bg: '#f3f4f6', text: '#9ca3af', label: status.toUpperCase() };
+        return (
+          <span
+            className="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider inline-block"
+            style={{ background: s.bg, color: s.text, border: `1px solid ${s.text}30` }}
+          >
+            {status.replace("_", " ")}
+          </span>
+        );
+      }
+    },
+    {
+      title: "Notes",
+      dataIndex: "notes",
+      key: "notes",
+      ellipsis: true,
+      render: (v) => v || <span className="text-gray-300">—</span>
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      width: 80,
+      render: (_, row) => (
+        <Button
+          size="small"
+          onClick={() => openAttEdit(row.employee, row.day)}
+        >
+          Edit
+        </Button>
+      )
+    }
+  ];
+
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="p-5 bg-[#f8fafc] min-h-screen">
@@ -743,100 +962,273 @@ export default function HRMSAdmin() {
                 onChange={m => { setAttMonth(m); setAttGrid({}); fetchAttendanceGrid(m); }}
                 allowClear={false}
               />
-              <span className="text-[11px] text-gray-400 flex flex-wrap items-center gap-2">
-                Click to cycle:
-                {[['P','#dcfce7','#16a34a'],['A','#fee2e2','#dc2626'],['L','#ffedd5','#ea580c'],['H','#dbeafe','#2563eb']].map(([l,bg,c]) => (
-                  <span key={l} className="inline-flex items-center justify-center rounded-lg text-[11px] font-bold w-6 h-6"
-                    style={{ background: bg, color: c, border: `1.5px solid ${c}40` }}>{l}</span>
+              <Select
+                showSearch
+                placeholder="All Employees"
+                optionFilterProp="children"
+                value={attEmpFilter || undefined}
+                onChange={v => setAttEmpFilter(v || "")}
+                allowClear
+                style={{ width: 180 }}
+              >
+                {employees.map(emp => (
+                  <Option key={emp.id} value={emp.id}>{emp.name}</Option>
                 ))}
-                <span className="text-gray-300 text-[11px]">· = empty</span>
-              </span>            </div>
-            <div className="overflow-x-auto">
-
-{/* MOBILE VIEW */}
-<div className="mobile-view">
-
-  {employees.map((emp) => (
-
-    <div key={emp.id} className="mobile-card">
-
-      <div className="flex items-center justify-between mb-3">
-
-        <div>
-          <h3 className="font-bold text-[14px]">
-            {emp.name}
-          </h3>
-
-          <p className="text-[11px] text-gray-400">
-            {emp.employee_code}
-          </p>
-        </div>
-
-        <div
-          className={`px-3 py-1 rounded-full text-[11px] font-bold
-          ${
-            Object.values(attGrid).includes("present")
-              ? "bg-green-100 text-green-700"
-              : "bg-red-100 text-red-700"
-          }`}
-        >
-          {Object.values(attGrid).includes("present")
-            ? "Present"
-            : "Absent"}
-        </div>
-
-      </div>
-
-      <div className="grid grid-cols-3 gap-2 mt-3">
-
-        {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => {
-
-          const key = `${emp.id}-${day}`;
-          const status = attGrid[key];
-
-          const colors = {
-            present: "bg-green-100 text-green-700",
-            absent: "bg-red-100 text-red-700",
-            leave: "bg-orange-100 text-orange-700",
-            holiday: "bg-blue-100 text-blue-700",
-          };
-
-          return (
-            <div
-              key={day}
-              onClick={() => handleAttCellClick(emp.id, day)}
-              className={`h-9 rounded-lg flex items-center justify-center text-[11px] font-bold cursor-pointer
-              ${colors[status] || "bg-gray-100 text-gray-400"}`}
-            >
-              {status?.charAt(0)?.toUpperCase() || "-"}
+              </Select>
+              <Segmented
+                value={attViewMode}
+                onChange={setAttViewMode}
+                options={[
+                  { label: "Calendar Grid", value: "grid" },
+                  { label: "Detailed Sheet", value: "sheet" }
+                ]}
+              />
+              {attViewMode === "sheet" && (
+                <>
+                  <Select
+                    placeholder="All Statuses"
+                    value={attStatusFilter || undefined}
+                    onChange={v => setAttStatusFilter(v || "")}
+                    allowClear
+                    style={{ width: 140 }}
+                  >
+                    <Option value="present">Present</Option>
+                    <Option value="absent">Absent</Option>
+                    <Option value="half_day">Half Day</Option>
+                    <Option value="late">Late</Option>
+                    <Option value="leave">Leave</Option>
+                    <Option value="holiday">Holiday</Option>
+                    <Option value="permission">Permission</Option>
+                  </Select>
+                  <div className="relative w-full sm:w-56">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      value={attSearchQuery}
+                      onChange={e => setAttSearchQuery(e.target.value)}
+                      placeholder="Search name, code..."
+                      className="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    />
+                  </div>
+                  <Button
+                    type="default"
+                    icon={<Download size={14} />}
+                    onClick={handleExportCSV}
+                    disabled={attendanceSheetData.length === 0}
+                  >
+                    Export CSV
+                  </Button>
+                </>
+              )}
+              {attViewMode === "grid" && (
+                <span className="text-[11px] text-gray-400 flex flex-wrap items-center gap-2">
+                  Click to cycle:
+                  {[['P','#dcfce7','#16a34a'],['A','#fee2e2','#dc2626'],['L','#ffedd5','#ea580c'],['H','#dbeafe','#2563eb']].map(([l,bg,c]) => (
+                    <span key={l} className="inline-flex items-center justify-center rounded-lg text-[11px] font-bold w-6 h-6"
+                      style={{ background: bg, color: c, border: `1.5px solid ${c}40` }}>{l}</span>
+                  ))}
+                  <span className="text-gray-300 text-[11px]">· = empty</span>
+                </span>
+              )}
             </div>
-          );
 
-        })}
+            {/* Monthly Summary Statistics Panel for Single Employee */}
+            {attViewMode === "sheet" && attEmpFilter && employeeStats && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-4 p-3 bg-blue-50/50 border border-blue-100 rounded-xl">
+                <div className="bg-white p-2.5 rounded-lg border border-gray-100 shadow-sm text-center">
+                  <div className="text-[10px] text-gray-400 uppercase font-semibold">Total Days</div>
+                  <div className="text-[15px] font-bold text-gray-800 mt-0.5">{employeeStats.totalDays}</div>
+                </div>
+                <div className="bg-white p-2.5 rounded-lg border border-gray-100 shadow-sm text-center">
+                  <div className="text-[10px] text-green-600 uppercase font-semibold">Present</div>
+                  <div className="text-[15px] font-bold text-green-600 mt-0.5">{employeeStats.present}</div>
+                </div>
+                <div className="bg-white p-2.5 rounded-lg border border-gray-100 shadow-sm text-center">
+                  <div className="text-[10px] text-amber-600 uppercase font-semibold">Half Days</div>
+                  <div className="text-[15px] font-bold text-amber-600 mt-0.5">{employeeStats.halfDay}</div>
+                </div>
+                <div className="bg-white p-2.5 rounded-lg border border-gray-100 shadow-sm text-center">
+                  <div className="text-[10px] text-red-500 uppercase font-semibold">Absent</div>
+                  <div className="text-[15px] font-bold text-red-500 mt-0.5">{employeeStats.absent}</div>
+                </div>
+                <div className="bg-white p-2.5 rounded-lg border border-gray-100 shadow-sm text-center">
+                  <div className="text-[10px] text-purple-600 uppercase font-semibold">Leaves</div>
+                  <div className="text-[15px] font-bold text-purple-600 mt-0.5">{employeeStats.leave}</div>
+                </div>
+                <div className="bg-white p-2.5 rounded-lg border border-gray-100 shadow-sm text-center">
+                  <div className="text-[10px] text-blue-600 uppercase font-semibold">Total Hours</div>
+                  <div className="text-[15px] font-bold text-blue-600 mt-0.5">{employeeStats.totalHours} hrs</div>
+                </div>
+              </div>
+            )}
 
-      </div>
+            {attViewMode === "grid" ? (
+              <div className="overflow-x-auto">
+                {/* MOBILE VIEW */}
+                <div className="mobile-view">
+                  {employees
+                    .filter(emp => !attEmpFilter || emp.id === attEmpFilter)
+                    .map((emp) => (
+                      <div key={emp.id} className="mobile-card">
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            <h3 className="font-bold text-[14px]">{emp.name}</h3>
+                            <p className="text-[11px] text-gray-400">{emp.employee_code}</p>
+                          </div>
+                          <div
+                            className={`px-3 py-1 rounded-full text-[11px] font-bold
+                            ${
+                              Object.values(attGrid).includes("present")
+                                ? "bg-green-100 text-green-700"
+                                : "bg-red-100 text-red-700"
+                            }`}
+                          >
+                            {Object.values(attGrid).includes("present")
+                              ? "Present"
+                              : "Absent"}
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 mt-3">
+                          {Array.from({ length: attMonth.daysInMonth() }, (_, i) => i + 1).map((day) => {
+                            const key = `${emp.id}-${day}`;
+                            const status = attGrid[key];
+                            const colors = {
+                              present: "bg-green-100 text-green-700",
+                              absent: "bg-red-100 text-red-700",
+                              leave: "bg-orange-100 text-orange-700",
+                              holiday: "bg-blue-100 text-blue-700",
+                              half_day: "bg-amber-100 text-amber-700",
+                              late: "bg-yellow-100 text-yellow-700",
+                              permission: "bg-cyan-100 text-cyan-700",
+                            };
+                            return (
+                              <div
+                                key={day}
+                                onClick={() => handleAttCellClick(emp.id, day)}
+                                className={`h-9 rounded-lg flex items-center justify-center text-[11px] font-bold cursor-pointer
+                                ${colors[status] || "bg-gray-100 text-gray-400"}`}
+                              >
+                                {status === 'half_day' ? 'HD' : status === 'permission' ? 'PM' : status === 'late' ? 'LT' : status?.charAt(0)?.toUpperCase() || "-"}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                </div>
 
-    </div>
+                {/* DESKTOP VIEW */}
+                <div className="desktop-table overflow-x-auto">
+                  <AttendanceGrid
+                    employees={employees.filter(emp => !attEmpFilter || emp.id === attEmpFilter)}
+                    month={attMonth}
+                    grid={attGrid}
+                    originalGrid={originalGridRef.current}
+                    onCellClick={handleAttCellClick}
+                    onCellEdit={openAttEdit}
+                    loading={attLoading}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div>
+                {/* MOBILE VIEW - SHEET */}
+                <div className="mobile-view">
+                  {attendanceSheetData
+                    .slice((sheetPagination.current - 1) * sheetPagination.pageSize, sheetPagination.current * sheetPagination.pageSize)
+                    .map(row => {
+                      const s = row.status ? STATUS_STYLE[row.status] : null;
+                      return (
+                        <div key={row.key} className="mobile-card">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <h4 className="font-bold text-[13px] text-gray-800">{row.employee.name}</h4>
+                              <p className="text-[10px] text-gray-400">{row.employee.employee_code} · {dayjs(row.date).format("DD MMM YYYY")} ({dayjs(row.date).format("ddd")})</p>
+                            </div>
+                            {row.status ? (
+                              <span
+                                className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider"
+                                style={{ background: s ? s.bg : '#f3f4f6', color: s ? s.text : '#9ca3af', border: s ? `1.5px solid ${s.text}30` : 'none' }}
+                              >
+                                {row.status.replace("_", " ")}
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-gray-300">Not Marked</span>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-3 gap-2 py-2 border-t border-b border-gray-50 my-2">
+                            <div>
+                              <div className="text-[10px] text-gray-400 uppercase">In Time</div>
+                              <div className="text-[12px] font-semibold text-gray-700">{formatTime(row.sign_in)}</div>
+                            </div>
+                            <div>
+                              <div className="text-[10px] text-gray-400 uppercase">Out Time</div>
+                              <div className="text-[12px] font-semibold text-gray-700">{formatTime(row.sign_out)}</div>
+                            </div>
+                            <div>
+                              <div className="text-[10px] text-gray-400 uppercase">Hours</div>
+                              <div className="text-[12px] font-semibold text-gray-700">{row.hours_worked !== null ? `${row.hours_worked}h` : "--"}</div>
+                            </div>
+                          </div>
+                          {row.notes && (
+                            <div className="text-[11px] text-gray-500 bg-gray-50 p-1.5 rounded-lg mb-2">
+                              <strong>Notes:</strong> {row.notes}
+                            </div>
+                          )}
+                          <Button
+                            size="small"
+                            block
+                            onClick={() => openAttEdit(row.employee, row.day)}
+                          >
+                            Edit Attendance
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  
+                  {attendanceSheetData.length === 0 ? (
+                    <div className="text-center py-8 text-gray-400 text-sm">No records found matching current filters.</div>
+                  ) : (
+                    <div className="flex justify-between items-center py-2 px-1">
+                      <Button
+                        size="small"
+                        disabled={sheetPagination.current === 1}
+                        onClick={() => setSheetPagination(prev => ({ ...prev, current: prev.current - 1 }))}
+                      >
+                        Previous
+                      </Button>
+                      <span className="text-[12px] text-gray-500">
+                        Page {sheetPagination.current} of {Math.ceil(attendanceSheetData.length / sheetPagination.pageSize)}
+                      </span>
+                      <Button
+                        size="small"
+                        disabled={sheetPagination.current >= Math.ceil(attendanceSheetData.length / sheetPagination.pageSize)}
+                        onClick={() => setSheetPagination(prev => ({ ...prev, current: prev.current + 1 }))}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  )}
+                </div>
 
-  ))}
-
-</div>
-
-{/* DESKTOP VIEW */}
-<div className="desktop-table overflow-x-auto">
-
-  <AttendanceGrid
-    employees={employees}
-    month={attMonth}
-    grid={attGrid}
-    originalGrid={originalGridRef.current}
-    onCellClick={handleAttCellClick}
-    onCellEdit={openAttEdit}
-    loading={attLoading}
-  />
-
-</div>
-</div>
+                {/* DESKTOP VIEW - SHEET */}
+                <div className="desktop-table overflow-x-auto">
+                  <Table
+                    loading={attLoading}
+                    dataSource={attendanceSheetData}
+                    rowKey="key"
+                    size="small"
+                    columns={sheetColumns}
+                    pagination={{
+                      current: sheetPagination.current,
+                      pageSize: sheetPagination.pageSize,
+                      showSizeChanger: true,
+                      pageSizeOptions: ["15", "30", "50", "100"],
+                      onChange: (page, size) => setSheetPagination({ current: page, pageSize: size })
+                    }}
+                  />
+                </div>
+              </div>
+            )}
 
             {/* ── Sign-In Proofs Panel ── */}
             {(() => {
@@ -2636,10 +3028,13 @@ function ProofModal({ record, onClose }) {
 const STATUS_CYCLE = ['present', 'absent', 'leave', 'holiday'];
 
 const STATUS_STYLE = {
-  present: { bg: '#dcfce7', text: '#16a34a', label: 'P' },
-  absent:  { bg: '#fee2e2', text: '#dc2626', label: 'A' },
-  leave:   { bg: '#ffedd5', text: '#ea580c', label: 'L' },
-  holiday: { bg: '#dbeafe', text: '#2563eb', label: 'H' },
+  present:    { bg: '#dcfce7', text: '#16a34a', label: 'P' },
+  absent:     { bg: '#fee2e2', text: '#dc2626', label: 'A' },
+  half_day:   { bg: '#fef3c7', text: '#d97706', label: 'HD' },
+  late:       { bg: '#fef3c7', text: '#d97706', label: 'LT' },
+  leave:      { bg: '#f3e8ff', text: '#7c3aed', label: 'L' },
+  holiday:    { bg: '#dbeafe', text: '#2563eb', label: 'H' },
+  permission: { bg: '#ecfeff', text: '#0891b2', label: 'PM' },
 };
 
 function AttendanceGrid({ employees, month, grid, originalGrid = {}, onCellClick, onCellEdit, loading }) {

@@ -115,7 +115,7 @@ function BillingList() {
 
   const [billings, setBillings] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 12, total: 0 });
   const [searchText, setSearchText] = useState("");
   const [sorter, setSorter] = useState({ field: null, order: null });
   const [statusFilter, setStatusFilter] = useState("all");
