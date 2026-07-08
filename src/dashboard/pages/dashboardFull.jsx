@@ -306,9 +306,14 @@ const DashboardFull = () => {
             <Col xs={24} lg={12}>
               <Card
                 title={
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <ShoppingCart size={18} />
-                    <span>Recent Bills</span>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <ShoppingCart size={18} />
+                      <span>Recent Bills</span>
+                    </div>
+                    <span style={{ fontSize: 12, fontWeight: 500, color: "#6366f1", background: "#eef2ff", padding: "2px 10px", borderRadius: 12 }}>
+                      {getPeriodLabel()}
+                    </span>
                   </div>
                 }
                 style={styles.roundedCard}
