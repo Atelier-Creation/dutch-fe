@@ -606,47 +606,10 @@ function BillingList() {
         </div>
 
         {/* Period Filter */}
-        <div className="flex flex-col gap-1 w-full sm:w-[180px]">
-          <Typography.Text strong style={{ fontSize: 13, color: "#4b5563" }}>Period</Typography.Text>
-          <Select
-            value={period}
-            onChange={(value) => {
-              setPeriod(value);
-              if (value !== "custom") {
-                setDateRange(null);
-                setPagination((prev) => ({ ...prev, current: 1 }));
-                fetchBillings({ current: 1, period: value, dateRange: null });
-              }
-            }}
-            style={{ width: "100%" }}
-          >
-            <Select.Option value="all">All Time</Select.Option>
-            <Select.Option value="today">Today</Select.Option>
-            <Select.Option value="yesterday">Yesterday</Select.Option>
-            <Select.Option value="this_month">This Month</Select.Option>
-            <Select.Option value="this_year">This Year</Select.Option>
-            <Select.Option value="custom">Custom Range</Select.Option>
-          </Select>
-        </div>
+        
 
         {/* Date Range Filter */}
-        {period === "custom" && (
-          <div className="flex flex-col gap-1 w-full sm:w-[260px]">
-            <Typography.Text strong style={{ fontSize: 13, color: "#4b5563" }}>Date Range</Typography.Text>
-            <DatePicker.RangePicker
-              value={dateRange}
-              onChange={(val) => {
-                setDateRange(val);
-                if (val) {
-                  setPagination((prev) => ({ ...prev, current: 1 }));
-                  fetchBillings({ current: 1, period: "custom", dateRange: val });
-                }
-              }}
-              style={{ width: "100%" }}
-              format="DD MMM YYYY"
-            />
-          </div>
-        )}
+        
       </div>
 
       {viewMode === "table" ? (
