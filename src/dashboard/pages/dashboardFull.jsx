@@ -1,6 +1,6 @@
 // src/components/dashboard/DashboardFull.jsx
 import React, { useEffect, useState } from "react";
-import { Row, Col, Card, Typography, Skeleton, Select, Tag, Table, Empty } from "antd";
+import { Row, Col, Card, Typography, Skeleton, Select, Tag, Table, Empty, DatePicker } from "antd";
 import StatCard from "./StatCard";
 import { Tooltip } from "antd";
 import {
@@ -8,11 +8,13 @@ import {
 } from 'lucide-react';
 import dashboardService from "../service/dashboardService";
 import { useBranch } from "../../context/BranchContext";
+import dayjs from "dayjs";
 
 import BillDetailsModal from "./BillDetailsModal";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
+const { RangePicker } = DatePicker;
 import { useNavigate } from "react-router-dom";
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 
@@ -23,6 +25,7 @@ const styles = {
 
 const DashboardFull = () => {
   const [period, setPeriod] = useState("today");
+  const [dateRange, setDateRange] = useState(null);
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const { selectedBranch } = useBranch();
@@ -52,16 +55,37 @@ const DashboardFull = () => {
     navigate(`/product/list?search=${encodeURIComponent(record.product_code)}`);
   };
 
+  const handlePeriodChange = (value) => {
+    setPeriod(value);
+    if (value === "custom") {
+      setDateRange([dayjs().subtract(7, 'day'), dayjs()]);
+    } else {
+      setDateRange(null);
+    }
+  };
+
   // Fetch dashboard data
   useEffect(() => {
-    fetchDashboardData();
+    if (period === 'custom') {
+      if (dateRange && dateRange[0] && dateRange[1]) {
+        fetchDashboardData();
+      }
+    } else {
+      fetchDashboardData();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [period, selectedBranch]);
+  }, [period, dateRange, selectedBranch]);
 
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      const response = await dashboardService.getDashboardData(period);
+      let startDateStr = null;
+      let endDateStr = null;
+      if (period === 'custom' && dateRange && dateRange[0] && dateRange[1]) {
+        startDateStr = dateRange[0].toISOString();
+        endDateStr = dateRange[1].toISOString();
+      }
+      const response = await dashboardService.getDashboardData(period, startDateStr, endDateStr);
       setDashboardData(response.data);
     } catch (err) {
       console.error("Failed to fetch dashboard data:", err);
@@ -94,6 +118,12 @@ const DashboardFull = () => {
       case "week":      return "This Week";
       case "month":     return "This Month";
       case "year":      return "This Year";
+      case "custom": {
+        if (dateRange && dateRange[0] && dateRange[1]) {
+          return `${dateRange[0].format("DD MMM")} - ${dateRange[1].format("DD MMM YYYY")}`;
+        }
+        return "Custom Range";
+      }
       default:          return "Period";
     }
   };
@@ -247,8 +277,8 @@ const DashboardFull = () => {
 
   return (
     <div style={styles.page}>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
-        <Col>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+        <div>
           <Title level={4} style={{ margin: 0 }}>
             Dashboard
           </Title>
@@ -257,17 +287,31 @@ const DashboardFull = () => {
               {selectedBranch.name === "All Branches" ? "All Branches" : selectedBranch.name}
             </Text>
           )}
-        </Col>
-        <Col>
-          <Select value={period} onChange={setPeriod} style={{ width: 130 }}>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto items-stretch sm:items-center">
+          <Select 
+            value={period} 
+            onChange={handlePeriodChange} 
+            className="w-full sm:w-[130px]"
+          >
             <Option value="today">Today</Option>
             <Option value="yesterday">Yesterday</Option>
             <Option value="week">This Week</Option>
             <Option value="month">This Month</Option>
             <Option value="year">This Year</Option>
+            <Option value="custom">Custom Range</Option>
           </Select>
-        </Col>
-      </Row>
+          {period === "custom" && (
+            <RangePicker
+              value={dateRange}
+              onChange={setDateRange}
+              className="w-full sm:max-w-[280px]"
+              format="DD MMM YYYY"
+              inputReadOnly
+            />
+          )}
+        </div>
+      </div>
 
       {/* Summary Cards */}
       <Row gutter={[12, 12]}>

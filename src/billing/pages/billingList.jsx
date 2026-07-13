@@ -41,6 +41,7 @@ import { useBranch } from "../../context/BranchContext";
 import debounce from "lodash.debounce";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+import dayjs from "dayjs";
 
 const { Search } = Input;
 
@@ -333,23 +334,23 @@ function BillingList() {
 
     const head = [["Product", "Code", "Unit", "Qty", "Unit Price", "Total"]];
     const body = (billing.items || []).map((it) => [
-      it.product?.product_name || "-",
+      it.product?.product_name?.toUpperCase() || "-",
       it.product?.product_code || "-",
       it.product?.unit || "-",
       it.quantity,
-      `₹${it.unit_price}`,
-      `₹${it.total_price}`,
+      `Rs ${it.unit_price}`,
+      `Rs ${it.total_price}`,
     ]);
 
     const tableResult = autoTable(doc, { startY: 130, head, body, styles: { fontSize: 10 } });
 
     const finalY = (tableResult?.finalY ?? 300) + 20;
 
-    doc.text(`Subtotal: ₹${billing.subtotal_amount || "0.00"}`, 40, finalY);
-    doc.text(`Discount: ₹${billing.discount_amount || "0.00"}`, 40, finalY + 16);
-    doc.text(`Tax: ₹${billing.tax_amount || "0.00"}`, 40, finalY + 32);
+    doc.text(`Subtotal: Rs ${billing.subtotal_amount || "0.00"}`, 40, finalY);
+    doc.text(`Discount: Rs ${billing.discount_amount || "0.00"}`, 40, finalY + 16);
+    doc.text(`Tax: Rs ${billing.tax_amount || "0.00"}`, 40, finalY + 32);
     doc.setFontSize(13);
-    doc.text(`Total: ₹${billing.total_amount || "0.00"}`, 40, finalY + 56);
+    doc.text(`Total: Rs ${billing.total_amount || "0.00"}`, 40, finalY + 56);
 
     doc.save(`${billing.billing_no || "invoice"}.pdf`);
   };
@@ -381,7 +382,7 @@ function BillingList() {
       title: "Amount",
       dataIndex: "total_amount",
       key: "total_amount",
-      render: (amount) => `₹${amount}`,
+      render: (amount) => `${amount}`,
       sorter: true,
     },
     {
@@ -514,7 +515,7 @@ function BillingList() {
         </div>
       </div>
 
-       {/* Filters Row (Payment + Date Period) */}
+      {/* Filters Row (Payment + Date Period) */}
       <div className="flex flex-wrap items-end gap-4 mb-4">
         {/* Payment Method Filter */}
         <div className="flex flex-col gap-1 w-full sm:w-auto">
@@ -606,10 +607,53 @@ function BillingList() {
         </div>
 
         {/* Period Filter */}
-        
+        <div className="flex flex-col gap-1 w-full sm:w-[180px]">
+          <Typography.Text strong style={{ fontSize: 13, color: "#4b5563" }}>Period</Typography.Text>
+          <Select
+            value={period}
+            onChange={(value) => {
+              setPeriod(value);
+              if (value !== "custom") {
+                setDateRange(null);
+                setPagination((prev) => ({ ...prev, current: 1 }));
+                fetchBillings({ current: 1, period: value, dateRange: null });
+              } else {
+                const defaultRange = [dayjs().subtract(7, 'day'), dayjs()];
+                setDateRange(defaultRange);
+                setPagination((prev) => ({ ...prev, current: 1 }));
+                fetchBillings({ current: 1, period: "custom", dateRange: defaultRange });
+              }
+            }}
+            style={{ width: "100%" }}
+          >
+            <Select.Option value="all">All Time</Select.Option>
+            <Select.Option value="today">Today</Select.Option>
+            <Select.Option value="yesterday">Yesterday</Select.Option>
+            <Select.Option value="this_month">This Month</Select.Option>
+            <Select.Option value="this_year">This Year</Select.Option>
+            <Select.Option value="custom">Custom Range</Select.Option>
+          </Select>
+        </div>
 
         {/* Date Range Filter */}
-        
+        {period === "custom" && (
+          <div className="flex flex-col gap-1 w-full sm:w-[260px]">
+            <Typography.Text strong style={{ fontSize: 13, color: "#4b5563" }}>Date Range</Typography.Text>
+            <DatePicker.RangePicker
+              value={dateRange}
+              onChange={(val) => {
+                setDateRange(val);
+                if (val && val[0] && val[1]) {
+                  setPagination((prev) => ({ ...prev, current: 1 }));
+                  fetchBillings({ current: 1, period: "custom", dateRange: val });
+                }
+              }}
+              style={{ width: "100%" }}
+              format="DD MMM YYYY"
+              inputReadOnly
+            />
+          </div>
+        )}
       </div>
 
       {viewMode === "table" ? (
