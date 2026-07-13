@@ -534,12 +534,14 @@ function BillingForm() {
     setBillDiscountPct(billState.billDiscountPct || 0);
     setBillDiscountAmt(billState.billDiscountAmt || 0);
     setPreview(billState.preview);
+    // Reset bill-level discount when switching/loading a bill
+    setBillDiscountAmt(billState.billDiscountAmt || 0);
+    setBillDiscountPct(billState.billDiscountPct || 0);
   };
 
   const saveCurrentBillState = () => {
-    // Return the state object representing current UI
     return {
-      formValues: form.getFieldsValue(true), // true = include hidden/all
+      formValues: form.getFieldsValue(true),
       customerData,
       isNewCustomer,
       couponCode,
@@ -547,6 +549,8 @@ function BillingForm() {
       couponApplied,
       isSplitPayment,
       splitPayments,
+      billDiscountAmt,
+      billDiscountPct,
       customerHistoryBills,
       receivedAmount,
       billDiscountPct,
