@@ -12,15 +12,37 @@ const dashboardService = {
    * @param {String} period - 'today' | 'week' | 'month' | 'year'
    * @returns {Promise} Dashboard data
    */
-  getDashboardData: async (period = 'today') => {
+  getDashboardData: async (period = 'today', startDate = null, endDate = null) => {
     const branchId = getBranchId();
     const params = { period };
+    
+    if (period === 'custom' && startDate && endDate) {
+      params.startDate = startDate;
+      params.endDate = endDate;
+    }
     
     if (branchId) {
       params.branch_id = branchId;
     }
     
     const response = await api.get("/dashboard/data", { params });
+    return response.data;
+  },
+
+  getDashboardV2Data: async (period = 'today', startDate = null, endDate = null) => {
+    const branchId = getBranchId();
+    const params = { period };
+    
+    if (period === 'custom' && startDate && endDate) {
+      params.startDate = startDate;
+      params.endDate = endDate;
+    }
+    
+    if (branchId) {
+      params.branch_id = branchId;
+    }
+    
+    const response = await api.get("/dashboard/v2-data", { params });
     return response.data;
   },
 

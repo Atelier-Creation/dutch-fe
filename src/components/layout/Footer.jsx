@@ -8,7 +8,7 @@ const AppFooter = ({ theme = 'light', bgColor }) => {
   return (
     <Footer style={{ backgroundColor: bgColor, textAlign: "center", position: "sticky", bottom: 0, zIndex: 1000,paddingTop:5, paddingBottom:5 }}>
       <span className={`text-black text-sm`}>
-        © 2025 Atelier. All rights reserved.
+        © {new Date().getFullYear()} Atelier. All rights reserved.
       </span>
     </Footer>
   );

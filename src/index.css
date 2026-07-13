@@ -111,3 +111,35 @@ body {
   color:#111827;
   font-weight:500;
 }
+
+/* Ant Design RangePicker Mobile Responsiveness Overrides */
+@media screen and (max-width: 576px) {
+  .ant-picker-dropdown {
+    left: 8px !important;
+    right: 8px !important;
+    width: calc(100vw - 16px) !important;
+    min-width: 0 !important;
+  }
+
+  .ant-picker-dropdown .ant-picker-panel-container {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .ant-picker-dropdown .ant-picker-panels {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    width: 100% !important;
+  }
+
+  .ant-picker-dropdown .ant-picker-panel {
+    border: none !important;
+    width: 100% !important;
+    max-width: 280px !important;
+  }
+
+  .ant-picker-dropdown .ant-picker-panel:first-child {
+    border-bottom: 1px solid #f0f0f0 !important;
+  }
+}

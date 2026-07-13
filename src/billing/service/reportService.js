@@ -43,6 +43,23 @@ const reportService = {
     
     const res = await api.get("/billing/reports/source-wise", { params: queryParams });
     return res.data;
+  },
+
+  /**
+   * Get modern sales report data for the new UI design
+   * @param {Object} params - { period, startDate, endDate }
+   * @returns {Promise} Modern sales report data
+   */
+  async getModernSalesReport(params = {}) {
+    const branchId = getBranchId();
+    const queryParams = { ...params };
+    
+    if (branchId) {
+      queryParams.branch_id = branchId;
+    }
+    
+    const res = await api.get("/billing/reports/sales-v2", { params: queryParams });
+    return res.data;
   }
 };
 

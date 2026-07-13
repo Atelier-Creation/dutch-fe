@@ -880,6 +880,7 @@ function BillingForm() {
     const subtotal = items.reduce((sum, i) => sum + (Number(i.unit_price) || 0) * (Number(i.quantity) || 0), 0);
     const totalDiscount = items.reduce((sum, i) => sum + (Number(i.discount_amount) || 0), 0);
     const totalTax = items.reduce((sum, i) => sum + (Number(i.tax_amount) || 0), 0);
+    const totalQuantity = items.reduce((sum, i) => sum + (Number(i.quantity) || 0), 0);
 
     let couponDiscount = 0;
     if (appliedCoupon && couponApplied) {
@@ -887,7 +888,7 @@ function BillingForm() {
     }
 
     const grandTotal = subtotal - totalDiscount - billDiscountAmt + totalTax - couponDiscount;
-    return { subtotal, totalDiscount, billDiscount: billDiscountAmt, billDiscountPct, totalTax, couponDiscount, grandTotal: Math.max(0, grandTotal) };
+    return { subtotal, totalDiscount, billDiscount: billDiscountAmt, billDiscountPct, totalTax, couponDiscount, grandTotal: Math.max(0, grandTotal), totalQuantity };
   };
 
   // Validate coupon
@@ -2103,6 +2104,10 @@ function BillingForm() {
                       />
 
                       <div className="previewTotals" style={{ marginTop: 8 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                          <div style={{ color: "#374151" }}>Total Quantity</div>
+                          <div style={{ fontWeight: 600 }}>{summary.totalQuantity || 0}</div>
+                        </div>
                         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                           <div style={{ color: "#374151" }}>Subtotal</div>
                           <div>₹{summary.subtotal.toFixed(2)}</div>
