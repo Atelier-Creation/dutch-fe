@@ -1,3 +1,5 @@
+import { message } from "antd";
+
 const LOCAL_PRINT_URL = import.meta.env.VITE_LOCAL_PRINT_URL || "http://127.0.0.1:9123";
 const lineWidth = 48;
 
@@ -206,6 +208,36 @@ export const findLocalPrinters = async () => {
 };
 
 export const printReceiptLocally = async (billing, printerName) => {
+  let retries = 3;
+  let isHealthy = false;
+  let hideMessage = null;
+
+  while (retries > 0) {
+    try {
+      const health = await checkLocalPrintService();
+      if (health && (health.status === "running" || health.ok === true)) {
+        isHealthy = true;
+        break;
+      }
+    } catch (err) {
+      retries--;
+      if (retries > 0) {
+        if (!hideMessage) {
+          hideMessage = message.loading("Printer service unavailable. Attempting reconnect...", 0);
+        }
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
+    }
+  }
+
+  if (hideMessage) {
+    hideMessage();
+  }
+
+  if (!isHealthy) {
+    throw new Error("Local print service is unreachable. Please make sure it is running.");
+  }
+
   const receiptText = buildEscPosReceipt(billing);
   const data = await requestLocalPrintService("/print", {
     method: "POST",

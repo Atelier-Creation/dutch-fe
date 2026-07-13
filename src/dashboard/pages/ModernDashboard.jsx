@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { Row, Col, Card, Typography, Skeleton, Select, Tag, Table, Empty, DatePicker, Tooltip, Avatar } from "antd";
-import { 
-  IndianRupee, Users, ShoppingBasket, Wallet, TrendingUp, AlertTriangle, 
+import { Row, Col, Card, Typography, Skeleton, Select, Tag, Table, Empty, DatePicker, Tooltip, Avatar, Modal } from "antd";
+import {
+  IndianRupee, Users, ShoppingBasket, Wallet, TrendingUp, AlertTriangle,
   Package, ShoppingCart, Lightbulb, ArrowUpRight, ArrowDownRight, Sparkles, Clock, CheckCircle,
   Calendar, X
 } from 'lucide-react';
-import { 
-  ResponsiveContainer, BarChart as RechartsBarChart, Bar, XAxis, YAxis, 
+import {
+  ResponsiveContainer, BarChart as RechartsBarChart, Bar, XAxis, YAxis,
   Tooltip as RechartsTooltip, LineChart, Line, PieChart, Pie, Cell
 } from 'recharts';
 import dashboardService from "../service/dashboardService";
@@ -45,6 +45,71 @@ const ModernDashboard = () => {
   const [selectedBillId, setSelectedBillId] = useState(null);
   const [selectedBill, setSelectedBill] = useState(null);
   const [billModalVisible, setBillModalVisible] = useState(false);
+  const [suggestionIndex, setSuggestionIndex] = useState(0);
+
+  const getDynamicSuggestions = () => {
+    if (!dashboardData) return [];
+
+    const peakInfo = getPeakTimeInsight();
+    const upiPct = dashboardData.insights.bestPaymentPercentage || 0;
+    const bestMethod = dashboardData.insights.bestPaymentMethod || 'UPI';
+    const lowStock = dashboardData.summary.lowStockCount || 0;
+
+    const list = [
+      {
+        text: "Add combo offers on weekends to boost average bill value by 15-20%.",
+        actionText: "Create Combo Coupon",
+        link: "/coupon/customer-coupons"
+      }
+    ];
+
+    if (peakInfo) {
+      list.push({
+        text: `Optimize staffing on ${peakInfo.day} between ${peakInfo.hours} to handle peak customer traffic.`,
+        actionText: null,
+        link: null
+      });
+    }
+
+    if (bestMethod && upiPct) {
+      list.push({
+        text: `${bestMethod} accounts for ${upiPct}% of sales. Offer loyalty points on cashless payments to speed up checkouts.`,
+        actionText: "Manage Points",
+        link: "/coupon/points"
+      });
+    }
+
+    if (lowStock > 0) {
+      list.push({
+        text: `You have ${lowStock} items running low on stock. Refill them ahead of peak trading hours to prevent lost sales.`,
+        actionText: null,
+        link: null
+      });
+    }
+
+    return list;
+  };
+
+  useEffect(() => {
+    if (!dashboardData) return;
+    const list = getDynamicSuggestions();
+    if (list.length <= 1) return;
+
+    const timer = setInterval(() => {
+      setSuggestionIndex((prev) => (prev + 1) % list.length);
+    }, 10000);
+
+    return () => clearInterval(timer);
+  }, [dashboardData]);
+
+  useEffect(() => {
+    if (showHeatmapInsight) {
+      const timer = setTimeout(() => {
+        setShowHeatmapInsight(false);
+      }, 60000);
+      return () => clearTimeout(timer);
+    }
+  }, [showHeatmapInsight]);
 
   const handleBillClick = (record) => {
     setSelectedBillId(record.id);
@@ -106,10 +171,10 @@ const ModernDashboard = () => {
   // Process Weekly Trend for Bar Chart
   const getWeeklyChartData = () => {
     if (!dashboardData || !dashboardData.weeklyTrend) return [];
-    
+
     const dayMap = { 2: 'Mon', 3: 'Tue', 4: 'Wed', 5: 'Thu', 6: 'Fri', 7: 'Sat', 1: 'Sun' };
     const daysOrder = [2, 3, 4, 5, 6, 7, 1];
-    
+
     return daysOrder.map(dayNum => {
       const match = dashboardData.weeklyTrend.find(w => w.dayOfWeek === dayNum);
       return {
@@ -241,7 +306,7 @@ const ModernDashboard = () => {
         const revenue = match ? parseFloat(match.revenue) : 0;
 
         cells.push(
-          <Tooltip 
+          <Tooltip
             key={`${day.label}-${hour}`}
             title={`${day.label} at ${formatHour(hour)}: ${count} bills (${formatCurrency(revenue)})`}
           >
@@ -275,7 +340,7 @@ const ModernDashboard = () => {
             <div className="grid grid-rows-7 grid-flow-col gap-[4px] w-max">
               {cells}
             </div>
-            
+
             {/* Hour Labels Row */}
             <div className="flex justify-between text-[10px] text-slate-400 mt-2.5 px-1 select-none font-semibold">
               {hourLabels.map((lbl, idx) => (
@@ -312,20 +377,20 @@ const ModernDashboard = () => {
       return dashboardData.weeklyTrend.map(w => ({ value: parseFloat(w.revenue) }));
     }
     return [
-      { value: 10 }, { value: 18 }, { value: 12 }, { value: 24 }, 
+      { value: 10 }, { value: 18 }, { value: 12 }, { value: 24 },
       { value: 15 }, { value: 30 }, { value: 22 }, { value: 35 }
     ];
   };
 
   const getPeriodLabel = () => {
     switch (period) {
-      case "today":     return "vs yesterday";
+      case "today": return "vs yesterday";
       case "yesterday": return "vs day before";
-      case "week":      return "vs last week";
-      case "month":     return "vs last month";
-      case "year":      return "vs last year";
-      case "custom":    return "vs prev period";
-      default:          return "";
+      case "week": return "vs last week";
+      case "month": return "vs last month";
+      case "year": return "vs last year";
+      case "custom": return "vs prev period";
+      default: return "";
     }
   };
 
@@ -337,7 +402,7 @@ const ModernDashboard = () => {
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Dashboard</h1>
           <p className="text-xs text-slate-500 mt-1">Overview of your store performance</p>
         </div>
-        
+
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
           {selectedBranch && (
             <div className="px-3.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 shadow-sm flex items-center gap-1.5">
@@ -346,9 +411,9 @@ const ModernDashboard = () => {
             </div>
           )}
 
-          <Select 
-            value={period} 
-            onChange={handlePeriodChange} 
+          <Select
+            value={period}
+            onChange={handlePeriodChange}
             className="w-[130px] shadow-sm rounded-lg"
             dropdownStyle={{ borderRadius: '8px' }}
           >
@@ -401,14 +466,14 @@ const ModernDashboard = () => {
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Total Revenue</span>
-                    <h2 className="text-2xl font-bold text-slate-900 mt-1">{formatCurrency(dashboardData.summary.periodRevenue)}</h2>
+                    <h2 className="text-2xl font-bold text-slate-900 !my-2">{formatCurrency(dashboardData.summary.periodRevenue)}</h2>
                   </div>
                   <div className="p-2.5 bg-violet-50 text-violet-600 rounded-lg">
                     <Wallet size={20} />
                   </div>
                 </div>
-                
-                <div className="flex items-center justify-between mt-4">
+
+                <div className="flex items-center justify-between mt-2">
                   <div className="flex items-center gap-1">
                     {dashboardData.summary.revenueChange >= 0 ? (
                       <span className="text-xs font-bold text-emerald-600 flex items-center bg-emerald-50 px-1.5 py-0.5 rounded">
@@ -421,7 +486,7 @@ const ModernDashboard = () => {
                     )}
                     <span className="text-[10px] text-slate-400 font-medium">{getPeriodLabel()}</span>
                   </div>
-                  
+
                   <div className="w-[80px] h-[30px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={getSparklineData('revenue')}>
@@ -438,14 +503,14 @@ const ModernDashboard = () => {
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Total Bills</span>
-                    <h2 className="text-2xl font-bold text-slate-900 mt-1">{dashboardData.summary.periodBills}</h2>
+                    <h2 className="text-2xl font-bold text-slate-900 !my-2">{dashboardData.summary.periodBills}</h2>
                   </div>
                   <div className="p-2.5 bg-orange-50 text-orange-500 rounded-lg">
                     <IndianRupee size={20} />
                   </div>
                 </div>
-                
-                <div className="flex items-center justify-between mt-4">
+
+                <div className="flex items-center justify-between mt-2">
                   <div className="flex items-center gap-1">
                     {dashboardData.summary.billsChange >= 0 ? (
                       <span className="text-xs font-bold text-emerald-600 flex items-center bg-emerald-50 px-1.5 py-0.5 rounded">
@@ -458,7 +523,7 @@ const ModernDashboard = () => {
                     )}
                     <span className="text-[10px] text-slate-400 font-medium">{getPeriodLabel()}</span>
                   </div>
-                  
+
                   <div className="w-[80px] h-[30px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={getSparklineData('bills')}>
@@ -475,14 +540,14 @@ const ModernDashboard = () => {
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Total Customers</span>
-                    <h2 className="text-2xl font-bold text-slate-900 mt-1">{dashboardData.summary.totalCustomers}</h2>
+                    <h2 className="text-2xl font-bold text-slate-900 !my-2">{dashboardData.summary.totalCustomers}</h2>
                   </div>
                   <div className="p-2.5 bg-blue-50 text-blue-600 rounded-lg">
                     <Users size={20} />
                   </div>
                 </div>
-                
-                <div className="flex items-center justify-between mt-4">
+
+                <div className="flex items-center justify-between mt-2">
                   <div className="flex items-center gap-1">
                     {dashboardData.summary.custChange >= 0 ? (
                       <span className="text-xs font-bold text-emerald-600 flex items-center bg-emerald-50 px-1.5 py-0.5 rounded">
@@ -495,7 +560,7 @@ const ModernDashboard = () => {
                     )}
                     <span className="text-[10px] text-slate-400 font-medium">{getPeriodLabel()}</span>
                   </div>
-                  
+
                   <div className="w-[80px] h-[30px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={getSparklineData('customers')}>
@@ -512,14 +577,14 @@ const ModernDashboard = () => {
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Total Products</span>
-                    <h2 className="text-2xl font-bold text-slate-900 mt-1">{dashboardData.summary.totalProducts}</h2>
+                    <h2 className="text-2xl font-bold text-slate-900 !my-2">{dashboardData.summary.totalProducts}</h2>
                   </div>
                   <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-lg">
                     <ShoppingBasket size={20} />
                   </div>
                 </div>
-                
-                <div className="flex items-center justify-between mt-4">
+
+                <div className="flex items-center justify-between mt-2">
                   <div className="flex items-center gap-1.5">
                     {dashboardData.summary.lowStockCount > 0 ? (
                       <span className="text-xs font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded">
@@ -531,7 +596,7 @@ const ModernDashboard = () => {
                       </span>
                     )}
                   </div>
-                  
+
                   <div className="w-[80px] h-[30px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={getSparklineData('products')}>
@@ -549,7 +614,7 @@ const ModernDashboard = () => {
             <div className="absolute right-0 top-0 opacity-10 pointer-events-none transform translate-x-8 -translate-y-4">
               <Sparkles size={160} />
             </div>
-            
+
             <div className="flex items-center gap-3.5 z-10">
               <div className="p-2.5 bg-white/10 text-white rounded-xl">
                 <Lightbulb size={24} className="animate-pulse" />
@@ -565,8 +630,8 @@ const ModernDashboard = () => {
                 </p>
               </div>
             </div>
-            
-            <button 
+
+            <button
               onClick={() => navigate('/billing/reports')}
               className="text-xs font-bold !text-violet-900 bg-white hover:bg-violet-100 transition-colors px-4 py-2 rounded-lg cursor-pointer z-10 flex items-center gap-1 shadow-sm"
             >
@@ -574,17 +639,17 @@ const ModernDashboard = () => {
             </button>
           </div>
 
- {/* Row 3: Recent Bills & Top Products */}
+          {/* Row 3: Recent Bills & Top Products */}
           <Row gutter={[16, 16]}>
             <Col xs={24} lg={12}>
-              <Card 
+              <Card
                 title={
                   <div className="flex items-center justify-between w-full py-1">
                     <div className="flex items-center gap-2">
                       <ShoppingCart size={18} className="text-violet-600" />
                       <span className="text-sm font-bold text-slate-800">Recent Bills</span>
                     </div>
-                    <button 
+                    <button
                       onClick={() => navigate('/billing/list')}
                       className="text-xs font-semibold text-violet-600 hover:text-violet-700 bg-violet-50 hover:bg-violet-100 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
                     >
@@ -592,13 +657,15 @@ const ModernDashboard = () => {
                     </button>
                   </div>
                 }
-                className="rounded-xl border border-slate-200 shadow-sm bg-white"
+                className="rounded-xl border border-slate-200 shadow-sm bg-white h-full"
               >
                 <Table
+                  className="h-full"
                   dataSource={dashboardData.recentBills}
                   rowKey="id"
-                  pagination={false}
+                  pagination={{ pageSize: 6, showSizeChanger: false }}
                   size="small"
+                  scroll={{ x: 650 }}
                   columns={[
                     {
                       title: "Bill No",
@@ -632,9 +699,8 @@ const ModernDashboard = () => {
                       render: (val) => {
                         const isUpi = val?.includes('UPI');
                         return (
-                          <span className={`px-2 py-0.5 text-[10px] font-bold rounded uppercase ${
-                            isUpi ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-blue-50 text-blue-700 border border-blue-100'
-                          }`}>
+                          <span className={`px-2 py-0.5 text-[10px] font-bold rounded uppercase ${isUpi ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-blue-50 text-blue-700 border border-blue-100'
+                            }`}>
                             {isUpi ? 'UPI' : val}
                           </span>
                         );
@@ -650,14 +716,14 @@ const ModernDashboard = () => {
             </Col>
 
             <Col xs={24} lg={12}>
-              <Card 
+              <Card
                 title={
                   <div className="flex items-center justify-between w-full py-1">
                     <div className="flex items-center gap-2">
                       <Sparkles size={18} className="text-violet-600" />
                       <span className="text-sm font-bold text-slate-800">Top Selling Products</span>
                     </div>
-                    <button 
+                    <button
                       onClick={() => navigate('/Product/list')}
                       className="text-xs font-semibold text-violet-600 hover:text-violet-700 bg-violet-50 hover:bg-violet-100 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
                     >
@@ -679,10 +745,10 @@ const ModernDashboard = () => {
                       key: "product_name",
                       render: (text, record) => (
                         <div className="flex items-center gap-2.5 py-1">
-                          <Avatar 
-                            src={record.image_url} 
-                            shape="square" 
-                            size={36} 
+                          <Avatar
+                            src={record.image_url}
+                            shape="square"
+                            size={36}
                             className="bg-slate-100 border border-slate-100 rounded"
                             icon={<ShoppingBasket size={16} className="text-slate-400" />}
                           />
@@ -720,7 +786,7 @@ const ModernDashboard = () => {
           {/* Row 4: Sales Overview & Heatmap */}
           <Row gutter={[16, 16]}>
             <Col xs={24} lg={12}>
-              <Card 
+              <Card
                 title={
                   <div className="flex items-center justify-between w-full py-1">
                     <div className="flex items-center gap-2">
@@ -737,7 +803,7 @@ const ModernDashboard = () => {
                     <RechartsBarChart data={getWeeklyChartData()} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                       <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} />
                       <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} tickFormatter={formatCurrency} />
-                      <RechartsTooltip 
+                      <RechartsTooltip
                         formatter={(val) => [formatCurrency(val), 'Revenue']}
                         contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
                       />
@@ -782,7 +848,7 @@ const ModernDashboard = () => {
                           Your store sees the highest sales on <span className="text-violet-700 font-bold">{peakInfo.day} between {peakInfo.hours}.</span> Consider scheduling more staff and offers during these peak hours.
                         </p>
                       </div>
-                      <button 
+                      <button
                         onClick={() => setShowHeatmapInsight(false)}
                         className="text-slate-400 hover:text-slate-600 p-1 hover:bg-slate-100/50 rounded transition-colors cursor-pointer shrink-0 flex items-center justify-center"
                         title="Dismiss Insight"
@@ -809,8 +875,8 @@ const ModernDashboard = () => {
                 <div className="p-4 bg-emerald-50/50 border border-emerald-100 rounded-xl flex items-center justify-between">
                   <div className="space-y-1">
                     <span className="text-[10px] text-emerald-700/80 font-bold uppercase tracking-wider">Best Payment Method</span>
-                    <h3 className="text-lg font-bold text-emerald-900">{dashboardData.insights.bestPaymentMethod}</h3>
-                    <p className="text-xs text-slate-500">{dashboardData.insights.bestPaymentPercentage}% of total payments</p>
+                    <h3 className="text-lg font-extrabold text-emerald-900">{dashboardData.insights.bestPaymentMethod}</h3>
+                    <p className="text-xs text-slate-500 !mb-0">{dashboardData.insights.bestPaymentPercentage}% of total payments</p>
                   </div>
                   <div className="p-3 bg-emerald-100 text-emerald-700 rounded-xl">
                     <Wallet size={20} />
@@ -823,7 +889,7 @@ const ModernDashboard = () => {
                   <div className="space-y-1">
                     <span className="text-[10px] text-orange-700/80 font-bold uppercase tracking-wider">Peak Sales Time</span>
                     <h3 className="text-lg font-bold text-orange-950">{dashboardData.insights.peakTime}</h3>
-                    <p className="text-xs text-slate-500">{dashboardData.insights.peakPercentage}% of daily sales</p>
+                    <p className="text-xs text-slate-500 !mb-0">{dashboardData.insights.peakPercentage}% of daily sales</p>
                   </div>
                   <div className="p-3 bg-orange-100 text-orange-600 rounded-xl">
                     <Clock size={20} />
@@ -836,7 +902,7 @@ const ModernDashboard = () => {
                   <div className="space-y-1">
                     <span className="text-[10px] text-blue-700/80 font-bold uppercase tracking-wider">New Customers</span>
                     <h3 className="text-lg font-bold text-blue-900">{dashboardData.summary.periodCustomers}</h3>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-slate-500 !mb-0">
                       {dashboardData.summary.custChange >= 0 ? (
                         <span className="text-emerald-600 font-semibold">&uarr; {dashboardData.summary.custChange}% vs yesterday</span>
                       ) : (
@@ -855,7 +921,7 @@ const ModernDashboard = () => {
                   <div className="space-y-1">
                     <span className="text-[10px] text-rose-700/80 font-bold uppercase tracking-wider">Low Stock Items</span>
                     <h3 className="text-lg font-bold text-rose-900">{dashboardData.summary.lowStockCount}</h3>
-                    <p className="text-xs text-slate-500">Needs attention immediately</p>
+                    <p className="text-xs text-slate-500 !mb-0">Needs attention immediately</p>
                   </div>
                   <div className="p-3 bg-rose-100 text-rose-600 rounded-xl">
                     <AlertTriangle size={20} />
@@ -868,7 +934,7 @@ const ModernDashboard = () => {
           {/* Row 6: Alerts & Details */}
           <Row gutter={[16, 16]}>
             <Col xs={24} lg={8}>
-              <Card 
+              <Card
                 title={
                   <div className="flex items-center justify-between w-full py-1">
                     <div className="flex items-center gap-2">
@@ -910,9 +976,8 @@ const ModernDashboard = () => {
                         key: "status",
                         align: "right",
                         render: (_, record) => (
-                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
-                            record.quantity <= 0 ? 'bg-rose-50 text-rose-600 border border-rose-100' : 'bg-orange-50 text-orange-600 border border-orange-100'
-                          }`}>
+                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${record.quantity <= 0 ? 'bg-rose-50 text-rose-600 border border-rose-100' : 'bg-orange-50 text-orange-600 border border-orange-100'
+                            }`}>
                             {record.quantity <= 0 ? 'Out of Stock' : 'Low Stock'}
                           </span>
                         )
@@ -929,7 +994,7 @@ const ModernDashboard = () => {
             </Col>
 
             <Col xs={24} lg={8}>
-              <Card 
+              <Card
                 title={
                   <div className="flex items-center justify-between w-full py-1">
                     <div className="flex items-center gap-2">
@@ -939,7 +1004,7 @@ const ModernDashboard = () => {
                     <span className="text-[11px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded">All Transactions</span>
                   </div>
                 }
-                className="rounded-xl border border-slate-200 shadow-sm bg-white"
+                className="rounded-xl border border-slate-200 shadow-sm bg-white min-h-[270px] h-full"
               >
                 {dashboardData.paymentMethods && dashboardData.paymentMethods.length > 0 ? (
                   <div className="flex flex-col items-center justify-center">
@@ -971,7 +1036,7 @@ const ModernDashboard = () => {
                         </span>
                       </div>
                     </div>
-                    
+
                     <div className="w-full grid grid-cols-2 gap-2 mt-4 px-2">
                       {dashboardData.paymentMethods.map((pm, idx) => {
                         const name = pm.method === 'UPI Current Account' || pm.method === 'UPI Normal Account' ? 'UPI' : pm.method;
@@ -995,14 +1060,14 @@ const ModernDashboard = () => {
             </Col>
 
             <Col xs={24} lg={8}>
-              <Card 
+              <Card
                 title={
                   <div className="flex items-center justify-between w-full py-1">
                     <div className="flex items-center gap-2">
                       <Package size={18} className="text-violet-600" />
                       <span className="text-sm font-bold text-slate-800">Recent Inwards</span>
                     </div>
-                    <button 
+                    <button
                       onClick={() => navigate('/inward/list')}
                       className="text-xs font-semibold text-violet-600 hover:text-violet-700 bg-violet-50 hover:bg-violet-100 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
                     >
@@ -1010,10 +1075,10 @@ const ModernDashboard = () => {
                     </button>
                   </div>
                 }
-                className="rounded-xl border border-slate-200 shadow-sm bg-white"
+                className="rounded-xl border border-slate-200 shadow-sm bg-white min-h-[270px] h-full"
               >
                 {dashboardData.recentInwards && dashboardData.recentInwards.length > 0 ? (
-                  <div className="space-y-2 max-h-[220px] overflow-y-auto custom-scrollbar pr-1">
+                  <div className="space-y-2 max-h-[260px] overflow-y-auto custom-scrollbar pr-1">
                     {dashboardData.recentInwards.map((inward) => (
                       <div key={inward.id} className="p-2 border border-slate-100 hover:border-slate-200 rounded-lg flex items-center justify-between transition-colors">
                         <div>
@@ -1022,9 +1087,8 @@ const ModernDashboard = () => {
                         </div>
                         <div className="text-right">
                           <div className="font-bold text-slate-800 text-xs">{formatCurrency(inward.total_amount)}</div>
-                          <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase mt-1 inline-block ${
-                            inward.status === 'completed' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
-                          }`}>
+                          <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase mt-1 inline-block ${inward.status === 'completed' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
+                            }`}>
                             {inward.status}
                           </span>
                         </div>
@@ -1045,15 +1109,31 @@ const ModernDashboard = () => {
           </Row>
 
           {/* Suggestions footer Banner */}
-          <div className="p-3.5 bg-violet-50/70 border border-violet-100 rounded-xl text-violet-800 text-xs flex flex-wrap justify-between items-center gap-2">
-            <div className="flex items-center gap-2 font-medium">
-              <Sparkles size={14} className="text-violet-600 shrink-0" />
-              <span><strong>Tip:</strong> Add combo offers on weekends to boost average bill value by 15-20%.</span>
-            </div>
-            <button className="text-[10px] font-bold text-violet-700 bg-white hover:bg-violet-100/50 transition-colors px-3 py-1.5 rounded border border-violet-200 cursor-pointer">
-              View Suggestions
-            </button>
-          </div>
+          {(() => {
+            const list = getDynamicSuggestions();
+            const active = list[suggestionIndex] || list[0];
+            if (!active) return null;
+
+            return (
+              <div className="p-3.5 bg-violet-50/70 border border-violet-100 rounded-xl text-violet-800 text-xs flex flex-wrap justify-between items-center gap-2 transition-all duration-300">
+                <div className="flex items-center gap-2.5 font-medium flex-1">
+                  <Sparkles size={14} className="text-violet-600 shrink-0 animate-pulse" />
+                  <span>
+                    <strong className="font-bold mr-1">Smart Suggestion:</strong>
+                    {active.text}
+                  </span>
+                </div>
+                {active.actionText && active.link && (
+                  <button
+                    onClick={() => navigate(active.link)}
+                    className="text-[10px] font-bold text-violet-700 bg-white hover:bg-violet-100/50 transition-colors px-3 py-1.5 rounded border border-violet-200 cursor-pointer shadow-sm shrink-0"
+                  >
+                    {active.actionText} &rarr;
+                  </button>
+                )}
+              </div>
+            );
+          })()}
         </div>
       ) : (
         <Card className="rounded-xl border border-slate-200 shadow-sm text-center py-12 bg-white">

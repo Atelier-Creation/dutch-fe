@@ -288,13 +288,25 @@ function SalesReport() {
   // Render Metric Change indicator
   const renderChangeIndicator = (val) => {
     const change = parseFloat(val || 0);
-    if (change === 0) return <span className="text-slate-400 text-xs font-semibold">0% vs prev period</span>;
+    if (change === 0) {
+      return (
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">0%</span>
+          <span className="text-[10px] text-slate-400 font-medium">vs prev period</span>
+        </div>
+      );
+    }
     const isPositive = change > 0;
     return (
-      <span className={`flex items-center gap-0.5 text-xs font-bold ${isPositive ? "text-emerald-500" : "text-rose-500"}`}>
-        {isPositive ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-        {Math.abs(change).toFixed(1)}% vs prev period
-      </span>
+      <div className="flex items-center gap-1.5">
+        <span className={`text-[10px] font-bold flex items-center px-1.5 py-0.5 rounded ${
+          isPositive ? "text-emerald-700 bg-emerald-50" : "text-rose-700 bg-rose-50"
+        }`}>
+          {isPositive ? <ArrowUpRight size={10} className="mr-0.5" /> : <ArrowDownRight size={10} className="mr-0.5" />}
+          {Math.abs(change).toFixed(1)}%
+        </span>
+        <span className="text-[10px] text-slate-400 font-medium">vs prev period</span>
+      </div>
     );
   };
 
@@ -555,17 +567,17 @@ function SalesReport() {
         {/* Header Block */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5">
           <div>
-            <Title level={2} style={{ margin: 0, fontWeight: 800, color: "#1e293b" }} className="flex items-center gap-2">
-              <TrendingUp size={28} className="text-indigo-600" /> Sales Report
-            </Title>
-            <Text className="text-slate-500 text-sm">
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+              <TrendingUp size={26} className="text-indigo-600 animate-pulse" /> Sales Report
+            </h1>
+            <p className="text-xs text-slate-500 mt-1">
               Track and analyze store sales performance, payment channels, and insights.
-            </Text>
+            </p>
           </div>
           
           <div className="flex items-center gap-3">
             {selectedBranch && (
-              <Tag color="indigo" className="px-3.5 py-1 text-sm font-bold rounded-full shadow-sm border-indigo-100 flex items-center gap-1.5">
+              <Tag color="indigo" title="you can change branch on top bar" className="px-3.5 !py-1.5 text-sm font-bold rounded-full shadow-sm border-indigo-100 !flex items-center gap-1.5">
                 <Layers size={14} />
                 {selectedBranch.name === "All Branches" ? "All Branches" : selectedBranch.name}
               </Tag>
@@ -637,97 +649,119 @@ function SalesReport() {
         ) : reportData ? (
           <>
             {/* KPI Cards Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+            <Row gutter={[16, 16]}>
               
               {/* Card 1: Total Sales */}
-              <div className="bg-white border border-slate-100 rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Sales</span>
-                  <div className="p-2 rounded-lg bg-indigo-50 text-indigo-600">
-                    <IndianRupee size={18} />
+              <Col xs={24} sm={12} md={8} lg={8} xl={8} xxl={4}>
+                <Card className="rounded-xl border border-slate-200 hover:border-indigo-300 hover:shadow-md transition-all duration-200 shadow-sm relative overflow-hidden bg-white h-full" bodyStyle={{ padding: '20px' }}>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Total Sales</span>
+                      <h2 className="text-2xl font-bold text-slate-900 !my-2">{formatCurrency(reportData.summary.totalSales)}</h2>
+                    </div>
+                    <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-lg shrink-0">
+                      <IndianRupee size={20} />
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <h3 className="text-xl font-extrabold text-slate-800">{formatCurrency(reportData.summary.totalSales)}</h3>
-                  <div className="mt-1">{renderChangeIndicator(reportData.summary.totalSalesChange)}</div>
-                </div>
-              </div>
+                  <div className="flex items-center mt-2">
+                    {renderChangeIndicator(reportData.summary.totalSalesChange)}
+                  </div>
+                </Card>
+              </Col>
 
               {/* Card 2: Bills Generated */}
-              <div className="bg-white border border-slate-100 rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Bills Generated</span>
-                  <div className="p-2 rounded-lg bg-blue-50 text-blue-600">
-                    <Receipt size={18} />
+              <Col xs={24} sm={12} md={8} lg={8} xl={8} xxl={4}>
+                <Card className="rounded-xl border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all duration-200 shadow-sm relative overflow-hidden bg-white h-full" bodyStyle={{ padding: '20px' }}>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Bills Generated</span>
+                      <h2 className="text-2xl font-bold text-slate-900 !my-2">{reportData.summary.billsCount}</h2>
+                    </div>
+                    <div className="p-2.5 bg-blue-50 text-blue-600 rounded-lg shrink-0">
+                      <Receipt size={20} />
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <h3 className="text-xl font-extrabold text-slate-800">{reportData.summary.billsCount}</h3>
-                  <div className="mt-1">{renderChangeIndicator(reportData.summary.billsChange)}</div>
-                </div>
-              </div>
+                  <div className="flex items-center mt-2">
+                    {renderChangeIndicator(reportData.summary.billsChange)}
+                  </div>
+                </Card>
+              </Col>
 
               {/* Card 3: Items Sold */}
-              <div className="bg-white border border-slate-100 rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Items Sold</span>
-                  <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600">
-                    <ShoppingBasket size={18} />
+              <Col xs={24} sm={12} md={8} lg={8} xl={8} xxl={4}>
+                <Card className="rounded-xl border border-slate-200 hover:border-emerald-300 hover:shadow-md transition-all duration-200 shadow-sm relative overflow-hidden bg-white h-full" bodyStyle={{ padding: '20px' }}>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Items Sold</span>
+                      <h2 className="text-2xl font-bold text-slate-900 !my-2">{reportData.summary.itemsSold}</h2>
+                    </div>
+                    <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-lg shrink-0">
+                      <ShoppingBasket size={20} />
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <h3 className="text-xl font-extrabold text-slate-800">{reportData.summary.itemsSold}</h3>
-                  <div className="mt-1">{renderChangeIndicator(reportData.summary.itemsSoldChange)}</div>
-                </div>
-              </div>
+                  <div className="flex items-center mt-2">
+                    {renderChangeIndicator(reportData.summary.itemsSoldChange)}
+                  </div>
+                </Card>
+              </Col>
 
               {/* Card 4: Avg Bill Value */}
-              <div className="bg-white border border-slate-100 rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Avg. Bill Value</span>
-                  <div className="p-2 rounded-lg bg-amber-50 text-amber-600">
-                    <Percent size={18} />
+              <Col xs={24} sm={12} md={8} lg={8} xl={8} xxl={4}>
+                <Card className="rounded-xl border border-slate-200 hover:border-amber-300 hover:shadow-md transition-all duration-200 shadow-sm relative overflow-hidden bg-white h-full" bodyStyle={{ padding: '20px' }}>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Avg. Bill Value</span>
+                      <h2 className="text-2xl font-bold text-slate-900 !my-2">{formatCurrency(reportData.summary.avgBillValue)}</h2>
+                    </div>
+                    <div className="p-2.5 bg-amber-50 text-amber-600 rounded-lg shrink-0">
+                      <Percent size={20} />
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <h3 className="text-xl font-extrabold text-slate-800">{formatCurrency(reportData.summary.avgBillValue)}</h3>
-                  <div className="mt-1">{renderChangeIndicator(reportData.summary.avgBillValueChange)}</div>
-                </div>
-              </div>
+                  <div className="flex items-center mt-2">
+                    {renderChangeIndicator(reportData.summary.avgBillValueChange)}
+                  </div>
+                </Card>
+              </Col>
 
               {/* Card 5: Unique Customers */}
-              <div className="bg-white border border-slate-100 rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Unique Customers</span>
-                  <div className="p-2 rounded-lg bg-pink-50 text-pink-600">
-                    <Users size={18} />
+              <Col xs={24} sm={12} md={8} lg={8} xl={8} xxl={4}>
+                <Card className="rounded-xl border border-slate-200 hover:border-pink-300 hover:shadow-md transition-all duration-200 shadow-sm relative overflow-hidden bg-white h-full" bodyStyle={{ padding: '20px' }}>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Unique Customers</span>
+                      <h2 className="text-2xl font-bold text-slate-900 !my-2">{reportData.summary.uniqueCustomers}</h2>
+                    </div>
+                    <div className="p-2.5 bg-pink-50 text-pink-600 rounded-lg shrink-0">
+                      <Users size={20} />
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <h3 className="text-xl font-extrabold text-slate-800">{reportData.summary.uniqueCustomers}</h3>
-                  <div className="mt-1">{renderChangeIndicator(reportData.summary.uniqueCustomersChange)}</div>
-                </div>
-              </div>
+                  <div className="flex items-center mt-2">
+                    {renderChangeIndicator(reportData.summary.uniqueCustomersChange)}
+                  </div>
+                </Card>
+              </Col>
 
               {/* Card 6: Sales Growth */}
-              <div className="bg-white border border-slate-100 rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Sales Growth</span>
-                  <div className="p-2 rounded-lg bg-purple-50 text-purple-600">
-                    <TrendingUp size={18} />
+              <Col xs={24} sm={12} md={8} lg={8} xl={8} xxl={4}>
+                <Card className="rounded-xl border border-slate-200 hover:border-purple-300 hover:shadow-md transition-all duration-200 shadow-sm relative overflow-hidden bg-white h-full" bodyStyle={{ padding: '20px' }}>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Sales Growth</span>
+                      <h2 className="text-2xl font-bold text-slate-900 !my-2">
+                        {reportData.summary.totalSalesChange >= 0 ? "+" : ""}
+                        {reportData.summary.totalSalesChange.toFixed(1)}%
+                      </h2>
+                    </div>
+                    <div className="p-2.5 bg-purple-50 text-purple-600 rounded-lg shrink-0">
+                      <TrendingUp size={20} />
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <h3 className="text-xl font-extrabold text-slate-800">
-                    {reportData.summary.totalSalesChange >= 0 ? "+" : ""}
-                    {reportData.summary.totalSalesChange.toFixed(1)}%
-                  </h3>
-                  <div className="mt-1">
-                    <span className="text-slate-400 text-xs font-medium">Period-over-Period</span>
+                  <div className="flex items-center mt-2">
+                    <span className="text-slate-400 text-xs font-semibold">Period-over-Period</span>
                   </div>
-                </div>
-              </div>
-            </div>
+                </Card>
+              </Col>
+            </Row>
 
             {/* Row 1: Line Chart (Trends) & Heatmap */}
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -1213,7 +1247,7 @@ function SalesReport() {
 
             {/* AI Insights Card */}
             <Card
-              className="shadow-sm border-slate-100/80 rounded-xl bg-gradient-to-br from-indigo-50/30 to-violet-50/20"
+              className="shadow-sm hidden border-slate-100/80 rounded-xl bg-gradient-to-br from-indigo-50/30 to-violet-50/20"
               title={
                 <div className="py-1 flex items-center gap-2.5">
                   <Sparkles size={20} className="text-indigo-600 animate-pulse" />

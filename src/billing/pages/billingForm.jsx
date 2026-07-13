@@ -485,6 +485,8 @@ function BillingForm() {
       splitPayments: [{ method: 'cash', amount: 0 }],
       customerHistoryBills: [],
       receivedAmount: 0,
+      billDiscountPct: 0,
+      billDiscountAmt: 0,
       preview: { items: [], customer_name: "", billing_date: dayjs(), counter_no: "Counter 1" },
     };
   };
@@ -529,6 +531,8 @@ function BillingForm() {
     setSplitPayments(billState.splitPayments);
     setCustomerHistoryBills(billState.customerHistoryBills);
     setReceivedAmount(billState.receivedAmount || 0);
+    setBillDiscountPct(billState.billDiscountPct || 0);
+    setBillDiscountAmt(billState.billDiscountAmt || 0);
     setPreview(billState.preview);
   };
 
@@ -545,6 +549,8 @@ function BillingForm() {
       splitPayments,
       customerHistoryBills,
       receivedAmount,
+      billDiscountPct,
+      billDiscountAmt,
       preview,
     };
   };

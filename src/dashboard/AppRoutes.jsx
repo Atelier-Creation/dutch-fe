@@ -11,8 +11,8 @@ export const dashboardMenuItems = [
     icon: <LayoutDashboard size={20} />,
   },
   {
-    key: "/dashboard/v2",
-    label: "Dashboard V2",
+    key: "/dashboard/v1",
+    label: "Dashboard V1",
     icon: <LayoutDashboard size={20} />,
   },
 ];
@@ -21,8 +21,8 @@ const DashboardRoutes = () => {
   return (
     <Routes>
       {/* index → matches /dashboard */}
-      <Route index element={<DashboardFull />} />
-      <Route path="v2" element={<ModernDashboard />} />
+      <Route index element={<ModernDashboard />} />
+      <Route path="v1" element={<DashboardFull />} />
     </Routes>
   );
 };
