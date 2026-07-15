@@ -165,7 +165,8 @@ function SalesReport() {
     if (!reportData || !reportData.paymentMethods || !reportData.paymentMethods.methods) return [];
     return reportData.paymentMethods.methods.map((pm) => ({
       name: pm.method.toUpperCase(),
-      value: pm.total_amount
+      value: pm.total_amount,
+      percentage: pm.percentage
     }));
   };
 
@@ -216,7 +217,7 @@ function SalesReport() {
     ];
 
     const cells = [];
-    for (let hour = 0; hour < 24; hour++) {
+    for (let hour = 6; hour <= 23; hour++) {
       for (let dayIndex = 0; dayIndex < daysOrder.length; dayIndex++) {
         const day = daysOrder[dayIndex];
         const match = data.find((h) => h.dayOfWeek === day.value && h.hourOfDay === hour);
@@ -228,36 +229,35 @@ function SalesReport() {
             key={`${day.label}-${hour}`}
             title={`${day.label} at ${formatHour(hour)}: ${count} bills (${formatCurrency(revenue)})`}
           >
-            <div className={`w-[13px] h-[13px] rounded-[3px] ${getHeatmapColor(count)} transition-all duration-150 hover:scale-110 cursor-pointer`} />
+            <div className={`w-[22px] h-[22px] rounded-[5px] ${getHeatmapColor(count)} transition-all duration-150 hover:scale-110 cursor-pointer`} />
           </Tooltip>
         );
       }
     }
 
     const hourLabels = [
-      "12 AM", "2 AM", "4 AM", "6 AM", "8 AM", "10 AM",
-      "12 PM", "2 PM", "4 PM", "6 PM", "8 PM", "10 PM", "12 AM"
+      "6 AM", "8 AM", "10 AM", "12 PM", "2 PM", "4 PM", "6 PM", "8 PM", "10 PM", "12 AM"
     ];
 
     return (
       <div className="flex flex-col gap-2 py-2">
-        <div className="flex items-start gap-3 overflow-x-auto custom-scrollbar pb-3">
-          <div className="grid grid-rows-7 gap-[4px] h-[115px] text-[10px] text-slate-400 font-bold select-none pr-1">
-            <span className="flex items-center justify-end h-[13px] leading-none">Mon</span>
-            <span className="flex items-center justify-end h-[13px] leading-none">Tue</span>
-            <span className="flex items-center justify-end h-[13px] leading-none">Wed</span>
-            <span className="flex items-center justify-end h-[13px] leading-none">Thu</span>
-            <span className="flex items-center justify-end h-[13px] leading-none">Fri</span>
-            <span className="flex items-center justify-end h-[13px] leading-none">Sat</span>
-            <span className="flex items-center justify-end h-[13px] leading-none">Sun</span>
+        <div className="flex items-start gap-3 overflow-x-auto custom-scrollbar pb-3 justify-start md:justify-center">
+          <div className="grid grid-rows-7 gap-[5px] h-[198px] text-[11px] text-slate-400 font-bold select-none pr-1">
+            <span className="flex items-center justify-end h-[24px] leading-none">Mon</span>
+            <span className="flex items-center justify-end h-[24px] leading-none">Tue</span>
+            <span className="flex items-center justify-end h-[24px] leading-none">Wed</span>
+            <span className="flex items-center justify-end h-[24px] leading-none">Thu</span>
+            <span className="flex items-center justify-end h-[24px] leading-none">Fri</span>
+            <span className="flex items-center justify-end h-[24px] leading-none">Sat</span>
+            <span className="flex items-center justify-end h-[24px] leading-none">Sun</span>
           </div>
 
           <div className="w-max">
-            <div className="grid grid-rows-7 grid-flow-col gap-[4px] w-max">
+            <div className="grid grid-rows-7 grid-flow-col gap-[5px] w-max">
               {cells}
             </div>
             
-            <div className="flex justify-between text-[9px] text-slate-400 mt-2 px-1 select-none font-semibold">
+            <div className="flex justify-between text-[10px] text-slate-400 mt-2.5 px-1 select-none font-semibold">
               {hourLabels.map((lbl, idx) => (
                 <span key={idx}>{lbl}</span>
               ))}
@@ -889,7 +889,7 @@ function SalesReport() {
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
                         </Pie>
-                        <RechartsTooltip formatter={(value) => formatCurrency(value)} />
+                        <RechartsTooltip formatter={(value, name, entry) => [`${entry.payload.percentage}%`, name]} />
                       </PieChart>
                     </ResponsiveContainer>
                     <div className="absolute top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] text-center">
@@ -907,7 +907,7 @@ function SalesReport() {
                         </div>
                         <div className="flex gap-4 font-bold text-slate-800">
                           <span>{pm.count} bills</span>
-                          <span>{pm.percentage}%</span>
+                          <span>{formatCurrency(pm.total_amount)}</span>
                         </div>
                       </div>
                     ))}

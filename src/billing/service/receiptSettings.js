@@ -1,3 +1,5 @@
+import api from "../../api/api";
+
 export const RECEIPT_SETTINGS_KEY = "duchReceiptSettings";
 
 export const defaultReceiptSettings = {
@@ -30,6 +32,16 @@ export const saveReceiptSettings = (settings) => {
   const next = { ...defaultReceiptSettings, ...settings };
   localStorage.setItem(RECEIPT_SETTINGS_KEY, JSON.stringify(next));
   return next;
+};
+
+export const getReceiptSettingsApi = async () => {
+  const response = await api.get("/billing/receipt-settings");
+  return response.data?.data || response.data;
+};
+
+export const saveReceiptSettingsApi = async (settings) => {
+  const response = await api.put("/billing/receipt-settings", settings);
+  return response.data?.data || response.data;
 };
 
 export const getBranchDetails = (branches = [], selectedBranch) => {

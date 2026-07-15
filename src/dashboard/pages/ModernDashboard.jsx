@@ -298,7 +298,7 @@ const ModernDashboard = () => {
     };
 
     const cells = [];
-    for (let hour = 0; hour < 24; hour++) {
+    for (let hour = 6; hour <= 23; hour++) {
       for (let dayIndex = 0; dayIndex < DAYS_OF_WEEK.length; dayIndex++) {
         const day = DAYS_OF_WEEK[dayIndex];
         const match = heatmapData.find(h => h.dayOfWeek === day.value && h.hourOfDay === hour);
@@ -310,34 +310,33 @@ const ModernDashboard = () => {
             key={`${day.label}-${hour}`}
             title={`${day.label} at ${formatHour(hour)}: ${count} bills (${formatCurrency(revenue)})`}
           >
-            <div className={`w-[14px] h-[14px] rounded-[3px] ${getHeatmapColor(count)} transition-all duration-150 hover:scale-110 cursor-pointer`} />
+            <div className={`w-[22px] h-[22px] rounded-[5px] ${getHeatmapColor(count)} transition-all duration-150 hover:scale-110 cursor-pointer`} />
           </Tooltip>
         );
       }
     }
 
     const hourLabels = [
-      "12 AM", "2 AM", "4 AM", "6 AM", "8 AM", "10 AM",
-      "12 PM", "2 PM", "4 PM", "6 PM", "8 PM", "10 PM", "12 AM"
+      "6 AM", "8 AM", "10 AM", "12 PM", "2 PM", "4 PM", "6 PM", "8 PM", "10 PM", "12 AM"
     ];
 
     return (
       <div className="flex flex-col gap-2 py-2">
-        <div className="flex items-start gap-3 overflow-x-auto custom-scrollbar pb-3">
+        <div className="flex items-start gap-3 overflow-x-auto custom-scrollbar pb-3 justify-start md:justify-center">
           {/* Day Labels Column - Aligned row-by-row with grid */}
-          <div className="grid grid-rows-7 gap-[4px] h-[122px] text-[11px] text-slate-400 font-bold select-none pr-1">
-            <span className="flex items-center justify-end h-[14px] leading-none">Mon</span>
-            <span className="flex items-center justify-end h-[14px] leading-none">Tue</span>
-            <span className="flex items-center justify-end h-[14px] leading-none">Wed</span>
-            <span className="flex items-center justify-end h-[14px] leading-none">Thu</span>
-            <span className="flex items-center justify-end h-[14px] leading-none">Fri</span>
-            <span className="flex items-center justify-end h-[14px] leading-none">Sat</span>
-            <span className="flex items-center justify-end h-[14px] leading-none">Sun</span>
+          <div className="grid grid-rows-7 gap-[5px] h-[198px] text-[11px] text-slate-400 font-bold select-none pr-1">
+            <span className="flex items-center justify-end h-[24px] leading-none">Mon</span>
+            <span className="flex items-center justify-end h-[24px] leading-none">Tue</span>
+            <span className="flex items-center justify-end h-[24px] leading-none">Wed</span>
+            <span className="flex items-center justify-end h-[24px] leading-none">Thu</span>
+            <span className="flex items-center justify-end h-[24px] leading-none">Fri</span>
+            <span className="flex items-center justify-end h-[24px] leading-none">Sat</span>
+            <span className="flex items-center justify-end h-[24px] leading-none">Sun</span>
           </div>
 
           {/* GitHub Grid Container */}
           <div className="w-max">
-            <div className="grid grid-rows-7 grid-flow-col gap-[4px] w-max">
+            <div className="grid grid-rows-7 grid-flow-col gap-[5px] w-max">
               {cells}
             </div>
 
@@ -1040,13 +1039,12 @@ const ModernDashboard = () => {
                     <div className="w-full grid grid-cols-2 gap-2 mt-4 px-2">
                       {dashboardData.paymentMethods.map((pm, idx) => {
                         const name = pm.method === 'UPI Current Account' || pm.method === 'UPI Normal Account' ? 'UPI' : pm.method;
-                        const pct = ((parseFloat(pm.total_amount) / parseFloat(dashboardData.summary.periodRevenue || 1)) * 100).toFixed(0);
                         return (
                           <div key={pm.method} className="flex items-center gap-1.5">
                             <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
                             <div className="flex-1 flex justify-between items-center text-[10px]">
                               <span className="font-semibold text-slate-600 uppercase">{name}</span>
-                              <span className="font-bold text-slate-800">{pct}%</span>
+                              <span className="font-bold text-slate-800">{formatCurrency(pm.total_amount)}</span>
                             </div>
                           </div>
                         );

@@ -1,4 +1,5 @@
-import { Suspense, useMemo } from "react";
+import { Suspense, useMemo, useEffect } from "react";
+import { getReceiptSettingsApi, saveReceiptSettings } from "./billing/service/receiptSettings";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import MainLayout from "./components/layout/Mainlayout";
 import { useAuth } from "./context/AuthContext";
@@ -80,6 +81,18 @@ const App = () => {
 function AppInner() {
   const { user } = useAuth();
   const isSuperAdmin = user?.role?.role_name === "super admin";
+
+  useEffect(() => {
+    if (user) {
+      getReceiptSettingsApi()
+        .then((settings) => {
+          saveReceiptSettings(settings);
+        })
+        .catch((err) => {
+          console.error("Failed to sync receipt settings on startup:", err);
+        });
+    }
+  }, [user]);
   const modules = Object.entries(routeModules).map(([path, mod]) => {
     const match = path.match(/\.\/(.*?)\/AppRoutes\.jsx$/);
     const name = match?.[1];

@@ -24,7 +24,7 @@ import {
 } from "@ant-design/icons";
 import userService from "../../user/service/userService";
 import localPrintService from "../../billing/service/localPrintService";
-import { defaultReceiptSettings, getReceiptSettings, saveReceiptSettings } from "../../billing/service/receiptSettings";
+import { defaultReceiptSettings, getReceiptSettings, saveReceiptSettings, getReceiptSettingsApi, saveReceiptSettingsApi } from "../../billing/service/receiptSettings";
 
 const { TabPane } = Tabs;
 
@@ -44,7 +44,15 @@ const Settings = () => {
   // Fetch user data on component mount
   useEffect(() => {
     fetchUserData();
-    receiptForm.setFieldsValue(getReceiptSettings());
+    
+    // Fetch fresh settings from DB
+    getReceiptSettingsApi().then(settings => {
+      saveReceiptSettings(settings);
+      receiptForm.setFieldsValue(settings);
+    }).catch(err => {
+      console.error("Failed to load receipt settings from API:", err);
+      receiptForm.setFieldsValue(getReceiptSettings());
+    });
   }, []);
 
   const fetchUserData = async () => {
@@ -164,15 +172,33 @@ const Settings = () => {
     message.success("Printer saved for this computer");
   };
 
-  const handleReceiptSettingsSubmit = (values) => {
-    saveReceiptSettings(values);
-    message.success("Receipt header and footer saved");
+  const handleReceiptSettingsSubmit = async (values) => {
+    setLoading(true);
+    try {
+      const updated = await saveReceiptSettingsApi(values);
+      saveReceiptSettings(updated);
+      message.success("Receipt header and footer saved");
+    } catch (error) {
+      console.error("Failed to save settings:", error);
+      message.error(error.response?.data?.error || "Failed to save receipt settings");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const resetReceiptSettings = () => {
-    saveReceiptSettings(defaultReceiptSettings);
-    receiptForm.setFieldsValue(defaultReceiptSettings);
-    message.success("Receipt settings reset");
+  const resetReceiptSettings = async () => {
+    setLoading(true);
+    try {
+      const updated = await saveReceiptSettingsApi(defaultReceiptSettings);
+      saveReceiptSettings(updated);
+      receiptForm.setFieldsValue(updated);
+      message.success("Receipt settings reset");
+    } catch (error) {
+      console.error("Failed to reset settings:", error);
+      message.error(error.response?.data?.error || "Failed to reset receipt settings");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const printTestReceipt = async () => {
